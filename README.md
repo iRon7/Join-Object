@@ -10,16 +10,18 @@ Syntax
 Commands
 ========
 
-`InnerJoin-Object` (Alias `InnerJoin`)
+The `Join-Object` (alias `Join`) function is one function with several aliases that join two tables (each consisting out of an array of [PSCustomObjects](https://msdn.microsoft.com/en-us/library/system.management.automation.pscustomobject(v=vs.85).aspx))  similar to the respective [SQL Join](http://www.sql-join.com/) instructions. The default [join type](http://www.sql-join.com/sql-join-types) is an `InnerJoin`.
+
+ - `InnerJoin-Object` (Alias `InnerJoin`)
 Returns records that have matching values in both tables.
 
-`LeftJoin-Object` (Alias `LeftJoin`)
+ - `LeftJoin-Object` (alias `LeftJoin`)
 Returns all records from the left table and the matched records from the right table.
 
-`RightJoin-Object` (Alias `RightJoin`)
+ - `RightJoin-Object` (alias `RightJoin`)
 Returns all records from the right table and the matched records from the right table.
 
-`FullJoin-Object` (Alias `FullJoin`)
+ - `FullJoin-Object` (alias `FullJoin`)
 Returns all records when there is a match in either left or right table.
 
 *Note:* All `Join` commands are compatible with PowerShell version 2 and higher.
@@ -29,12 +31,12 @@ Parameters
 
 `-LeftTable <Object[]>` and `-RightTable <Object[]>`
 ----------------------------------------------------
-The tables that need to be joined. There are three ways to supply the left table and right table:
+The  `-LeftTable` and `RightTable` parameter define the left - and right table to be joined. There are three possible syntaxis to supply the tables:
 
  - Using the PowerShell pipeline:
  <code><i>&lt;LeftTable&gt;</i> |  Join  <i>&lt;RightTable&gt;</i></code>
 
- - Supplying both tables in an array (separated by a comma):
+ - Supplying both tables in an array (separated by a comma) at the first argument position:
  <code>Join  <i>&lt;LeftTable&gt;</i>,<i>&lt;RightTable&gt;</i></code>
 
  - Supplying both tables with named arguments:
@@ -47,7 +49,7 @@ If only one table is supplied (<code>Join  <i>&lt;Table&gt;</i></code>), a self 
 The  `-On` (alias `Using`) parameter defines the condition that specify how to join tables and which rows to include in the (inner) result set. The  `-On` parameter supports the following formats:
 
  - `String -Equals <String>`
-If the `-On` value is a `String` and the `-Equals <String>` parameters is supplied, the property in the left column defined by the `-On` value requires to be equal to the property in the right column defined by the `-equal` value to be included in the (inner) result set.
+If the `-On` value is a `String` and the `-Equals <String>` parameters is supplied, the property in the left column defined by the `-On` value requires to be equal to the property in the right column defined by the `-equals` value to be included in the (inner) result set.
 
  - `String` or `Array`
 If the value is a `String` or `Array` the `-On` parameter is similar to the SQL `using` clause. This means that all the listed properties require to be equal (at the left and right side) to be included in the (inner) result set. The listed properties will output a single value by default (see also `-Expressions`).
@@ -55,7 +57,7 @@ If the value is a `String` or `Array` the `-On` parameter is similar to the SQL 
  - `ScriptBlock`
 Any conditional expression where `$Left` defines the left row, `$Right` defines the right row.  
 
-*Note 1:* The  `ScriptBlock` type has the most comparison possibilities but is considerable slower that the other types.
+*Note 1:* The  `ScriptBlock` type has the most comparison possibilities but is considerable slower than the other types.
 
 *Note 2:* If the `-On` parameter is omitted or from an unknown type, a [cross-join](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join) will be performed.
 
@@ -65,7 +67,7 @@ Defines how the specific columns with the same name should be merged. In the exp
 
     {If ($Left.$_ -ne $Null) {$Left.$_} Else {$Right.$_}}
 
-This means that a single value (either `$Left` or `$Right` which is not equal to `$Null`) is assigned to current property.
+This means that a single value (either `$Left` or `$Right` which is not equal to `$Null`) is assigned to the current property.
 
 `-DefaultExpression <ScriptBlock>`
 ----------------------------------
@@ -73,7 +75,7 @@ Defines how the columns with the same name that are not covered by the `-Express
 
     {$Left.$_, $Right.$_}
 
-This means that both values are assigned (in an array) to current property.
+This means that both values are assigned (in an array) to the current property.
 
 Examples
 ========
