@@ -13,21 +13,24 @@ Function Join-Object {
 	$Keys = $LeftKeys + $RightKeys | Select -Unique
 	$Keys | Where {!$Expressions.$_} | ForEach {$Expressions.$_ = $DefaultExpression}
 	$Properties = @{}; $Keys | ForEach {$Properties.$_ = $Null}; $PSObject = New-Object PSObject -Property $Properties
-	$LeftList  = @($True) * @($LeftTable).Length; $RightList = @($True) * @($RightTable).Length
+	$LeftOut  = @($True) * @($LeftTable).Length; $RightOut = @($True) * @($RightTable).Length
 	$NullObject = New-Object PSObject
 	Function Add-PSObject($Left, $Right) {
 		$Keys | ForEach {$PSObject.$_ = If ($LeftKeys -NotContains $_) {$Right.$_} ElseIf ($RightKeys -NotContains $_) {$Left.$_} Else {&$Expressions.$_}}
 		$PSObject
 	}
-	For ($L = 0; $L -lt $LeftList.Length; $L++) {$Left = $LeftTable[$L]
-		For ($R = 0; $R -lt $RightList.Length; $R++) {$Right = $RightTable[$R]
+	For ($LeftIndex = 0; $LeftIndex -lt $LeftOut.Length; $LeftIndex++) {$Left = $LeftTable[$LeftIndex]
+		For ($RightIndex = 0; $RightIndex -lt $RightOut.Length; $RightIndex++) {$Right = $RightTable[$RightIndex]
 			$Select = If ($On -is [String]) {If ($Equals) {$Left.$On -eq $Right.$Equals} Else {$Left.$On -eq $Right.$On}}
 			ElseIf ($On -is [Array]) {($On | Where {!($Left.$_ -eq $Right.$_)}) -eq $Null} ElseIf ($On -is [ScriptBlock]) {&$On} Else {$True}
-			If ($Select) {Add-PSObject $Left $Right; $LeftList[$L], $RightList[$R] = $Null}
+			If ($Select) {Add-PSObject $Left $Right; $LeftOut[$LeftIndex], $RightOut[$RightIndex] = $Null}
 		}
 	}
-	If ("LeftJoin",  "FullJoin" -Contains $Type) {For ($L = 0; $L -lt $LeftList.Length; $L++) {If ($LeftList[$L]) {Add-PSObject $LeftTable[$L] $NullObject}}}
-	If ("RightJoin", "FullJoin" -Contains $Type) {For ($R = 0; $R -lt $RightList.Length; $R++) {If ($RightList[$R]) {Add-PSObject $NullObject $RightTable[$R]}}
+	If ("LeftJoin",  "FullJoin" -Contains $Type) {For ($LeftIndex = 0; $LeftIndex -lt $LeftOut.Length; $LeftIndex++) {
+		If ($LeftOut[$LeftIndex]) {Add-PSObject $LeftTable[$LeftIndex] $NullObject}}
+	}
+	If ("RightJoin", "FullJoin" -Contains $Type) {For ($RightIndex = 0; $RightIndex -lt $RightOut.Length; $RightIndex++) {
+		If ($RightOut[$RightIndex]) {Add-PSObject $NullObject $RightTable[$RightIndex]}}
 	}
 }; Set-Alias Join   Join-Object
 Set-Alias InnerJoin Join-Object; Set-Alias InnerJoin-Object Join-Object -Description "Returns records that have matching values in both tables"
