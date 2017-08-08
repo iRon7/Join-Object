@@ -1,22 +1,22 @@
 Function Join-Object {
 	[CmdletBinding()]Param (
-		[PSObject[]]$RightTable, [Alias("Using")]$On, [HashTable]$Expressions = @{}, [ScriptBlock]$DefaultExpression = {$Left.$_, $Right.$_}, 
-		[Parameter(ValueFromPipeLine = $True)][Object[]]$LeftTable, [String]$Equals
+		[PSObject[]]$RightTable, [Alias("Using")]$On, $Merge = @{}, [Parameter(ValueFromPipeLine = $True)][Object[]]$LeftTable, [String]$Equals
 	)
 	$Type = ($MyInvocation.InvocationName -Split "-")[0]
 	$PipeLine = $Input | ForEach {$_}; If ($PipeLine) {$LeftTable = $PipeLine}
 	If ($LeftTable -eq $Null) {If ($RightTable[0] -is [Array]) {$LeftTable = $RightTable[0]; $RightTable = $RightTable[-1]} Else {$LeftTable = $RightTable}}
-	If ($Equals) {$Expressions.$Equals = {If ($Left.$Equals -ne $Null) {$Left.$Equals} Else {$Right.$Equals}}}
-	ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach {If (!$Expressions.$_) {$Expressions.$_ = {If ($Left.$_ -ne $Null) {$Left.$_} Else {$Right.$_}}}}}
+	$DefaultMerge = If ($Merge -is [ScriptBlock]) {$Merge; $Merge = @{}} ElseIf ($Merge."") {$Merge.""} Else {{$Left.$_, $Right.$_}}
+	If ($Equals) {$Merge.$Equals = {If ($Left.$Equals -ne $Null) {$Left.$Equals} Else {$Right.$Equals}}}
+	ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach {If (!$Merge.$_) {$Merge.$_ = {If ($Left.$_ -ne $Null) {$Left.$_} Else {$Right.$_}}}}}
 	$LeftKeys  = $LeftTable[0].PSObject.Properties  | ForEach {$_.Name}
 	$RightKeys = $RightTable[0].PSObject.Properties | ForEach {$_.Name}
 	$Keys = $LeftKeys + $RightKeys | Select -Unique
-	$Keys | Where {!$Expressions.$_} | ForEach {$Expressions.$_ = $DefaultExpression}
+	$Keys | Where {!$Merge.$_} | ForEach {$Merge.$_ = $DefaultMerge}
 	$Properties = @{}; $Keys | ForEach {$Properties.$_ = $Null}; $PSObject = New-Object PSObject -Property $Properties
 	$LeftOut  = @($True) * @($LeftTable).Length; $RightOut = @($True) * @($RightTable).Length
 	$NullObject = New-Object PSObject
 	Function Add-PSObject($Left, $Right) {
-		$Keys | ForEach {$PSObject.$_ = If ($LeftKeys -NotContains $_) {$Right.$_} ElseIf ($RightKeys -NotContains $_) {$Left.$_} Else {&$Expressions.$_}}
+		$Keys | ForEach {$PSObject.$_ = If ($LeftKeys -NotContains $_) {$Right.$_} ElseIf ($RightKeys -NotContains $_) {$Left.$_} Else {&$Merge.$_}}
 		$PSObject
 	}
 	For ($LeftIndex = 0; $LeftIndex -lt $LeftOut.Length; $LeftIndex++) {$Left = $LeftTable[$LeftIndex]
