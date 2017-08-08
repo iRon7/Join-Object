@@ -1,11 +1,11 @@
 Syntax
 ======
 
-`<Object[]> |  InnerJoin|LeftJoin|RightJoin|FullJoin <Object[]> [-On <String>|<Array>|<ScriptBlock> | -On <String> -Eq <String>] [-Expressions <HashTable>] [-DefaultExpression <ScriptBlock>]`
+`<Object[]> |  InnerJoin|LeftJoin|RightJoin|FullJoin <Object[]> [-On <String>|<Array>|<ScriptBlock>] [-Merge <HashTable>|<ScriptBlock>] [-Eq <String>]`
 
-`InnerJoin|LeftJoin|RightJoin|FullJoin <Object[]>,<Object[]>  [-On <String>|<Array>|<ScriptBlock> | -On <String> -Eq <String>] [-Expressions <HashTable>] [-DefaultExpression <ScriptBlock>]`
+`InnerJoin|LeftJoin|RightJoin|FullJoin <Object[]>,<Object[]>  [-On <String>|<Array>|<ScriptBlock>] [-Merge <HashTable>|<ScriptBlock>] [-Eq <String>]`
 
-`InnerJoin|LeftJoin|RightJoin|FullJoin -LeftTable <Object[]> -RightTable <Object[]>  [-On <String>|<Array>|<ScriptBlock> | -On <String> -Eq <String>] [-Expressions <HashTable>] [-DefaultExpression <ScriptBlock>]`
+`InnerJoin|LeftJoin|RightJoin|FullJoin -LeftTable <Object[]> -RightTable <Object[]>  [-On <String>|<Array>|<ScriptBlock>] [-Merge <HashTable>|<ScriptBlock>] [-Eq <String>]`
 
 Commands
 ========
@@ -24,7 +24,9 @@ Returns all records from the right table and the matched records from the right 
  - `FullJoin-Object` (alias `FullJoin`)
 Returns all records when there is a match in either left or right table.
 
-*Note:* All `Join` commands are compatible with PowerShell version 2 and higher.
+*Notes*
+
+ 1. All `Join` commands are compatible with PowerShell version 2 and higher.
 
 Parameters
 ==========
@@ -42,7 +44,9 @@ The  `-LeftTable` and `RightTable` parameter define the left - and right table t
  - Supplying both tables with named arguments:
  <code>Join  -Left <i>&lt;LeftTable&gt;</i> -Right <i>&lt;RightTable&gt;</i></code>
 
-If only one table is supplied (<code>Join  <i>&lt;Table&gt;</i></code>), a self [self-join](https://en.wikipedia.org/wiki/Join_(SQL)#Self-join) will be performed on the table.
+*Notes*
+
+ 1. If only one table is supplied (<code>Join  <i>&lt;Table&gt;</i></code>), a self [self-join](https://en.wikipedia.org/wiki/Join_(SQL)#Self-join) will be performed on the table.
 
 `-On <String>|<Array>|<ScriptBlock>` and `-Equals <String>`
 ------------------------------------------------
@@ -57,25 +61,33 @@ If the value is a `String` or `Array` the `-On` parameter is similar to the SQL 
  - `ScriptBlock`
 Any conditional expression where `$Left` defines the left row, `$Right` defines the right row.  
 
-*Note 1:* The  `ScriptBlock` type has the most comparison possibilities but is considerable slower than the other types.
+*Notes*
 
-*Note 2:* If the `-On` parameter is omitted or from an unknown type, a [cross-join](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join) will be performed.
+ 1. The  `ScriptBlock` type has the most comparison possibilities but is considerable slower than the other types.
 
-`-Expressions <HashTable>`
---------------------------
-Defines how the specific columns with the same name should be merged. In the expression, `$Left.$_` holds the left value and `$Right.$_` holds the right value.  The default expression for columns defined by the `-On <String>`, `-Equals <String>`and -On `<Array>` is:
+ 2.  If the `-On` parameter is omitted or from an unknown type, a [cross-join](https://en.wikipedia.org/wiki/Join_(SQL)#Cross_join) will be performed.
 
-    {If ($Left.$_ -ne $Null) {$Left.$_} Else {$Right.$_}}
+`-Merge <HashTable>|<ScriptBlock>`
+----------------------------------
 
+Defines how the specific columns with the same name should be merged.  The `-Merge` parameter accepts to types:  a `HashTable`  containing the specific merge expression for each column or `ScriptBlock` containing the default merge expression for column that has no merge expression defined.  
+Where in the expression:
+
+ - `$_` holds each column name.
+ - `$Left` holds the left row and `$Right` holds the right row.
+ - `$Left.$_` holds each left value  and `$Right.$_` holds each right value.
+ - `$LeftIndex` holds the current left row index and `$RightIndex` holds the current right row index.
+
+
+*Notes:*
+ 
+ 1. The default expression is:  `{$Left.$_, $Right.$_}`
+This means that both values are assigned (in an array) to the current property.
+
+ 2.  The expression for columns defined by the `-On <String>`, `-Equals <String>`and -On `<Array>` is: `{If ($Left.$_ -ne $Null) {$Left.$_} Else {$Right.$_}}`  and can only be overruled by a column specific expression defined in a hash table.
 This means that a single value (either `$Left` or `$Right` which is not equal to `$Null`) is assigned to the current property.
 
-`-DefaultExpression <ScriptBlock>`
-----------------------------------
-Defines how the columns with the same name that are not covered by the `-Expressions <HashTable>` parameter should be merged. In the expression, `$Left.$_` holds the left value and `$Right.$_` holds the right value. The default expression is:
-
-    {$Left.$_, $Right.$_}
-
-This means that both values are assigned (in an array) to the current property.
+ 3.  To use column specific expressions and define a default expression us a zero length key name for the default expression, e.g. `-Merge @{"" = {$Left.$_}; "Column Name" = {$Left.$_}}`
 
 Examples
 ========
