@@ -7,7 +7,7 @@ Function Join-Object {
 	If ($LeftTable -eq $Null) {If ($RightTable[0] -is [Array]) {$LeftTable = $RightTable[0]; $RightTable = $RightTable[-1]} Else {$LeftTable = $RightTable}}
 	$DefaultMerge = If ($Merge -is [ScriptBlock]) {$Merge; $Merge = @{}} ElseIf ($Merge."") {$Merge.""} Else {{$Left.$_, $Right.$_}}
 	If ($Equals) {$Merge.$Equals = {If ($Left.$Equals -ne $Null) {$Left.$Equals} Else {$Right.$Equals}}}
-	ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach {If (!$Merge.$_) {$Merge.$_ = {If ($Left.$_ -ne $Null) {$Left.$_} Else {$Right.$_}}}}}
+	ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach {If (!$Merge.$_) {$Merge.$_ = {Merge-Left}}}}
 	$LeftKeys  = $LeftTable[0].PSObject.Properties  | ForEach {$_.Name}
 	$RightKeys = $RightTable[0].PSObject.Properties | ForEach {$_.Name}
 	$Keys = $LeftKeys + $RightKeys | Select -Unique
@@ -15,6 +15,8 @@ Function Join-Object {
 	$Properties = @{}; $Keys | ForEach {$Properties.$_ = $Null}; $PSObject = New-Object PSObject -Property $Properties
 	$LeftOut  = @($True) * @($LeftTable).Length; $RightOut = @($True) * @($RightTable).Length
 	$NullObject = New-Object PSObject
+	Function Merge-Left  {If ($Left.$_ -ne $Null)  {$Left.$_}  Else {$Right.$_}}; Set-Alias Left  Merge-Left
+	Function Merge-Right {If ($Right.$_ -ne $Null) {$Right.$_} Else {$Left.$_}};  Set-Alias Right Merge-Right
 	Function Add-PSObject($Left, $Right) {
 		$Keys | ForEach {$PSObject.$_ = If ($LeftKeys -NotContains $_) {$Right.$_} ElseIf ($RightKeys -NotContains $_) {$Left.$_} Else {&$Merge.$_}}
 		$PSObject
