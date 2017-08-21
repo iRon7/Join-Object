@@ -10,18 +10,18 @@ Syntax
 Commands
 ========
 
-The `Join-Object` (alias `Join`) function is one function with several aliases that join two tables (each consisting out of an array of [PSCustomObjects](https://msdn.microsoft.com/en-us/library/system.management.automation.pscustomobject(v=vs.85).aspx))  similar to the respective [SQL Join](http://www.sql-join.com/) instructions. The default [join type](http://www.sql-join.com/sql-join-types) is an `InnerJoin`.
+The `Join-Object` (alias `Join`) function is one function with several aliases that joins two tables (each consisting out of an array of [PSCustomObjects](https://msdn.microsoft.com/en-us/library/system.management.automation.pscustomobject(v=vs.85).aspx))  similar to the respective [SQL Join](http://www.sql-join.com/) instructions. The default [join type](http://www.sql-join.com/sql-join-types) is an `InnerJoin`.
 
- - `InnerJoin-Object` (Alias `InnerJoin`)
+ - `InnerJoin-Object` (Alias `InnerJoin`)  
 Returns records that have matching values in both tables.
 
- - `LeftJoin-Object` (alias `LeftJoin`)
+ - `LeftJoin-Object` (alias `LeftJoin`)  
 Returns all records from the left table and the matched records from the right table.
 
- - `RightJoin-Object` (alias `RightJoin`)
+ - `RightJoin-Object` (alias `RightJoin`)  
 Returns all records from the right table and the matched records from the right table.
 
- - `FullJoin-Object` (alias `FullJoin`)
+ - `FullJoin-Object` (alias `FullJoin`)  
 Returns all records when there is a match in either left or right table.
 
 *Notes*
@@ -70,24 +70,25 @@ Any conditional expression where `$Left` defines the left row, `$Right` defines 
 `-Merge <HashTable>|<ScriptBlock>`
 ----------------------------------
 
-Defines how the specific columns with the same name should be merged.  The `-Merge` parameter accepts to types:  a `HashTable`  containing the specific merge expression for each column or `ScriptBlock` containing the default merge expression for column that has no merge expression defined.  
+Defines how the specific columns with the same name should be merged.  The `-Merge` parameter accepts to types:  a `HashTable`  containing the specific merge expression for each column or `ScriptBlock` containing the default merge expression for all columns that have no merge expression defined.  
 Where in the expression:
 
  - `$_` holds each column name.
  - `$Left` holds the left row and `$Right` holds the right row.
  - `$Left.$_` holds each left value  and `$Right.$_` holds each right value.
  - `$LeftIndex` holds the current left row index and `$RightIndex` holds the current right row index.
-
+ - `Merge-Left` (alias `Left`: *`If ($Left.$_ -ne $Null) {$Left.$_} Else {$Right.$_}`*) is a common function that uses the left value if it not equal to null otherwise it uses the right value.
+ - `Merge-Right`(alias `Right`: *`If ($Right.$_ -ne $Null) {$Right.$_} Else {$Left.$_}`*) is a common function that uses the right value if it not equal to null otherwise it uses the left value
 
 *Notes:*
  
- 1. The default expression is:  `{$Left.$_, $Right.$_}`
+ 1. If no expression is defined for a column the expression `{$Left.$_, $Right.$_}` is used.
 This means that both values are assigned (in an array) to the current property.
 
- 2.  The expression for columns defined by the `-On <String>`, `-Equals <String>`and -On `<Array>` is: `{If ($Left.$_ -ne $Null) {$Left.$_} Else {$Right.$_}}`  and can only be overruled by a column specific expression defined in a hash table.
+ 2.  The expression for columns defined by the `-On <String>`, `-Equals <String>`and -On `<Array>` is: `{Merge-Left}`  and can only be overruled by a column specific expression defined in a hash table.
 This means that a single value (either `$Left` or `$Right` which is not equal to `$Null`) is assigned to the current property.
 
- 3.  To use column specific expressions and define a default expression us a zero length key name for the default expression, e.g. `-Merge @{"" = {$Left.$_}; "Column Name" = {$Left.$_}}`
+ 3.  To use column specific expressions *and* define a default expression use a zero length key name for the default expression, e.g. `-Merge @{"" = {$Left.$_}; "Column Name" = {$Right.$_}}`
 
 Examples
 ========
@@ -134,7 +135,7 @@ Given the following tables:
     
     
     PS C:\> # InnerJoin on Employee.Department = Department.Name and Employee.Country = Department.Country (returning only the left name and - country)
-    PS C:\> $Employee | InnerJoin $Department {$Left.Department -eq $Right.Name -and $Left.Country -eq $Right.Country} @{Name = {$Left.$_}; Country = {$Left.$_}}
+    PS C:\> $Employee | InnerJoin $Department {$Left.Department -eq $Right.Name -and $Left.Country -eq $Right.Country} {Left-Merge}
     
     Department  Name    Manager Country
     ----------  ----    ------- -------
