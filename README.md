@@ -1,7 +1,7 @@
 Join-Object
 ===========
 
-The Join-Object (alias Join) function combines columns from two object arrays into a new object array which can be saved as a table (Export-CSV) or used as it is.
+The `Join-Object` (alias `Join`) function combines columns from two object arrays into a new object array which can be saved as a table (`Export-CSV`) or used as it is.
 
 Syntax
 ======
