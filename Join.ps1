@@ -8,8 +8,8 @@ Function Join-Object {
 	$DefaultMerge = If ($Merge -is [ScriptBlock]) {$Merge; $Merge = @{}} ElseIf ($Merge."") {$Merge.""} Else {{$Left.$_, $Right.$_}}
 	If ($Equals) {$Merge.$Equals = {If ($Left.$Equals -ne $Null) {$Left.$Equals} Else {$Right.$Equals}}}
 	ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach {If (!$Merge.$_) {$Merge.$_ = {$Left.$_}}}}
-	$LeftKeys  = $LeftTable[0].PSObject.Properties  | ForEach {$_.Name}
-	$RightKeys = $RightTable[0].PSObject.Properties | ForEach {$_.Name}
+	$LeftKeys  = @($LeftTable[0].PSObject.Properties  | ForEach {$_.Name})
+	$RightKeys = @($RightTable[0].PSObject.Properties | ForEach {$_.Name})
 	$Keys = $LeftKeys + $RightKeys | Select -Unique
 	$Keys | Where {!$Merge.$_} | ForEach {$Merge.$_ = $DefaultMerge}
 	$Properties = @{}; $Keys | ForEach {$Properties.$_ = $Null}; $Out = New-Object PSObject -Property $Properties
