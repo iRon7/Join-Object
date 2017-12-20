@@ -1,3 +1,6 @@
+
+For the latest version of [`Join-Object`](https://powersnippets.com/join-object/), see: https://powersnippets.com/join-object/
+
 Join-Object
 ===========
 
