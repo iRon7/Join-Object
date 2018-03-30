@@ -1,18 +1,18 @@
 # Join-Object
- Combines two objects lists based on a related property between them.
+Combines two objects lists based on a related property between them.
 
-	The Join cmdlet combines properties from one or more objects. It creates
- a set that can	be saved as a new object or used as it is. A object join is
- a means for 	combining properties from one (self-join) or more tables by
- using values	common to each. 
- There are four basic types of the Join-Object cmdlet:
-	- InnerJoin-Object (InnerJoin, or Join)
- - LeftJoin-Object (or LeftJoin)
- - RightJoin-Object (or RightJoin)
- - FullJoin-Object (or FullJoin)
- As a	special case, a cross join can be invoked by omitting the -On parameter.
+The Join cmdlet combines properties from one or more objects. It creates
+a set that can	be saved as a new object or used as it is. A object join is
+a means for 	combining properties from one (self-join) or more tables by
+using values	common to each. 
+There are four basic types of the Join-Object cmdlet:
+- InnerJoin-Object (InnerJoin, or Join)
+- LeftJoin-Object (or LeftJoin)
+- RightJoin-Object (or RightJoin)
+- FullJoin-Object (or FullJoin)
+As a special case, a cross join can be invoked by omitting the -On parameter.
  
-## Examples 
+ ## Examples 
 
 Consider the following tables:
 
