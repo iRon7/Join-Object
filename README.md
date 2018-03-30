@@ -70,7 +70,7 @@ Evans   Morris
 Fischer Meyer
 ```
 
-A self join example creating new name and manager properties:
+A self join example creating a new name and manager properties:
 
 ```powershell
 PS C:\> $Employees
