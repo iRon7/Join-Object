@@ -9,7 +9,7 @@ There are four basic types of the Join-Object cmdlet:
 - InnerJoin-Object (InnerJoin, or Join)
 - LeftJoin-Object (or LeftJoin)
 - RightJoin-Object (or RightJoin)
-- FullJoin-Object (or FullJoin)
+- FullJoin-Object (or FullJoin)  
 As a special case, a cross join can be invoked by omitting the -On parameter.
  
  ## Examples 
