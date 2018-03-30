@@ -159,8 +159,7 @@ If the `-Merge` parameter and the `-Property` parameter are omitted, the
 merge expression will be set to:
 
 ```powershell
-{If ($LeftProperty.$_) {$Left.$_}; 
-If ($RightProperty.$_) {$Right.$_}}
+{If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}}
 ```
 
 This means that the left property and/or the right property will only
