@@ -6,10 +6,10 @@ a set that can	be saved as a new object or used as it is. A object join is
 a means for 	combining properties from one (self-join) or more tables by
 using values	common to each. 
 There are four basic types of the Join-Object cmdlet:
-- InnerJoin-Object (InnerJoin, or Join)
-- LeftJoin-Object (or LeftJoin)
-- RightJoin-Object (or RightJoin)
-- FullJoin-Object (or FullJoin)
+- `InnerJoin-Object` (`InnerJoin`, or `Join`)
+- `LeftJoin-Object` (or `LeftJoin`)
+- `RightJoin-Object` (or `RightJoin`)
+- `FullJoin-Object` (or `FullJoin`)
 
 As a special case, a cross join can be invoked by omitting the -On parameter.
  
@@ -112,27 +112,27 @@ PS C:\>Import-CSV .\old.csv | LeftJoin (Get-Service) Name {If ($Null -ne $Right.
 
 ## Parameters
 
-`-LeftObject`
+`-LeftObject`  
 The LeftObject (usually provided through the pipeline) defines the
 left object (or list of objects) to be joined.
 
-`-RightObject`
+`-RightObject`  
 The RightObject (provided as an argument) defines the right object (or
 list of objects) to be joined.
 
-`-On`
+`-On`  
 The `-On` (alias `-Using`) parameter defines the condition that specify
 how to join the left and right object and which objects to include in the
 (inner) result set. The -On parameter supports the following formats:
 
-`<String>` or `<Array>`
+`-On <String>` or `-On <Array>`  
 If the value is a string or array type, the `-On` parameter is similar to
 the SQL using clause. This means that all the listed properties require
 to be equal (at the left and right side) to be included in the (inner)
 result set. The listed properties will output a single value by default
 (see also the -Property parameter).
 
-`<ScriptBlock>`
+`-On <ScriptBlock>`  
 Any conditional expression (where `$Left` refers to each left object and
 `$Right` refers to each right object) which requires to evaluate to true
 in order to join the objects.
@@ -140,13 +140,13 @@ in order to join the objects.
 Note: The `-On <ScriptBlock>` type has the most complex comparison
 possibilities but is considerable slower than the other types.
 
-`-Equals`
+`-Equals`  
 Requires the `-On` value to be a string. The property of the left object
 defined by the -On value requires to be equal to the property of the
 right object defined by the -Equals value for the objects to be joined
 and added to the result sets.
 
-`-Merge`
+`-Merge`  
 An expression that defines how the left and right properties with the
 same name should be merged. Where in the expression:
 - `$_` refers to each property name
@@ -173,7 +173,7 @@ right object will automatically be include in the result.
 Properties set by the -Merge expression will be overwritten by the
 `-Property` parameter
 
-`-Property`
+`-Property`  
 Defines how the specific left and right properties should be merged.
 Each key refers to the specific property name and each related value to
 an expression using the variable listed in the `-Merge` parameter.
