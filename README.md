@@ -170,7 +170,7 @@ object list.
 If the merge expression is set, the property names of the left and
 right object will automatically be include in the result.
 
-Properties set by the -Merge expression will be overwritten by the
+Properties set by the `-Merge` expression will be overwritten by the
 `-Property` parameter
 
 `-Property`  
@@ -178,7 +178,7 @@ Defines how the specific left and right properties should be merged.
 Each key refers to the specific property name and each related value to
 an expression using the variable listed in the `-Merge` parameter.
 
-The default property expression for the properties supplied by the -On
+The default property expression for the properties supplied by the `-On`
 parameter is (in the knowledge that the properties at both sides are
 equal or empty at one side in the outer join):
 
