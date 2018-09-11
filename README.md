@@ -173,9 +173,13 @@ Properties set by the `-Merge` expression will be overwritten by the
 `-Property` parameter
 
 `-Property`  
-Defines how the specific left and right properties should be merged.
-Each key refers to the specific property name and each related value to
-an expression using the variable listed in the `-Merge` parameter.
+If the property parameter doesn't contain a hashtable, it is presumed
+to be a list of property names to be output.
+
+If the property parameter contains a hashtable, it defines how the
+specific left and right properties should be merged. Where each key
+refers to the specific property name and each related value to an
+expression using the variable listed in the -Merge parameter.
 
 The default property expression for the properties supplied by the `-On`
 parameter is (in the knowledge that the properties at both sides are
