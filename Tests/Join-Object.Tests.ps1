@@ -2,7 +2,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
-. .\ConvertFrom-Table.ps1
+. .\ConvertFrom-SourceTable.ps1			# https://www.powershellgallery.com/packages/ConvertFrom-SourceTable
 
 Function Should-BeObject {
 	Param (
@@ -16,7 +16,7 @@ Function Should-BeObject {
 
 Describe 'Join-Object' {
 	
-	$Employee = ConvertFrom-Table '
+	$Employee = ConvertFrom-SourceTable '
 		Name    Country Department
 		----    ------- ----------
 		Aerts   Belgium Sales
@@ -26,7 +26,7 @@ Describe 'Join-Object' {
 		Evans   England Marketing
 		Fischer Germany Engineering'
 
-	$Department = ConvertFrom-Table '
+	$Department = ConvertFrom-SourceTable '
 		Name        Country     Manager
 		----        -------     -------
 		Engineering Germany     Meyer
@@ -37,81 +37,81 @@ Describe 'Join-Object' {
 	Context 'Join types' {
 
 		It 'InnerJoin' {
-			,($Employee | InnerJoin $Department -On Country) | Should-BeObject (ConvertFrom-Table '
-				Country Department  Manager Name
-				------- ----------  ------- ----
-				Germany Engineering Meyer   {Bauer, Engineering}
-				England Sales       Morris  {Cook, Marketing}
-				France  Engineering Millet  {Duval, Sales}
-				England Marketing   Morris  {Evans, Marketing}
-				Germany Engineering Meyer   {Fischer, Engineering}')
+			,($Employee | InnerJoin $Department -On Country) | Should-BeObject (ConvertFrom-SourceTable '
+				Country Department  Manager                     Name
+				------- ----------  -------                     ----
+				Germany Engineering Meyer     "Bauer", "Engineering"
+				England Sales       Morris       "Cook", "Marketing"
+				France  Engineering Millet          "Duval", "Sales"
+				England Marketing   Morris      "Evans", "Marketing"
+				Germany Engineering Meyer   "Fischer", "Engineering"')
 		}
 
 		It 'LeftJoin' {
-			,($Employee | LeftJoin $Department -On Country) | Should-BeObject (ConvertFrom-Table '
-				Country Department  Manager Name
-				------- ----------  ------- ----
-				Belgium Sales       `$Null  `"Aerts", $Null
-				Germany Engineering Meyer   {Bauer, Engineering}
-				England Sales       Morris  {Cook, Marketing}
-				France  Engineering Millet  {Duval, Sales}
-				England Marketing   Morris  {Evans, Marketing}
-				Germany Engineering Meyer   {Fischer, Engineering}')
+			,($Employee | LeftJoin $Department -On Country) | Should-BeObject (ConvertFrom-SourceTable '
+				Country Department  Manager                     Name
+				------- ----------  -------                     ----
+				Belgium Sales         $Null           "Aerts", $Null
+				Germany Engineering Meyer     "Bauer", "Engineering"
+				England Sales       Morris       "Cook", "Marketing"
+				France  Engineering Millet          "Duval", "Sales"
+				England Marketing   Morris      "Evans", "Marketing"
+				Germany Engineering Meyer   "Fischer", "Engineering"')
 		}
 
 		It "RightJoin" {
-			,($Employee | RightJoin $Department -On Country) | Should-BeObject (ConvertFrom-Table '
-				Department  Name                   Manager Country
-				----------  ----                   ------- -------
-				Engineering {Bauer, Engineering}   Meyer   Germany
-				Sales       {Cook, Marketing}      Morris  England
-				Engineering {Duval, Sales}         Millet  France
-				Marketing   {Evans, Marketing}     Morris  England
-				Engineering {Fischer, Engineering} Meyer   Germany
-				`$Null      `$Null, "Board"        Mans    Netherlands')
+			,($Employee | RightJoin $Department -On Country) | Should-BeObject (ConvertFrom-SourceTable '
+				Department                      Name Manager Country
+				----------                      ---- ------- -------
+				Engineering   "Bauer", "Engineering" Meyer   Germany
+				Sales            "Cook", "Marketing" Morris  England
+				Engineering         "Duval", "Sales" Millet  France
+				Marketing       "Evans", "Marketing" Morris  England
+				Engineering "Fischer", "Engineering" Meyer   Germany
+				      $Null           $Null, "Board" Mans    Netherlands')
 		}
 
 		It 'FullJoin' {
-			,($Employee | FullJoin $Department -On Country) | Should-BeObject (ConvertFrom-Table '
-				Country     Department  Name                   Manager
-				-------     ----------  ----                   -------
-				Belgium     Sales       `"Aerts", $Null        `$Null
-				Germany     Engineering {Bauer, Engineering}   Meyer
-				England     Sales       {Cook, Marketing}      Morris
-				France      Engineering {Duval, Sales}         Millet
-				England     Marketing   {Evans, Marketing}     Morris
-				Germany     Engineering {Fischer, Engineering} Meyer
-				Netherlands `$Null      `$Null, "Board"        Mans')
+			,($Employee | FullJoin $Department -On Country) | Should-BeObject (ConvertFrom-SourceTable '
+				Country     Department                      Name Manager
+				-------     ----------                      ---- -------
+				Belgium     Sales                 "Aerts", $Null   $Null
+				Germany     Engineering   "Bauer", "Engineering" Meyer
+				England     Sales            "Cook", "Marketing" Morris
+				France      Engineering         "Duval", "Sales" Millet
+				England     Marketing       "Evans", "Marketing" Morris
+				Germany     Engineering "Fischer", "Engineering" Meyer
+				Netherlands       $Null        @($Null, "Board") Mans')
 		}
 
 		It 'Cross Join' {
-			,($Employee | Join $Department) | Should-BeObject (ConvertFrom-Table '
-				Country                Department  Manager Name
-				-------                ----------  ------- ----
-				{Belgium, Germany}     Sales       Meyer   {Aerts, Engineering}
-				{Belgium, England}     Sales       Morris  {Aerts, Marketing}
-				{Belgium, France}      Sales       Millet  {Aerts, Sales}
-				{Belgium, Netherlands} Sales       Mans    {Aerts, Board}
-				{Germany, Germany}     Engineering Meyer   {Bauer, Engineering}
-				{Germany, England}     Engineering Morris  {Bauer, Marketing}
-				{Germany, France}      Engineering Millet  {Bauer, Sales}
-				{Germany, Netherlands} Engineering Mans    {Bauer, Board}
-				{England, Germany}     Sales       Meyer   {Cook, Engineering}
-				{England, England}     Sales       Morris  {Cook, Marketing}
-				{England, France}      Sales       Millet  {Cook, Sales}
-				{England, Netherlands} Sales       Mans    {Cook, Board}
-				{France, Germany}      Engineering Meyer   {Duval, Engineering}
-				{France, England}      Engineering Morris  {Duval, Marketing}
-				{France, France}       Engineering Millet  {Duval, Sales}
-				{France, Netherlands}  Engineering Mans    {Duval, Board}
-				{England, Germany}     Marketing   Meyer   {Evans, Engineering}
-				{England, England}     Marketing   Morris  {Evans, Marketing}
-				{England, France}      Marketing   Millet  {Evans, Sales}
-				{England, Netherlands} Marketing   Mans    {Evans, Board}
-				{Germany, Germany}     Engineering Meyer   {Fischer, Engineering}
-				{Germany, England}     Engineering Morris  {Fischer, Marketing}
-				{Germany, France}      Engineering Millet  {Fischer, Sales}
-				{Germany, Netherlands} Engineering Mans    {Fischer, Board}')
+			,($Employee | Join $Department) | Should-BeObject (ConvertFrom-SourceTable '
+				                 Country Department  Manager                     Name
+				                 ------- ----------  -------                     ----
+				    "Belgium", "Germany" Sales       Meyer     "Aerts", "Engineering"
+				    "Belgium", "England" Sales       Morris      "Aerts", "Marketing"
+				     "Belgium", "France" Sales       Millet          "Aerts", "Sales"
+				"Belgium", "Netherlands" Sales       Mans            "Aerts", "Board"
+				    "Germany", "Germany" Engineering Meyer     "Bauer", "Engineering"
+				    "Germany", "England" Engineering Morris      "Bauer", "Marketing"
+				     "Germany", "France" Engineering Millet          "Bauer", "Sales"
+				"Germany", "Netherlands" Engineering Mans            "Bauer", "Board"
+				    "England", "Germany" Sales       Meyer      "Cook", "Engineering"
+				    "England", "England" Sales       Morris       "Cook", "Marketing"
+				     "England", "France" Sales       Millet           "Cook", "Sales"
+				"England", "Netherlands" Sales       Mans             "Cook", "Board"
+				     "France", "Germany" Engineering Meyer     "Duval", "Engineering"
+				     "France", "England" Engineering Morris      "Duval", "Marketing"
+				      "France", "France" Engineering Millet          "Duval", "Sales"
+				 "France", "Netherlands" Engineering Mans            "Duval", "Board"
+				    "England", "Germany" Marketing   Meyer     "Evans", "Engineering"
+				    "England", "England" Marketing   Morris      "Evans", "Marketing"
+				     "England", "France" Marketing   Millet          "Evans", "Sales"
+				"England", "Netherlands" Marketing   Mans            "Evans", "Board"
+				    "Germany", "Germany" Engineering Meyer   "Fischer", "Engineering"
+				    "Germany", "England" Engineering Morris    "Fischer", "Marketing"
+				     "Germany", "France" Engineering Millet        "Fischer", "Sales"
+				"Germany", "Netherlands" Engineering Mans          "Fischer", "Board"')
 		}
 
 	}
@@ -119,47 +119,47 @@ Describe 'Join-Object' {
 	Context 'Single object' {
 
 		It 'Single left object' {
-			,($Employee[1] | InnerJoin $Department -On Country) | Should-BeObject (ConvertFrom-Table '
-				Country Department  Manager Name
-				------- ----------  ------- ----
-				Germany Engineering Meyer   {Bauer, Engineering}')
+			,($Employee[1] | InnerJoin $Department -On Country) | Should-BeObject (ConvertFrom-SourceTable '
+				Country Department  Manager                   Name
+				------- ----------  ------- ----------------------
+				Germany Engineering Meyer   "Bauer", "Engineering"')
 		}
 
 		It 'Single right object' {
-			,($Employee | InnerJoin $Department[0] -On Country) | Should-BeObject (ConvertFrom-Table '
-				Country Department  Manager Name
-				------- ----------  ------- ----
-				Germany Engineering Meyer   {Bauer, Engineering}
-				Germany Engineering Meyer   {Fischer, Engineering}')
+			,($Employee | InnerJoin $Department[0] -On Country) | Should-BeObject (ConvertFrom-SourceTable '
+				Country Department  Manager                     Name
+				------- ----------  ------- ------------------------
+				Germany Engineering Meyer     "Bauer", "Engineering"
+				Germany Engineering Meyer   "Fischer", "Engineering"')
 		}
 
 		It 'Single left object and single right object' {
-			,($Employee[1] | InnerJoin $Department[0] -On Country) | Should-BeObject (ConvertFrom-Table '
-				Country Department  Manager Name
-				------- ----------  ------- ----
-				Germany Engineering Meyer   {Bauer, Engineering}')
+			,($Employee[1] | InnerJoin $Department[0] -On Country) | Should-BeObject (ConvertFrom-SourceTable '
+				Country Department  Manager                   Name
+				------- ----------  ------- ----------------------
+				Germany Engineering Meyer   "Bauer", "Engineering"')
 		}
 	}
 
 	Context "-On ... -Equals ..." {
 
 		It '$Employee | InnerJoin $Department -On Department -Eq Name' {
-			,($Employee | InnerJoin $Department -On Department -Eq Name) | Should-BeObject (ConvertFrom-Table '
-				Country            Department  Name                   Manager
-				-------            ----------  ----                   -------
-				{Belgium, France}  Sales       {Aerts, Sales}         Millet
-				{Germany, Germany} Engineering {Bauer, Engineering}   Meyer
-				{England, France}  Sales       {Cook, Sales}          Millet
-				{France, Germany}  Engineering {Duval, Engineering}   Meyer
-				{England, England} Marketing   {Evans, Marketing}     Morris
-				{Germany, Germany} Engineering {Fischer, Engineering} Meyer')
+			,($Employee | InnerJoin $Department -On Department -Eq Name) | Should-BeObject (ConvertFrom-SourceTable '
+				             Country Department                      Name Manager
+				             ------- ----------- ------------------------ -------
+				 "Belgium", "France" Sales               "Aerts", "Sales" Millet
+				"Germany", "Germany" Engineering   "Bauer", "Engineering" Meyer
+				 "England", "France" Sales                "Cook", "Sales" Millet
+				 "France", "Germany" Engineering   "Duval", "Engineering" Meyer
+				"England", "England" Marketing       "Evans", "Marketing" Morris
+				"Germany", "Germany" Engineering "Fischer", "Engineering" Meyer')
 		}
 	}
 
 	Context "Merge values on Department = Name" {
 
 		It 'Use the left object property if exists otherwise use right object property' {
-			,($Employee | InnerJoin $Department -On Department -Eq Name {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}) | Should-BeObject (ConvertFrom-Table '
+			,($Employee | InnerJoin $Department -On Department -Eq Name {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}) | Should-BeObject (ConvertFrom-SourceTable '
 				Department  Name    Manager Country
 				----------  ----    ------- -------
 				Sales       Aerts   Millet  Belgium
@@ -171,7 +171,7 @@ Describe 'Join-Object' {
 		}
 
 		It 'Only use the left name property and the right manager property' {
-			,($Employee | InnerJoin $Department -On Department -Eq Name -Property @{Name = {$Left.$_}; Manager = {$Right.$_}}) | Should-BeObject (ConvertFrom-Table '
+			,($Employee | InnerJoin $Department -On Department -Eq Name -Property @{Name = {$Left.$_}; Manager = {$Right.$_}}) | Should-BeObject (ConvertFrom-SourceTable '
 				Name    Manager
 				----    -------
 				Aerts   Millet
@@ -183,7 +183,7 @@ Describe 'Join-Object' {
 		}
 
 		It 'Use the left object property except for the country property' {
-			,($Employee | InnerJoin $Department -On Department -Eq Name {$Left.$_} @{Manager = {$Right.$_}}) | Should-BeObject (ConvertFrom-Table '
+			,($Employee | InnerJoin $Department -On Department -Eq Name {$Left.$_} @{Manager = {$Right.$_}}) | Should-BeObject (ConvertFrom-SourceTable '
 				Department  Name    Manager Country
 				----------  ----    ------- -------
 				Sales       Aerts   Millet  Belgium
@@ -198,7 +198,7 @@ Describe 'Join-Object' {
 	Context "Join using expression" {
 
 		It 'InnerJoin on Employee.Department = Department.Name and Employee.Country = Department.Country' {
-			,($Employee | InnerJoin $Department -Using {$Left.Department -eq $Right.Name -and $Left.Country -eq $Right.Country} {$Left.$_} @{Manager = {$Right.$_}}) | Should-BeObject (ConvertFrom-Table '
+			,($Employee | InnerJoin $Department -Using {$Left.Department -eq $Right.Name -and $Left.Country -eq $Right.Country} {$Left.$_} @{Manager = {$Right.$_}}) | Should-BeObject (ConvertFrom-SourceTable '
 				Department  Name    Manager Country
 				----------  ----    ------- -------
 				Engineering Bauer   Meyer   Germany
@@ -207,42 +207,42 @@ Describe 'Join-Object' {
 		}
 
 		It 'Inner join on index' {
-			,($Employee | InnerJoin $Department {$LeftIndex -eq $RightIndex}) | Should-BeObject (ConvertFrom-Table '
-				Country               Department  Name                 Manager
-				-------               ----------  ----                 -------
-				{Belgium, Germany}    Sales       {Aerts, Engineering} Meyer
-				{Germany, England}    Engineering {Bauer, Marketing}   Morris
-				{England, France}     Sales       {Cook, Sales}        Millet
-				{France, Netherlands} Engineering {Duval, Board}       Mans')
+			,($Employee | InnerJoin $Department {$LeftIndex -eq $RightIndex}) | Should-BeObject (ConvertFrom-SourceTable '
+				                Country Department                    Name Manager
+				 ---------------------- ----------- ---------------------- -------
+				   "Belgium", "Germany" Sales       "Aerts", "Engineering" Meyer
+				   "Germany", "England" Engineering   "Bauer", "Marketing" Morris
+				    "England", "France" Sales              "Cook", "Sales" Millet
+				"France", "Netherlands" Engineering       "Duval", "Board" Mans')
 		}
 		
 		It 'Full join on index' {
-			,($Employee | FullJoin $Department {$LeftIndex -eq $RightIndex}) | Should-BeObject (ConvertFrom-Table '
-				Country               Department  Name                 Manager
-				-------               ----------  ----                 -------
-				{Belgium, Germany}    Sales       {Aerts, Engineering} Meyer
-				{Germany, England}    Engineering {Bauer, Marketing}   Morris
-				{England, France}     Sales       {Cook, Sales}        Millet
-				{France, Netherlands} Engineering {Duval, Board}       Mans
-				`"England", $Null     Marketing   `"Evans", $Null      `$Null
-				`"Germany", $Null     Engineering `"Fischer", $Null    `$Null')
+			,($Employee | FullJoin $Department {$LeftIndex -eq $RightIndex}) | Should-BeObject (ConvertFrom-SourceTable '
+				                Country Department                    Name Manager
+				----------------------- ----------  ---------------------- -------
+				   "Belgium", "Germany" Sales       "Aerts", "Engineering" Meyer
+				   "Germany", "England" Engineering   "Bauer", "Marketing" Morris
+				    "England", "France" Sales              "Cook", "Sales" Millet
+				"France", "Netherlands" Engineering       "Duval", "Board" Mans
+				    `  "England", $Null Marketing   `       "Evans", $Null   $Null
+				`      "Germany", $Null Engineering `     "Fischer", $Null   $Null')
 		}
 		
-		It 'Self join with new propeties' {
-			$Employees = ConvertFrom-Table '
+		It 'Self join with new properties' {
+			$Employees = ConvertFrom-SourceTable '
 				EmployeeId LastName  FirstName ReportsTo
 				---------- --------  --------- ---------
-				`1         Davolio   Nancy     `2
-				`2         Fuller    Andrew
-				`3         Leveling  Janet     `2
-				`4         Peacock   Margaret  `2
-				`5         Buchanan  Steven    `2
-				`6         Suyama    Michael   `5
-				`7         King      Robert    `5
-				`8         Callahan  Laura     `2
-				`9         Dodsworth Anne      `5'
+				         1 Davolio   Nancy              2
+				         2 Fuller    Andrew
+				         3 Leveling  Janet              2
+				         4 Peacock   Margaret           2
+				         5 Buchanan  Steven             2
+				         6 Suyama    Michael            5
+				         7 King      Robert             5
+				         8 Callahan  Laura              2
+				         9 Dodsworth Anne               5'
 				
-			,($Employees | InnerJoin $Employees -On ReportsTo -Eq EmployeeID -Property @{Name = {"$($Left.FirstName) $($Left.LastName)"}; Manager = {"$($Right.FirstName) $($Right.LastName)"}}) | Should-BeObject (ConvertFrom-Table '
+			,($Employees | InnerJoin $Employees -On ReportsTo -Eq EmployeeID -Property @{Name = {"$($Left.FirstName) $($Left.LastName)"}; Manager = {"$($Right.FirstName) $($Right.LastName)"}}) | Should-BeObject (ConvertFrom-SourceTable '
 				Name             Manager
 				----             -------
 				Nancy Davolio    Andrew Fuller
@@ -255,75 +255,39 @@ Describe 'Join-Object' {
 				Anne Dodsworth   Steven Buchanan')
 		}
 
+		It 'InnerJoin using multiple property matches and output specific columns' {
+			$Left = ConvertFrom-SourceTable '
+				   Ref_ID First_Name Last_Name [DateTime]DOB
+				--------- ---------- --------- -------------
+				321364060 User1      Micah     11/01/1969
+				946497594 User2      Acker     05/28/1960
+				887327716 User3      Aco       06/26/1950
+				588496260 User4      John      05/23/1960
+				565465465 User5      Jack      07/08/2020'
+				
+			$Right = ConvertFrom-SourceTable '
+				First_Name Last_Name [DateTime]DOB City   Document_Type Filename
+				---------- --------- ------------- ------ ------------- ------------
+				User1      Micah     11/01/1969    Parker Transcript    T4IJZSYO.pdf
+				User2      Acker     05/28/1960           Transcript    R4IKTRYN.pdf
+				User3      Aco       06/26/1950           Transcript    R4IKTHMK.pdf
+				User4      John      05/23/1960           Letter        R4IKTHSL.pdf'
+				
+			$Expected = ConvertFrom-SourceTable '
+				Filename     Document_Type    Ref_ID First_Name [DateTime]DOB Last_Name
+				--------     -------------    ------ ---------- ------------- ---------
+				T4IJZSYO.pdf Transcript    321364060 User1      1969/11/01    Micah
+				R4IKTRYN.pdf Transcript    946497594 User2      1960/05/28    Acker
+				R4IKTHMK.pdf Transcript    887327716 User3      1950/06/26    Aco
+				R4IKTHSL.pdf Letter        588496260 User4      1960/05/23    John'
+			
+			$Actual = $Left | Join $Right -On First_Name, Last_Name, DOB -Property Ref_ID, Filename, Document_Type, First_Name, DOB, Last_Name
+			
+
+
+
+			,$Actual | Should-BeObject $Expected
+		}
 	}
 
 }
-
-Exit
-
-
-
-# Describe 'Join-Object' {
-	
-	# Context 'Basic inner join' {
-
-		Compare-Object ($Employee | InnerJoin $Department Country) @(
-				[PSCustomObject]@{
-						'Country' = 'Germany'
-						'Department' = 'Engineering'
-						'Manager' = 'Meyer'
-						'Name' = @(
-								'Fischer',
-								'Engineering'
-						)
-				},
-				[PSCustomObject]@{
-						'Country' = 'Germany'
-						'Department' = 'Engineering'
-						'Manager' = 'Meyer'
-						'Name' = @(
-								'Fischer',
-								'Engineering'
-						)
-				},
-				[PSCustomObject]@{
-						'Country' = 'Germany'
-						'Department' = 'Engineering'
-						'Manager' = 'Meyer'
-						'Name' = @(
-								'Fischer',
-								'Engineering'
-						)
-				},
-				[PSCustomObject]@{
-						'Country' = 'Germany'
-						'Department' = 'Engineering'
-						'Manager' = 'Meyer'
-						'Name' = @(
-								'Fischer',
-								'Engineering'
-						)
-				},
-				[PSCustomObject]@{
-						'Country' = 'Germany'
-						'Department' = 'Engineering'
-						'Manager' = 'Meyer'
-						'Name' = @(
-								'Fischer',
-								'Engineering'
-						)
-				}
-		)
-	# }
-# }
-
-Exit
-
-# InnerJoin on Department = Name
-$Employee | InnerJoin $Department Department -eq Name
-# LeftJoin using country (excluding department.name)
-$Employee | LeftJoin ($Department | Select Manager,Country) Country
-# InnerJoin on Employee.Department = Department.Name and Employee.Country = Department.Country (returning only the left name and - country)
-$Employee | InnerJoin $Department {$Left.Department -eq $Right.Name -and $Left.Country -eq $Right.Country} @{Name = {$Left.$_}; Country = {$Left.$_}}
-# Cross Join
-$Employee | InnerJoin $Department
