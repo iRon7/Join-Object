@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 2.2.2
+.VERSION 2.2.3
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -70,8 +70,8 @@
 		* $Left and $Right refers to each corresponding object
 		* $Left.$_ and $Right.$_ refers to corresponding value
 		* $LeftIndex and $RightIndex refers to corresponding index
-		* $LeftProperty and $RightProperty refers to a corresponding list of
-		  properties
+		* $LeftProperty.$_ and $RightProperty.$_ refers to a corresponding
+		  list of existing properties keys
 		If the -Merge parameter and the -Property parameter are omitted, the
 		merge expression will be set to:
 		
@@ -89,9 +89,13 @@
 		-Property parameter
 
 	.PARAMETER Property
-		Defines how the specific left and right properties should be merged.
-		Each key refers to the specific property name and each related value to
-		an expression using the variable listed in the -Merge parameter.
+		If the property parameter doesn't contain a hashtable, it is presumed
+		to be a list of property names to be output.
+
+		If the property parameter contains a hashtable, it defines how the
+		specific left and right properties should be merged. Where each key
+		refers to the specific property name and each related value to an
+		expression using the variable listed in the -Merge parameter.
 		
 		The default property expression for the properties supplied by the -On
 		parameter is (in the knowledge that the properties at both sides are
@@ -193,17 +197,12 @@
 Function Join-Object {
 	[CmdletBinding(DefaultParametersetName='None')][OutputType([Object[]])]Param (
 		[Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject, 
-		[Parameter(Position=1,ParameterSetName='On',  Mandatory=$true)][Alias("Using")]$On, [Parameter(ParameterSetName='On')][String]$Equals,
-		[Parameter(Position=2)][ScriptBlock]$Merge, 
-		[Parameter(Position=3)][HashTable][ValidateScript({!($_.Values | Where-Object {!($_ -is [ScriptBlock])})})]$Property
+		[Parameter(Position=1,ParameterSetName='On', Mandatory = $True)][Alias("Using")]$On, [Parameter(ParameterSetName='On')][String]$Equals,
+		[Parameter(Position=2)][ScriptBlock]$Merge = {If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}}, 
+		[Parameter(Position=3)]$Property = @{}
 	)
 	Begin {
 		$JoinType = ($MyInvocation.InvocationName -Split "-")[0]
-		If (!$Property) {$Property = @{}; If (!$Merge) {$Merge = {If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}}}}
-		If ($Merge) {
-			If ($Equals) {$Property.$On = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}; If ($RightProperty.$_) {$Right.$_}}}
-			ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach-Object {If (!$Property.$_) {$Property.$_ = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}}}}
-		}
 		$RightProperty = @{}; $RightObject[0].PSObject.Properties | ForEach-Object {$RightProperty[$_.Name] = $True}
 		$New = @{}; $RightOffs = @($False) * @($RightObject).Length; $LeftIndex = 0
 	}
@@ -212,7 +211,11 @@ Function Join-Object {
 			$LeftOff = $False
 			If (!$LeftIndex) {
 				$LeftProperty = @{}; $LeftObject[0].PSObject.Properties  | ForEach-Object {$LeftProperty[$_.Name] = $True}
-				If ($Merge) {$LeftProperty.Keys + $RightProperty.Keys | Select-Object -Unique | Where-Object {!$Property.$_} | ForEach-Object {$Property.$_ = $Merge}}
+				If ($Property -isnot [HashTable]) {$Keys = @($Property); $Property = @{}; $Keys | ForEach-Object {$Property.$_ = $True}}
+				If (!$Property.Count) {$LeftProperty.Keys + $RightProperty.Keys | Select-Object -Unique | ForEach-Object {$Property.$_ = $True}}
+				If ($Equals) {If ($Property.$On -is [Bool]) {$Property.$On = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}; If ($RightProperty.$_) {$Right.$_}}}}
+				ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach-Object {If ($Property.$_ -is [Bool]) {$Property.$_ = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}}}}
+				@($Property.Keys) | Where-Object {$Property.$_ -is [Bool]} | ForEach-Object {$Property.$_ = $Merge}
 			}
 			For ($RightIndex = 0; $RightIndex -lt @($RightObject).Length; $RightIndex++) {$Right = $RightObject[$RightIndex]
 				$Select = If ($On -is [String]) {If ($Equals) {$Left.$On -eq $Right.$Equals} Else {$Left.$On -eq $Right.$On}}
