@@ -1,0 +1,11 @@
+[Version] [DateTime] Author      Comments
+--------- ---------- ------      --------
+00.99.99  2017-01-01 Ronald Bode First releases 
+01.01.00  2017-08-08 Ronald Bode Merged the -Expressions and -DefaultExpression parameters
+01.01.01  2017-10-24 Ronald Bode Resolved bug where the Left Table contains a single column
+02.00.02  2017-12-11 Ronald Bode Reworked for PowerSnippets.com
+02.01.00  2018-03-01 Ronald Bode Resolved: "Unexpected results when reusing custom objects in the pipeline"
+02.02.00  2018-03-15 Ronald Bode Read single records from the pipeline
+02.02.01  2018-03-25 Ronald Bode Support for adding new properties (see: -Property)
+2.2.2     2018-03-25 Ronald Bode PowerShell Gallery Release
+2.2.3     2018-03-25 Ronald Bode Supply a list of properties by: -Property [String[]]
