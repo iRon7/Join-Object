@@ -8,7 +8,7 @@ Function Should-BeObject {
 	Param (
 		[Parameter(Position=0)][Object[]]$b, [Parameter(ValueFromPipeLine = $True)][Object[]]$a
 	)
-	$Property = ($a | Select-Object -First 1).PSObject.Properties | Select-Object -Expand Name
+	$Property = ($a | Select-Object -First 1).PSObject.Properties + ($b | Select-Object -First 1).PSObject.Properties | Select-Object -Expand Name -Unique
 	$Difference = Compare-Object $b $a -Property $Property
 	Try {"$($Difference | Select-Object -First 1)" | Should -BeNull} Catch {$PSCmdlet.WriteError($_)}
 
