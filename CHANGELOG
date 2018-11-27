@@ -10,3 +10,4 @@
 2.2.2     2018-03-25 Ronald Bode PowerShell Gallery Release
 2.2.3     2018-03-25 Ronald Bode Supply a list of properties by: -Property [String[]]
 2.2.4     2018-03-25 Ronald Bode Keeping the properties in order
+2.2.5     2018-11-27 Ronald Bode Fixed empty output bug (including test)
