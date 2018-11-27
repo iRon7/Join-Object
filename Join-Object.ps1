@@ -1,19 +1,19 @@
 <#PSScriptInfo
-.VERSION 2.2.4
+.VERSION 2.2.5
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
-.COMPANYNAME 
-.COPYRIGHT 
+.COMPANYNAME
+.COPYRIGHT
 .TAGS Join-Object Join Combine Table
 .LICENSEURI https://github.com/iRon7/Join-Object/LICENSE.txt
 .PROJECTURI https://github.com/iRon7/Join-Object
 .ICONURI https://raw.githubusercontent.com/iRon7/Join-Object/master/Join-Object.png
-.EXTERNALMODULEDEPENDENCIES 
-.REQUIREDSCRIPTS 
-.EXTERNALSCRIPTDEPENDENCIES 
+.EXTERNALMODULEDEPENDENCIES
+.REQUIREDSCRIPTS
+.EXTERNALSCRIPTDEPENDENCIES
 .RELEASENOTES
-.PRIVATEDATA 
+.PRIVATEDATA
 #>
 
 <#
@@ -53,7 +53,7 @@
 		Any conditional expression (where $Left refers to each left object and
 		$Right refers to each right object) which requires to evaluate to true
 		in order to join the objects.
-		
+
 		Note: The -On <ScriptBlock> type has the most complex comparison
 		possibilities but is considerable slower than the other types.
 
@@ -74,17 +74,17 @@
 		  list of existing properties keys
 		If the -Merge parameter and the -Property parameter are omitted, the
 		merge expression will be set to:
-		
-			{If ($LeftProperty.$_) {$Left.$_}; 
+
+			{If ($LeftProperty.$_) {$Left.$_};
 			If ($RightProperty.$_) {$Right.$_}}
-		
+
 		This means that the left property and/or the right property will only
 		be listed in the result if the property exists in the corresponding
 		object list.
-		
+
 		If the merge expression is set, the property names of the left and
 		right object will automatically be include in the result.
-		
+
 		Properties set by the -Merge expression will be overwritten by the
 		-Property parameter
 
@@ -96,19 +96,19 @@
 		specific left and right properties should be merged. Where each key
 		refers to the specific property name and each related value to an
 		expression using the variable listed in the -Merge parameter.
-		
+
 		The default property expression for the properties supplied by the -On
 		parameter is (in the knowledge that the properties at both sides are
 		equal or empty at one side in the outer join):
-		
+
 			If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}
 
 		Existing properties set by the (default) merge expression will be
 		overwritten by the -Property parameter.
-		
+
 		New properties will be added to the output object.
 
-	.EXAMPLE 
+	.EXAMPLE
 
 		PS C:\> $Employee
 
@@ -143,7 +143,7 @@
 		England Marketing   {Evans, Marketing}     Morris
 		Germany Engineering {Fischer, Engineering} Meyer
 
-	.EXAMPLE 
+	.EXAMPLE
 
 		PS C:\> $Employee | Join $Department -On Department -Eq Name -Property @{Name = {$Left.$_}; Manager = {$Right.$_}}
 
@@ -156,7 +156,7 @@
 		Evans   Morris
 		Fischer Meyer
 
-	.EXAMPLE 
+	.EXAMPLE
 
 		PS C:\> $Employees
 
@@ -171,7 +171,7 @@
 		 7 Robert    King              5
 		 8 Laura     Callahan          2
 		 9 Anne      Dodsworth         5
-		 
+
 		PS C:\> $Employees | InnerJoin $Employees -On ReportsTo -Eq EmployeeID -Property @{
 		>> Name = {"$($Left.FirstName) $($Left.LastName)"}
 		>> Manager = {"$($Right.FirstName) $($Right.LastName)"}}
@@ -187,7 +187,7 @@
 		Laura Callahan   Andrew Fuller
 		Anne Dodsworth   Steven Buchanan
 
-	.EXAMPLE 
+	.EXAMPLE
 
 		PS C:\>Import-CSV .\old.csv | LeftJoin (Get-Service) Name {If ($Null -ne $Right.$_) {$Right.$_} Else {$Left.$_}} | Export-CSV .\New.csv
 
@@ -196,9 +196,9 @@
 #>
 Function Join-Object {
 	[CmdletBinding(DefaultParametersetName='None')][OutputType([Object[]])]Param (
-		[Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject, 
+		[Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject,
 		[Parameter(Position=1,ParameterSetName='On', Mandatory = $True)][Alias("Using")]$On, [Parameter(ParameterSetName='On')][String]$Equals,
-		[Parameter(Position=2)][ScriptBlock]$Merge = {If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}}, 
+		[Parameter(Position=2)][ScriptBlock]$Merge = {If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}},
 		[Parameter(Position=3)]$Property = @{}
 	)
 	Begin {
@@ -212,7 +212,7 @@ Function Join-Object {
 			If (!$LeftIndex) {
 				$LeftProperty = @{}; $LeftObject[0].PSObject.Properties  | ForEach-Object {$LeftProperty[$_.Name] = $True}
 				If ($Property -is [HashTable] -or $Property -is [System.Collections.Specialized.OrderedDictionary]) {$Keys = $Property.Keys} Else {$Keys = @($Property); $Property = @{}}
-				If (!$Keys) {$Keys = $LeftProperty.Keys + $RightProperty.Keys | Select-Object -Unique}
+				If ($PSBoundParameters.ContainsKey('Merge') -or !@($Keys).Count) {$Keys = $LeftProperty.Keys + $RightProperty.Keys | Select-Object -Unique}
 				$Keys | Where-Object {!$Property.$_} | ForEach-Object {$Property.$_ = $True}
 				If ($Equals) {If ($Property.$On -is [Bool]) {$Property.$On = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}; If ($RightProperty.$_) {$Right.$_}}}}
 				ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach-Object {If ($Property.$_  -is [Bool]) {$Property.$_ = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}}}}
