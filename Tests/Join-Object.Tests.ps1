@@ -1,17 +1,15 @@
+#Requires -Modules @{ModuleName="Pester"; ModuleVersion="4.4.0"}
+
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
 . .\ConvertFrom-SourceTable.ps1			# https://www.powershellgallery.com/packages/ConvertFrom-SourceTable
 
-Function Should-BeObject {
-	Param (
-		[Parameter(Position=0)][Object[]]$b, [Parameter(ValueFromPipeLine = $True)][Object[]]$a
-	)
-	$Property = ($a | Select-Object -First 1).PSObject.Properties + ($b | Select-Object -First 1).PSObject.Properties | Select-Object -Expand Name -Unique
-	$Difference = Compare-Object $b $a -Property $Property
-	Try {"$($Difference | Select-Object -First 1)" | Should -BeNull} Catch {$PSCmdlet.WriteError($_)}
-
+Function Compare-PSObject([Object[]]$ReferenceObject, [Object[]]$DifferenceObject) {
+	$Property = ($ReferenceObject  | Select-Object -First 1).PSObject.Properties + 
+	            ($DifferenceObject | Select-Object -First 1).PSObject.Properties | Select-Object -Expand Name -Unique
+	Compare-Object $ReferenceObject $DifferenceObject -Property $Property
 }
 
 Describe 'Join-Object' {
@@ -47,7 +45,7 @@ Describe 'Join-Object' {
 				England Marketing   Morris      "Evans", "Marketing"
 				Germany Engineering Meyer   "Fischer", "Engineering"'
 				
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'LeftJoin' {
@@ -62,7 +60,7 @@ Describe 'Join-Object' {
 				England Marketing   Morris      "Evans", "Marketing"
 				Germany Engineering Meyer   "Fischer", "Engineering"'
 				
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It "RightJoin" {
@@ -77,7 +75,7 @@ Describe 'Join-Object' {
 				Engineering "Fischer", "Engineering" Meyer   Germany
 				      $Null           $Null, "Board" Mans    Netherlands'
 				
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'FullJoin' {
@@ -93,7 +91,7 @@ Describe 'Join-Object' {
 				Germany     Engineering "Fischer", "Engineering" Meyer
 				Netherlands       $Null        @($Null, "Board") Mans'
 				
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'Cross Join' {
@@ -126,7 +124,7 @@ Describe 'Join-Object' {
 				     "Germany", "France" Engineering Millet        "Fischer", "Sales"
 				"Germany", "Netherlands" Engineering Mans          "Fischer", "Board"'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 	}
@@ -140,7 +138,7 @@ Describe 'Join-Object' {
 				------- ----------  ------- ----------------------
 				Germany Engineering Meyer   "Bauer", "Engineering"'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'Single right object' {
@@ -151,7 +149,7 @@ Describe 'Join-Object' {
 				Germany Engineering Meyer     "Bauer", "Engineering"
 				Germany Engineering Meyer   "Fischer", "Engineering"'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'Single left object and single right object' {
@@ -161,7 +159,7 @@ Describe 'Join-Object' {
 				------- ----------  ------- ----------------------
 				Germany Engineering Meyer   "Bauer", "Engineering"'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 	}
 
@@ -179,7 +177,7 @@ Describe 'Join-Object' {
 				"England", "England" Marketing       "Evans", "Marketing" Morris
 				"Germany", "Germany" Engineering "Fischer", "Engineering" Meyer'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 	}
 
@@ -197,7 +195,7 @@ Describe 'Join-Object' {
 				Marketing   Evans   Morris  England
 				Engineering Fischer Meyer   Germany'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'Only use the left name property and the right manager property' {
@@ -212,11 +210,11 @@ Describe 'Join-Object' {
 				Evans   Morris
 				Fischer Meyer'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'Use the left object property except for the country property' {
-			$Actual = $Employee | InnerJoin $Department -On Department -Eq Name {$Left.$_} @{Manager = {$Right.$_}}
+			$Actual = $Employee | InnerJoin $Department -On Department -Eq Name {$Left.$_} Department, Name, @{Manager = {$Right.$_}}, Country
 			$Expected = ConvertFrom-SourceTable '
 				Department  Name    Manager Country
 				----------  ----    ------- -------
@@ -227,14 +225,14 @@ Describe 'Join-Object' {
 				Marketing   Evans   Morris  England
 				Engineering Fischer Meyer   Germany'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 	}
 
 	Context "Join using expression" {
 
 		It 'InnerJoin on Employee.Department = Department.Name and Employee.Country = Department.Country' {
-			$Actual = $Employee | InnerJoin $Department -Using {$Left.Department -eq $Right.Name -and $Left.Country -eq $Right.Country} {$Left.$_} @{Manager = {$Right.$_}}
+			$Actual = $Employee | InnerJoin $Department -Using {$Left.Department -eq $Right.Name -and $Left.Country -eq $Right.Country} {$Left.$_} Department, Name, @{Manager = {$Right.$_}}, Country
 			$Expected = ConvertFrom-SourceTable '
 				Department  Name    Manager Country
 				----------  ----    ------- -------
@@ -242,7 +240,7 @@ Describe 'Join-Object' {
 				Marketing   Evans   Morris  England
 				Engineering Fischer Meyer   Germany'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'Inner join on index' {
@@ -255,7 +253,7 @@ Describe 'Join-Object' {
 				    "England", "France" Sales              "Cook", "Sales" Millet
 				"France", "Netherlands" Engineering       "Duval", "Board" Mans'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 		
 		It 'Full join on index' {
@@ -270,7 +268,7 @@ Describe 'Join-Object' {
 				    `  "England", $Null Marketing   `       "Evans", $Null   $Null
 				`      "Germany", $Null Engineering `     "Fischer", $Null   $Null'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 		
 		It 'Self join with new properties' {
@@ -300,7 +298,7 @@ Describe 'Join-Object' {
 				Laura Callahan   Andrew Fuller
 				Anne Dodsworth   Steven Buchanan'
 
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
 		It 'InnerJoin using multiple property matches and output specific columns' {
@@ -330,7 +328,7 @@ Describe 'Join-Object' {
 				R4IKTHMK.pdf Transcript    887327716 User3      1950/06/26    Aco
 				R4IKTHSL.pdf Letter        588496260 User4      1960/05/23    John'
 			
-			,$Actual | Should-BeObject $Expected
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 	}
 
