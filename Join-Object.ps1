@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 2.2.6
+.VERSION 2.3.0
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -197,12 +197,11 @@
 Function Join-Object {
 	[CmdletBinding(DefaultParametersetName='None')][OutputType([Object[]])]Param (
 		[Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject,
-		[Parameter(Position=1,ParameterSetName='On', Mandatory = $True)][Alias("Using")]$On, [Parameter(ParameterSetName='On')][String]$Equals,
-		[Parameter(Position=2)][ScriptBlock]$Merge = {If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}},
-		[Parameter(Position=3)]$Property = @{}
+		[Parameter(Position = 1,ParameterSetName='On', Mandatory = $True)][Alias("Using")]$On, [Parameter(ParameterSetName='On')][String]$Equals,
+		[Parameter(Position = 2)][ScriptBlock]$Merge = {If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}},
+		[Parameter(Position = 3)]$Property = @{}, [Parameter(Position = 4)] [ValidateSet('Inner', 'Left', 'Right', 'Full')]$JoinType = 'Inner'
 	)
 	Begin {
-		$JoinType = ($MyInvocation.InvocationName -Split "-")[0]
 		$RightProperty = @{}; $RightObject[0].PSObject.Properties | ForEach-Object {$RightProperty[$_.Name] = $True}
 		$Keys = @(); $Hash = @{}; $New = New-Object System.Collections.Specialized.OrderedDictionary; $RightOffs = @($False) * @($RightObject).Length; $LeftIndex = 0
 	}
@@ -226,21 +225,25 @@ Function Join-Object {
 					$Keys | ForEach-Object {$New.$_ = &$Property.$_}
 					New-Object PSObject -Property $New; $LeftOff = $True; $RightOffs[$RightIndex] = $True
 			}	}
-			If (!$LeftOff -And ($JoinType[0] -eq "L" -or $JoinType[0] -eq "F")) {$Right = $Null
+			If (!$LeftOff -And ($JoinType -eq "Left" -or $JoinType -eq "Full")) {$Right = $Null
 				$Keys | ForEach-Object {$New.$_ = &$Property.$_}; New-Object PSObject -Property $New
 			}
 			$LeftIndex++
 		}
 	}
 	End {
-		If ($JoinType[0] -eq "R" -or $JoinType[0] -eq "F") {$Left = $Null
+		If ($JoinType -eq "Right" -or $JoinType -eq "Full") {$Left = $Null
 			For ($RightIndex = 0; $RightIndex -lt $RightOffs.Length; $RightIndex++) {
 				If (!$RightOffs[$RightIndex]) {$Right = $RightObject[$RightIndex]
 					$Keys | ForEach-Object {$New.$_ = &$Property.$_}; New-Object PSObject -Property $New
 		}	}	}
 	}
-}; Set-Alias Join   Join-Object
-Set-Alias InnerJoin Join-Object; Set-Alias InnerJoin-Object Join-Object -Description "Returns records that have matching values in both tables"
-Set-Alias LeftJoin  Join-Object; Set-Alias LeftJoin-Object  Join-Object -Description "Returns all records from the left table and the matched records from the right table"
-Set-Alias RightJoin Join-Object; Set-Alias RightJoin-Object Join-Object -Description "Returns all records from the right table and the matched records from the left table"
-Set-Alias FullJoin  Join-Object; Set-Alias FullJoin-Object  Join-Object -Description "Returns all records when there is a match in either left or right table"
+}; Set-Alias Join Join-Object
+$JoinCommand = Get-Command Join-Object
+$JoinData = [System.Management.Automation.CommandMetadata]::New($JoinCommand)
+$JoinCommand.Parameters.JoinType.Attributes.ValidValues | ForEach-Object {
+	$Name = "$($_)Join-Object"
+	$Null = New-Item -Path Function:\ -Name $Name -Value ([System.Management.Automation.ProxyCommand]::Create($JoinData)) -Force
+	$PSDefaultParameterValues["$Name`:JoinType"] = $_
+	Set-Alias "$($_)Join" $Name
+}
