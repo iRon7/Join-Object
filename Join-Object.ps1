@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 2.2.5
+.VERSION 2.2.6
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -204,16 +204,17 @@ Function Join-Object {
 	Begin {
 		$JoinType = ($MyInvocation.InvocationName -Split "-")[0]
 		$RightProperty = @{}; $RightObject[0].PSObject.Properties | ForEach-Object {$RightProperty[$_.Name] = $True}
-		$Keys = $Null; $New = New-Object System.Collections.Specialized.OrderedDictionary; $RightOffs = @($False) * @($RightObject).Length; $LeftIndex = 0
+		$Keys = @(); $Hash = @{}; $New = New-Object System.Collections.Specialized.OrderedDictionary; $RightOffs = @($False) * @($RightObject).Length; $LeftIndex = 0
 	}
 	Process {
 		ForEach ($Left in @($LeftObject)) {
 			$LeftOff = $False
 			If (!$LeftIndex) {
 				$LeftProperty = @{}; $LeftObject[0].PSObject.Properties  | ForEach-Object {$LeftProperty[$_.Name] = $True}
-				If ($Property -is [HashTable] -or $Property -is [System.Collections.Specialized.OrderedDictionary]) {$Keys = $Property.Keys} Else {$Keys = @($Property); $Property = @{}}
-				If ($PSBoundParameters.ContainsKey('Merge') -or !@($Keys).Count) {$Keys = $LeftProperty.Keys + $RightProperty.Keys | Select-Object -Unique}
-				$Keys | Where-Object {!$Property.$_} | ForEach-Object {$Property.$_ = $True}
+				If ($Property.PSTypeNames -Match "^System.Collections") {$Keys = $Property.Keys}
+				Else {@($Property) | ForEach-Object {If ($_.Keys) {$Hash += $_; $Keys += $_.Keys} Else {$Keys += "$_"}}; $Property = $Hash}
+				If ($Keys.Count -eq 0) {$Keys = $LeftProperty.Keys + $RightProperty.Keys}
+				$Keys = $Keys | Select-Object -Unique; $Keys | Where-Object {!$Property.$_} | ForEach-Object {$Property.$_ = $True}
 				If ($Equals) {If ($Property.$On -is [Bool]) {$Property.$On = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}; If ($RightProperty.$_) {$Right.$_}}}}
 				ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach-Object {If ($Property.$_  -is [Bool]) {$Property.$_ = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}}}}
 				$Keys | ForEach-Object {$New.Add($_, $Null); If ($Property.$_ -is [Bool]) {$Property.$_ = $Merge}}
