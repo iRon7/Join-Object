@@ -1,17 +1,18 @@
 # Join-Object
 Combines two objects lists based on a related property between them.
 
-The Join cmdlet combines properties from one or more objects. It creates
-a set that can	be saved as a new object or used as it is. A object join is
-a means for 	combining properties from one (self-join) or more tables by
-using values	common to each. 
-There are four basic types of the Join-Object cmdlet:
+Combines properties from one or more objects. It creates a set that can
+be saved as a new object or used as it is. An object join is a means for
+combining properties from one (self-join) or more tables by using values
+common to each. 
+There are five types of the Join-Object cmdlet:
 - `InnerJoin-Object` (`InnerJoin`, or `Join`)
 - `LeftJoin-Object` (or `LeftJoin`)
 - `RightJoin-Object` (or `RightJoin`)
 - `FullJoin-Object` (or `FullJoin`)
+- `CrossJoin-Object` (or `CrossJoin`)
 
-As a special case, a cross join can be invoked by omitting the -On parameter.
+As a special case, a join by index	can be invoked by omitting the -On parameter.
  
  ## Examples 
 
@@ -77,19 +78,20 @@ PS C:\> $Employees
 
 EmployeeId FirstName LastName  ReportsTo
 ---------- --------- --------  ---------
- 1 Nancy     Davolio           2
- 2 Andrew    Fuller
- 3 Janet     Leveling          2
- 4 Margaret  Peacock           2
- 5 Steven    Buchanan          2
- 6 Michael   Suyama            5
- 7 Robert    King              5
- 8 Laura     Callahan          2
- 9 Anne      Dodsworth         5
+         1 Nancy     Davolio           2
+         2 Andrew    Fuller
+         3 Janet     Leveling          2
+         4 Margaret  Peacock           2
+         5 Steven    Buchanan          2
+         6 Michael   Suyama            5
+         7 Robert    King              5
+         8 Laura     Callahan          2
+         9 Anne      Dodsworth         5
 
 PS C:\> $Employees | InnerJoin $Employees -On ReportsTo -Eq EmployeeID -Property @{
->> Name = {"$($Left.FirstName) $($Left.LastName)"}
->> Manager = {"$($Right.FirstName) $($Right.LastName)"}}
+            Name = {"$($Left.FirstName) $($Left.LastName)"}
+            Manager = {"$($Right.FirstName) $($Right.LastName)"}
+        }
 
 Name             Manager
 ----             -------
@@ -137,8 +139,10 @@ Any conditional expression (where `$Left` refers to each left object and
 `$Right` refers to each right object) which requires to evaluate to true
 in order to join the objects.
 
-Note: The `-On <ScriptBlock>` type has the most complex comparison
+Note 1: The `-On <ScriptBlock>` type has the most complex comparison
 possibilities but is considerable slower than the other types.
+
+Note 2: If the `-On` parameter is omitted, a join by index is returned.
 
 `-Equals`  
 Requires the `-On` value to be a string. The property of the left object
@@ -152,8 +156,7 @@ same name should be merged. Where in the expression:
 - `$_` refers to each property name
 - `$Left` and `$Right` refers to each corresponding object
 - `$Left.$`_ and `$Right.$_` refers to corresponding value
-- `$LeftIndex` and `$RightIndex` refers to corresponding index
-- `$LeftProperty` and `$RightProperty` refers to a corresponding list of properties
+- `$LeftProperty` and `$RightProperty` refer to a corresponding list of properties
 
 If the `-Merge` parameter and the `-Property` parameter are omitted, the
 merge expression will be set to:
