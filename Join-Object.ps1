@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 2.3.0
+.VERSION 2.3.1
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -22,12 +22,13 @@
 
 	.DESCRIPTION
 	Combines properties from one or more objects. It creates a set that can
-	be saved as a new object or used as it is. A object join is a means for
+	be saved as a new object or used as it is. An object join is a means for
 	combining properties from one (self-join) or more tables by using values
-	common to each. There are four basic types of the Join-Object cmdlet:
+	common to each. There are five types of the Join-Object cmdlet:
 	InnerJoin-Object (InnerJoin, or Join), LeftJoin-Object (or LeftJoin),
-	RightJoin-Object (or RightJoin), FullJoin-Object (or FullJoin). As a
-	special case, a cross join can be invoked by omitting the -On parameter.
+	RightJoin-Object (or RightJoin), FullJoin-Object (or FullJoin) and
+	CrossJoin-Object (or CrossJoin). As a special case, a join by index
+	can be invoked by omitting the -On parameter.
 
 	.PARAMETER LeftObject
 		The LeftObject (usually provided through the pipeline) defines the
@@ -54,8 +55,11 @@
 		$Right refers to each right object) which requires to evaluate to true
 		in order to join the objects.
 
-		Note: The -On <ScriptBlock> type has the most complex comparison
+		Note 1: The -On <ScriptBlock> type has the most complex comparison
 		possibilities but is considerable slower than the other types.
+
+		Note 2: If the -On parameter is omitted, a join by index is returned.
+
 
 	.PARAMETER Equals
 		Requires the -On value to be a string. The property of the left object
@@ -69,7 +73,6 @@
 		* $_ refers to each property name
 		* $Left and $Right refers to each corresponding object
 		* $Left.$_ and $Right.$_ refers to corresponding value
-		* $LeftIndex and $RightIndex refers to corresponding index
 		* $LeftProperty.$_ and $RightProperty.$_ refers to a corresponding
 		  list of existing properties keys
 		If the -Merge parameter and the -Property parameter are omitted, the
@@ -82,10 +85,10 @@
 		be listed in the result if the property exists in the corresponding
 		object list.
 
-		If the merge expression is set, the property names of the left and
-		right object will automatically be include in the result.
+		If the merge expression is set, the property names of the left object
+		and right object will automatically be include in the result.
 
-		Properties set by the -Merge expression will be overwritten by the
+		Properties set by the -Merge expression might be overwritten by the
 		-Property parameter
 
 	.PARAMETER Property
@@ -162,19 +165,20 @@
 
 		EmployeeId FirstName LastName  ReportsTo
 		---------- --------- --------  ---------
-		 1 Nancy     Davolio           2
-		 2 Andrew    Fuller
-		 3 Janet     Leveling          2
-		 4 Margaret  Peacock           2
-		 5 Steven    Buchanan          2
-		 6 Michael   Suyama            5
-		 7 Robert    King              5
-		 8 Laura     Callahan          2
-		 9 Anne      Dodsworth         5
+		         1 Nancy     Davolio           2
+		         2 Andrew    Fuller
+		         3 Janet     Leveling          2
+		         4 Margaret  Peacock           2
+		         5 Steven    Buchanan          2
+		         6 Michael   Suyama            5
+		         7 Robert    King              5
+		         8 Laura     Callahan          2
+		         9 Anne      Dodsworth         5
 
 		PS C:\> $Employees | InnerJoin $Employees -On ReportsTo -Eq EmployeeID -Property @{
-		>> Name = {"$($Left.FirstName) $($Left.LastName)"}
-		>> Manager = {"$($Right.FirstName) $($Right.LastName)"}}
+		            Name = {"$($Left.FirstName) $($Left.LastName)"}
+		            Manager = {"$($Right.FirstName) $($Right.LastName)"}
+		        }
 
 		Name             Manager
 		----             -------
@@ -197,46 +201,48 @@
 Function Join-Object {
 	[CmdletBinding(DefaultParametersetName='None')][OutputType([Object[]])]Param (
 		[Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject,
-		[Parameter(Position = 1,ParameterSetName='On', Mandatory = $True)][Alias("Using")]$On, [Parameter(ParameterSetName='On')][String]$Equals,
+		[Parameter(Position = 1, ParameterSetName='On')][Alias("Using")]$On, [Parameter(ParameterSetName='On')][String]$Equals,
 		[Parameter(Position = 2)][ScriptBlock]$Merge = {If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}},
-		[Parameter(Position = 3)]$Property = @{}, [Parameter(Position = 4)] [ValidateSet('Inner', 'Left', 'Right', 'Full')]$JoinType = 'Inner'
+		[Parameter(Position = 3)]$Property = @{}, [Parameter(Position = 4)] [ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner'
 	)
 	Begin {
+		$Script:Keys = @(); $Hash = @{}; $Script:New = New-Object System.Collections.Specialized.OrderedDictionary
 		$RightProperty = @{}; $RightObject[0].PSObject.Properties | ForEach-Object {$RightProperty[$_.Name] = $True}
-		$Keys = @(); $Hash = @{}; $New = New-Object System.Collections.Specialized.OrderedDictionary; $RightOffs = @($False) * @($RightObject).Length; $LeftIndex = 0
+		$RightLength = @($RightObject).Length; $Script:RightOffs = @($False) * $RightLength; $LeftIndex = 0
+		Function Join-Output($Left, $Right) {$Keys | ForEach-Object {$Script:New.$_ = &$Property.$_}; New-Object PSObject -Property $New}
 	}
 	Process {
 		ForEach ($Left in @($LeftObject)) {
-			$LeftOff = $False
+			$Script:LeftOff = $False
 			If (!$LeftIndex) {
 				$LeftProperty = @{}; $LeftObject[0].PSObject.Properties  | ForEach-Object {$LeftProperty[$_.Name] = $True}
-				If ($Property.PSTypeNames -Match "^System.Collections") {$Keys = $Property.Keys}
-				Else {@($Property) | ForEach-Object {If ($_.Keys) {$Hash += $_; $Keys += $_.Keys} Else {$Keys += "$_"}}; $Property = $Hash}
-				If ($Keys.Count -eq 0) {$Keys = $LeftProperty.Keys + $RightProperty.Keys}
-				$Keys = $Keys | Select-Object -Unique; $Keys | Where-Object {!$Property.$_} | ForEach-Object {$Property.$_ = $True}
+				If ($Property.PSTypeNames -Match "^System.Collections") {$Script:Keys = $Property.Keys}
+				Else {@($Property) | ForEach-Object {If ($_.Keys) {$Hash += $_; $Script:Keys += $_.Keys} Else {$Script:Keys += "$_"}}; $Property = $Hash}
+				If ($Keys.Count -eq 0) {$Script:Keys = $LeftProperty.Keys + $RightProperty.Keys}
+				$Script:Keys = $Keys | Select-Object -Unique; $Keys | Where-Object {!$Property.$_} | ForEach-Object {$Property.$_ = $True}
 				If ($Equals) {If ($Property.$On -is [Bool]) {$Property.$On = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}; If ($RightProperty.$_) {$Right.$_}}}}
 				ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach-Object {If ($Property.$_  -is [Bool]) {$Property.$_ = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}}}}
-				$Keys | ForEach-Object {$New.Add($_, $Null); If ($Property.$_ -is [Bool]) {$Property.$_ = $Merge}}
+				$Keys | ForEach-Object {$Script:New.Add($_, $Null); If ($Property.$_ -is [Bool]) {$Property.$_ = $Merge}}
 			}
-			For ($RightIndex = 0; $RightIndex -lt @($RightObject).Length; $RightIndex++) {$Right = $RightObject[$RightIndex]
-				$Select = If ($On -is [String]) {If ($Equals) {$Left.$On -eq $Right.$Equals} Else {$Left.$On -eq $Right.$On}}
-				ElseIf ($On -is [Array]) {$Null -eq ($On | Where-Object {!($Left.$_ -eq $Right.$_)})} ElseIf ($On -is [ScriptBlock]) {&$On} Else {$True}
-				If ($Select) {
-					$Keys | ForEach-Object {$New.$_ = &$Property.$_}
-					New-Object PSObject -Property $New; $LeftOff = $True; $RightOffs[$RightIndex] = $True
-			}	}
-			If (!$LeftOff -And ($JoinType -eq "Left" -or $JoinType -eq "Full")) {$Right = $Null
-				$Keys | ForEach-Object {$New.$_ = &$Property.$_}; New-Object PSObject -Property $New
+			If ($On -or $JoinType -eq "Cross") {
+				For ($RightIndex = 0; $RightIndex -lt $RightLength; $RightIndex++) {$Right = $RightObject[$RightIndex]
+					$Select = If ($On -is [String]) {If ($Equals) {$Left.$On -eq $Right.$Equals} Else {$Left.$On -eq $Right.$On}}
+					ElseIf ($On -is [Array]) {$Null -eq ($On | Where-Object {!($Left.$_ -eq $Right.$_)})} ElseIf ($On -is [ScriptBlock]) {&$On} Else {$True}
+					If ($Select) {Join-Output $Left $Right; $Script:LeftOff = $True; $Script:RightOffs[$RightIndex] = $True}
+				}
+			} Elseif ($LeftIndex -lt $RightLength) {
+				$RightIndex = $LeftIndex; Join-Output $Left $RightObject[$RightIndex]; $Script:LeftOff = $True; $Script:RightOffs[$RightIndex] = $True
 			}
+			If (!$LeftOff -And ($JoinType -eq "Left" -or $JoinType -eq "Full")) {Join-Output $Left}
 			$LeftIndex++
 		}
 	}
 	End {
 		If ($JoinType -eq "Right" -or $JoinType -eq "Full") {$Left = $Null
 			For ($RightIndex = 0; $RightIndex -lt $RightOffs.Length; $RightIndex++) {
-				If (!$RightOffs[$RightIndex]) {$Right = $RightObject[$RightIndex]
-					$Keys | ForEach-Object {$New.$_ = &$Property.$_}; New-Object PSObject -Property $New
-		}	}	}
+				If (!$RightOffs[$RightIndex]) {Join-Output $Left $RightObject[$RightIndex]}
+			}
+		}
 	}
 }; Set-Alias Join Join-Object
 $JoinCommand = Get-Command Join-Object
