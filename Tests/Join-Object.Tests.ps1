@@ -34,7 +34,7 @@ Describe 'Join-Object' {
 	
 	Context 'Join types' {
 
-		It 'InnerJoin' {
+		It '$Employee | InnerJoin $Department -On Country' {
 			$Actual = $Employee | InnerJoin $Department -On Country
 			$Expected = ConvertFrom-SourceTable '
 				Country Department  Manager                     Name
@@ -48,7 +48,7 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It 'LeftJoin' {
+		It '$Employee | LeftJoin $Department -On Country' {
 			$Actual = $Employee | LeftJoin $Department -On Country
 			$Expected = ConvertFrom-SourceTable '
 				Country Department  Manager                     Name
@@ -63,7 +63,7 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It "RightJoin" {
+		It '$Employee | RightJoin $Department -On Country' {
 			$Actual = $Employee | RightJoin $Department -On Country
 			$Expected = ConvertFrom-SourceTable '
 				Department                      Name Manager Country
@@ -78,7 +78,7 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It 'FullJoin' {
+		It '$Employee | FullJoin $Department -On Country' {
 			$Actual = $Employee | FullJoin $Department -On Country
 			$Expected = ConvertFrom-SourceTable '
 				Country     Department                      Name Manager
@@ -94,8 +94,8 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It 'Cross Join' {
-			$Actual = $Employee | Join $Department
+		It '$Employee | CrossJoin $Department' {
+			$Actual = $Employee | CrossJoin $Department
 			$Expected = ConvertFrom-SourceTable '
 				                 Country Department  Manager                     Name
 				                 ------- ----------  -------                     ----
@@ -127,6 +127,67 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
+	}
+
+	Context 'Join by index' {
+
+		It '$Employee | InnerJoin $Department' {
+			$Actual = $Employee | InnerJoin $Department
+			$Expected = ConvertFrom-SourceTable '
+				Department                    Name                 Country Manager
+				----------                    ----                 ------- -------
+				Sales       "Aerts", "Engineering"    "Belgium", "Germany" Meyer
+				Engineering   "Bauer", "Marketing"    "Germany", "England" Morris
+				Sales              "Cook", "Sales"     "England", "France" Millet
+				Engineering       "Duval", "Board" "France", "Netherlands" Mans'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+		
+		It '$Employee | LeftJoin $Department' {
+			$Actual = $Employee | LeftJoin $Department
+			$Expected = ConvertFrom-SourceTable '
+				Department                    Name                 Country Manager
+				----------                    ----                 ------- -------
+				Sales       "Aerts", "Engineering"    "Belgium", "Germany" Meyer
+				Engineering   "Bauer", "Marketing"    "Germany", "England" Morris
+				Sales              "Cook", "Sales"     "England", "France" Millet
+				Engineering       "Duval", "Board" "France", "Netherlands" Mans
+				Marketing           "Evans", $Null        "England", $Null   $Null
+				Engineering       "Fischer", $Null        "Germany", $Null   $Null'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+		
+		It '$Department | RightJoin $Employee' {
+			$Actual = $Department | RightJoin $Employee
+			$Expected = ConvertFrom-SourceTable '
+				                  Name Manager                 Country Department
+				                  ---- -------                 -------  ----------
+				"Engineering", "Aerts" Meyer      "Germany", "Belgium" Sales
+				  "Marketing", "Bauer" Morris     "England", "Germany" Engineering
+				       "Sales", "Cook" Millet      "France", "England" Sales
+				      "Board", "Duval" Mans    "Netherlands", "France" Engineering
+				        $Null, "Evans"   $Null        $Null, "England" Marketing
+				      $Null, "Fischer"   $Null        $Null, "Germany" Engineering'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+		
+		It '$Employee | FullJoin $Department' {
+			$Actual = $Employee | FullJoin $Department
+			$Expected = ConvertFrom-SourceTable '
+				Department                    Name                 Country Manager
+				----------                    ----                 ------- -------
+				Sales       "Aerts", "Engineering"    "Belgium", "Germany" Meyer
+				Engineering   "Bauer", "Marketing"    "Germany", "England" Morris
+				Sales              "Cook", "Sales"     "England", "France" Millet
+				Engineering       "Duval", "Board" "France", "Netherlands" Mans
+				Marketing           "Evans", $Null        "England", $Null   $Null
+				Engineering       "Fischer", $Null        "Germany", $Null   $Null'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
 	}
 	
 	Context 'Single object' {
