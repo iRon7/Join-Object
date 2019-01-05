@@ -13,3 +13,4 @@
 2.2.5     2018-11-27 Ronald Bode Fixed empty output bug (including test)
 2.2.6     2018-11-28 Ronald Bode Support for mixed [string]Key/[hashtable]@{Key={Expression}} -Property parameter
 2.3.0     2018-11-28 Ronald Bode Replaced InnerJoin-, LeftJoin-, RightJoin-, FullJoin-Object aliases by proxy commands
+2.3.1     2018-12-30 Ronald Bode Added CrossJoin Type. If the -On parameter is omitted, a join by index will be done
