@@ -219,7 +219,7 @@ Function Join-Object {
 				If ($Property.PSTypeNames -Match "^System.Collections") {$Script:Keys = $Property.Keys}
 				Else {@($Property) | ForEach-Object {If ($_.Keys) {$Hash += $_; $Script:Keys += $_.Keys} Else {$Script:Keys += "$_"}}; $Property = $Hash}
 				If ($Keys.Count -eq 0) {$Script:Keys = $LeftProperty.Keys + $RightProperty.Keys}
-				$Script:Keys = $Keys | Select-Object -Unique; $Keys | Where-Object {!$Property.$_} | ForEach-Object {$Property.$_ = $True}
+				$Script:Keys = $Keys | Select-Object -Unique; $Keys | Where-Object {!$Property.PSObject.Properties[$_]} | ForEach-Object {$Property.$_ = $True}
 				If ($Equals) {If ($Property.$On -is [Bool]) {$Property.$On = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}; If ($RightProperty.$_) {$Right.$_}}}}
 				ElseIf ($On -is [String] -or $On -is [Array]) {@($On) | ForEach-Object {If ($Property.$_  -is [Bool]) {$Property.$_ = {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}}}}
 				$Keys | ForEach-Object {$Script:New.Add($_, $Null); If ($Property.$_ -is [Bool]) {$Property.$_ = $Merge}}
