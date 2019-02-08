@@ -4,32 +4,40 @@ Combines two objects lists based on a related property between them.
 Combines properties from one or more objects. It creates a set that can
 be saved as a new object or used as it is. An object join is a means for
 combining properties from one (self-join) or more tables by using values
-common to each. 
-There are five types of the Join-Object cmdlet:
-- `InnerJoin-Object` (`InnerJoin`, or `Join`)
-- `LeftJoin-Object` (or `LeftJoin`)
-- `RightJoin-Object` (or `RightJoin`)
-- `FullJoin-Object` (or `FullJoin`)
-- `CrossJoin-Object` (or `CrossJoin`)
+common to each. The Join-Object cmdlet supports a few proxy commands with
+their own defaults:
+- `InnerJoin-Object` (`Join-Object -JoinType Inner`)
+ 	 Only returns the joined objects
+- `LeftJoin-Object` (`Join-Object -JoinType Left`)
+	  Returns the joined objects and the rest of the left objects
+- `RightJoin-Object` (`Join-Object -JoinType Right`)
+   Returns the joined objects and the rest of the right objects
+- `FullJoin-Object` (`Join-Object -JoinType Full`)
+   Returns the joined objects and the rest of the left and right objects
+- `CrossJoin-Object` (`Join-Object -JoinType Cross`)
+   Joins each left object to each right object
+- `Update-Object` (`Join-Object -JoinType Left -MergeExpression = {RightOrLeft.$_}`)
+	  Updates the left object with the right object properties
+- `Merge-Object` (`Join-Object -JoinType Full -MergeExpression = {RightOrLeft.$_}`)
+	  Updates the left object with the right object properties and inserts
+	  right if the values of the related property is not equal.
 
-As a special case, a join by index	can be invoked by omitting the -On parameter.
- 
+Each command has an alias equal to its verb (omitting `-Object`).
+
  ## Examples 
-
-Consider the following tables:
-
+A simple inner join on the country property considering the following
+existing list of objects:
 ```powershell
 PS C:\> $Employee
 
-Department  Name    Country
-----------  ----    -------
-Sales       Aerts   Belgium
-Engineering Bauer   Germany
-Sales       Cook    England
-Engineering Duval   France
-Marketing   Evans   England
-Engineering Fischer Germany
-
+Name    Country Department
+----    ------- ----------
+Aerts   Belgium Sales
+Bauer   Germany Engineering
+Cook    England Sales
+Duval   France  Engineering
+Evans   England Marketing
+Fischer Germany Engineering
 
 PS C:\> $Department
 
@@ -39,27 +47,44 @@ Engineering Meyer   Germany
 Marketing   Morris  England
 Sales       Millet  France
 Board       Mans    Netherlands
-```
-A simple inner join on the country property:
 
-```powershell
 PS C:\> $Employee | LeftJoin $Department -On Country
-
-Country Department  Name                   Manager
-------- ----------  ----                   -------
-Belgium Sales       {Aerts, $null}
-Germany Engineering {Bauer, Engineering}   Meyer
-England Sales       {Cook, Marketing}      Morris
-France  Engineering {Duval, Sales}         Millet
-England Marketing   {Evans, Marketing}     Morris
-Germany Engineering {Fischer, Engineering} Meyer
+Department  Name                   Country Manager
+----------  ----                   ------- -------
+Sales       {Aerts, $null}         Belgium
+Engineering {Bauer, Engineering}   Germany Meyer
+Sales       {Cook, Marketing}      England Morris
+Engineering {Duval, Sales}         France  Millet
+Marketing   {Evans, Marketing}     England Morris
+Engineering {Fischer, Engineering} Germany Meyer
 ```
-An (inner) join where the department property of the employee matches the
-name property of the department. only retruning the (left) employee name
-property and the (right) department manager:
 
+Updating an existing object list:
 ```powershell
-PS C:\> $Employee | Join $Department -On Department -Eq Name -Property @{Name = {$Left.$_}; Manager = {$Right.$_}}
+PS C:\> $Changes
+
+Name    Country Department
+----    ------- ----------
+Aerts   Germany Sales
+Bauer   Germany Marketing
+Geralds Belgium Engineering
+
+PS C:\> $Employee | Merge $Changes -On Name
+
+Department  Name    Country
+----------  ----    -------
+Sales       Aerts   Germany
+Marketing   Bauer   Germany
+Sales       Cook    England
+Engineering Duval   France
+Marketing   Evans   England
+Engineering Fischer Germany
+Engineering Geralds Belgium
+```
+
+Defining the employee's manager based on department:
+```powershell
+PS C:\> $Employee | Join $Department -On Department -Eq Name -Property @{Name = {$Left.$_}}, "Manager"
 
 Name    Manager
 ----    -------
@@ -71,8 +96,7 @@ Evans   Morris
 Fischer Meyer
 ```
 
-A self join example creating a new name and manager properties:
-
+Defining the employee's manager using a self-join based on Employee id:
 ```powershell
 PS C:\> $Employees
 
@@ -103,96 +127,73 @@ Michael Suyama   Steven Buchanan
 Robert King      Steven Buchanan
 Laura Callahan   Andrew Fuller
 Anne Dodsworth   Steven Buchanan
-```
-
-Updating (replacing entries with the same name and adding entries with
-new names) a saved list of services with a newly retrieve service list:
-
-```powershell
-PS C:\>Import-CSV .\old.csv | LeftJoin (Get-Service) Name {If ($Null -ne $Right.$_) {$Right.$_} Else {$Left.$_}} | Export-CSV .\New.csv
-```
-
+  
 ## Parameters
 
-`-LeftObject`  
-The LeftObject (usually provided through the pipeline) defines the
+`-LeftObject`
+The LeftObject, usually provided through the pipeline, defines the
 left object (or list of objects) to be joined.
 
-`-RightObject`  
-The RightObject (provided as an argument) defines the right object (or
-list of objects) to be joined.
+`-RightObject`
+The RightObject, provided by the (first) argument, defines the right
+object (or list of objects) to be joined.
 
-`-On`  
+`-On`
 The `-On` (alias `-Using`) parameter defines the condition that specify
 how to join the left and right object and which objects to include in the
 (inner) result set. The -On parameter supports the following formats:
 
-`-On <String>` or `-On <Array>`  
-If the value is a string or array type, the `-On` parameter is similar to
+`-On <String> or <Array>`
+If the value is a string or array type, the `-O` parameter is similar to
 the SQL using clause. This means that all the listed properties require
 to be equal (at the left and right side) to be included in the (inner)
 result set. The listed properties will output a single value by default
-(see also the -Property parameter).
+(see also the `-Property` parameter).
 
-`-On <ScriptBlock>`  
+`-On <ScriptBlock>`
 Any conditional expression (where `$Left` refers to each left object and
 `$Right` refers to each right object) which requires to evaluate to true
 in order to join the objects.
 
-Note 1: The `-On <ScriptBlock>` type has the most complex comparison
+_Note 1_: The -On <ScriptBlock> type has the most complex comparison
 possibilities but is considerable slower than the other types.
 
-Note 2: If the `-On` parameter is omitted, a join by index is returned.
+_Note 2_: If the -On parameter is omitted, a join by index is returned.
 
-`-Equals`  
 Requires the `-On` value to be a string. The property of the left object
-defined by the -On value requires to be equal to the property of the
-right object defined by the -Equals value for the objects to be joined
+defined by the `-On` value requires to be equal to the property of the
+right object defined by the `-Equals` value for the objects to be joined
 and added to the result sets.
 
-`-Merge`  
+`-MergeExpression`
 An expression that defines how the left and right properties with the
-same name should be merged. Where in the expression:
-- `$_` refers to each property name
-- `$Left` and `$Right` refers to each corresponding object
-- `$Left.$`_ and `$Right.$_` refers to corresponding value
-- `$LeftProperty` and `$RightProperty` refer to a corresponding list of properties
+common property should be merged. Where the following variables are
+available:
+- `$_`: iterates each property name
+- `$Keys`: an array containing all the (left and right) keys
+- `$Left`: the current left object (each self-contained -`LeftObject`)
+- `$LeftOrNull`: the left object otherwise an object with null values
+- `$LeftOrRight`: the left object otherwise the right object
+- `$LeftKeys`: an array containing all the left keys
+- `$Right`: the current right object (each self-contained `-RightObject`)
+- `$RightOrNull`: the right object otherwise an object with null values
+- `$RightOrLeft`: the right object otherwise the left object
+- `$RightKeys`: an array containing all the right keys
+The default `-MergeExpressio`n is: `{$Left.$_, $Right.$_}`
+The merge expression is only used in case that the left and right
+properties are overlapping
 
-If the `-Merge` parameter and the `-Property` parameter are omitted, the
-merge expression will be set to:
+`-Property`
+A hash table or list of property names (strings) and/or hash tables.
 
-```powershell
-{If ($LeftProperty.$_) {$Left.$_}; If ($RightProperty.$_) {$Right.$_}}
-```
+Hash tables should be in the format `@{<PropertyName> = <Expression>}`
+where the `<Expression>` usually defines how the specific left and
+right properties should be merged.
 
-This means that the left property and/or the right property will only
-be listed in the result if the property exists in the corresponding
-object list.
-
-If the merge expression is set, the property names of the left and
-right object will automatically be include in the result.
-
-Properties set by the `-Merge` expression will be overwritten by the
-`-Property` parameter
-
-`-Property`  
-If the property parameter doesn't contain a hashtable, it is presumed
-to be a list of property names to be output.
-
-If the property parameter contains a hashtable, it defines how the
-specific left and right properties should be merged. Where each key
-refers to the specific property name and each related value to an
-expression using the variable listed in the -Merge parameter.
-
-The default property expression for the properties supplied by the `-On`
-parameter is (in the knowledge that the properties at both sides are
-equal or empty at one side in the outer join):
-
-```powershell
-If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}
-```
+If only a name (string) is supplied, the default merge expression
+is used
 
 Existing properties set by the (default) merge expression will be
-overwritten by the `-Property` parameter.
+overwritten by the -Property parameter.
 
-New properties will be added to the output object.
+Any unknown properties will be added to the output object.
