@@ -37,9 +37,9 @@
 	  Returns the joined objects and the rest of the left and right objects
 	* CrossJoin-Object (Join-Object -JoinType Cross)
 	  Joins each left object to each right object
-	* Update-Object (Join-Object -JoinType Left -MergeExpression = {RightOrLeft.$_}
+	* Update-Object (Join-Object -JoinType Left -MergeExpression = {RightOrLeft.$_})
 	  Updates the left object with the right object properties
-	* Merge-Object (Join-Object -JoinType Full -MergeExpression = {RightOrLeft.$_}
+	* Merge-Object (Join-Object -JoinType Full -MergeExpression = {RightOrLeft.$_})
 	  Updates the left object with the right object properties and inserts
 	  right if the values of the related property is not equal.
 
@@ -102,16 +102,14 @@
 		properties are overlapping
 
 	.PARAMETER Property
-		If the property parameter doesn't contain a hash table, it is presumed
-		to be a list of property names to be output.
+		A hash table or list of property names (strings) and/or hash tables.
 
-		If the property parameter contains a hash table, it defines how the
-		specific left and right properties should be merged. Where each key
-		refers to the specific property name and each related value to an
-		expression using the variable listed in the -Merge parameter.
+		Hash tables should be in the format @{<PropertyName> = <Expression>}
+		where the <Expression> usually defines how the specific left and
+		right properties should be merged.
 
-		The default property expression for the properties supplied by the -On
-		parameter is: {$LeftOrRight.$_}
+		If only a name (string) is supplied, the default merge expression
+		is used
 
 		Existing properties set by the (default) merge expression will be
 		overwritten by the -Property parameter.
