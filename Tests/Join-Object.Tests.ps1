@@ -1,4 +1,5 @@
 #Requires -Modules @{ModuleName="Pester"; ModuleVersion="4.4.0"}
+Set-StrictMode -Version 2
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
@@ -31,7 +32,7 @@ Describe 'Join-Object' {
 		Marketing   England     Morris
 		Sales       France      Millet
 		Board       Netherlands Mans'
-	
+
 	Context 'Join types' {
 
 		It '$Employee | InnerJoin $Department -On Country' {
@@ -127,6 +128,43 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
+	$Changes = ConvertFrom-SourceTable '
+		Name    Country Department
+		----    ------- ----------
+		Aerts   Germany Sales
+		Bauer   Germany Marketing
+		Geralds Belgium Engineering'
+
+		It '$Employee | Update $Changes -On Country' {
+			$Actual = $Employee | Update $Changes -On Name
+			$Expected = ConvertFrom-SourceTable '
+				Department  Name    Country
+				----------  ----    -------
+				Sales       Aerts   Germany
+				Marketing   Bauer   Germany
+				Sales       Cook    England
+				Engineering Duval   France
+				Marketing   Evans   England
+				Engineering Fischer Germany'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It '$Employee | Merge $Changes -On Country' {
+			$Actual = $Employee | Merge $Changes -On Name
+			$Expected = ConvertFrom-SourceTable '
+				Department  Name    Country
+				----------  ----    -------
+				Sales       Aerts   Germany
+				Marketing   Bauer   Germany
+				Sales       Cook    England
+				Engineering Duval   France
+				Marketing   Evans   England
+				Engineering Fischer Germany
+				Engineering Geralds Belgium'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
 	}
 
 	Context 'Join by index' {
@@ -305,7 +343,7 @@ Describe 'Join-Object' {
 		}
 
 		It 'Inner join on index' {
-			$Actual = $Employee | InnerJoin $Department {$LeftIndex -eq $RightIndex}
+			$Actual = $Employee | InnerJoin $Department
 			$Expected = ConvertFrom-SourceTable '
 				                Country Department                    Name Manager
 				 ---------------------- ----------- ---------------------- -------
@@ -318,7 +356,7 @@ Describe 'Join-Object' {
 		}
 		
 		It 'Full join on index' {
-			$Actual = $Employee | FullJoin $Department {$LeftIndex -eq $RightIndex}
+			$Actual = $Employee | FullJoin $Department
 			$Expected = ConvertFrom-SourceTable '
 				                Country Department                    Name Manager
 				----------------------- ----------  ---------------------- -------
@@ -391,6 +429,17 @@ Describe 'Join-Object' {
 			
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
+
+		It 'performance test' {
+			
+			$Left = 1..1000 | Foreach-Object {[PSCustomObject]@{Name = "jsmith$_"; Birthday = (Get-Date).adddays(-1)}}
+
+			$Right = 501..1500 | Foreach-Object {[PSCustomObject]@{Department = "Department $_"; Name = "Department $_"; Manager = "jsmith$_"}}
+				
+			(Measure-Command {$Left | Join $Right Name -eq Manager}).TotalSeconds | Should -BeLessThan 10
+		}
+
+		
 	}
 
 }
