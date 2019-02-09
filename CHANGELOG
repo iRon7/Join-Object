@@ -14,3 +14,8 @@
 2.2.6     2018-11-28 Ronald Bode Support for mixed [string]Key/[hashtable]@{Key={Expression}} -Property parameter
 2.3.0     2018-11-28 Ronald Bode Replaced InnerJoin-, LeftJoin-, RightJoin-, FullJoin-Object aliases by proxy commands
 2.3.1     2018-12-30 Ronald Bode Added CrossJoin Type. If the -On parameter is omitted, a join by index will be done
+2.3.2     2019-02-01 Ronald Bode The -MergeExpression is only used in case the Left and Right properties overlap
+2.4.0     2019-02-02 Ronald Bode Added Update-Object and Merge-Object proxy commands
+2.4.1     2019-02-06 Ronald Bode Added $LeftOrRight and $RightOrLeft references
+2.4.2     2019-02-08 mcclimont   Compliant with StrictMode -Version 2 (https://github.com/iRon7/Join-Object/pull/3)
+2.4.3     2019-02-06 Ronald Bode Changed $LeftOrNull and $RightOrNull to $LeftOrVoid and $RightOrVoid
