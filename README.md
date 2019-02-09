@@ -173,11 +173,11 @@ available:
 - `$_`: iterates each property name
 - `$Keys`: an array containing all the (left and right) keys
 - `$Left`: the current left object (each self-contained -`LeftObject`)
-- `$LeftOrNull`: the left object otherwise an object with null values
+- `$LeftOrVoid`: the left object otherwise an object with null values
 - `$LeftOrRight`: the left object otherwise the right object
 - `$LeftKeys`: an array containing all the left keys
 - `$Right`: the current right object (each self-contained `-RightObject`)
-- `$RightOrNull`: the right object otherwise an object with null values
+- `$RightOrVoid`: the right object otherwise an object with null values
 - `$RightOrLeft`: the right object otherwise the left object
 - `$RightKeys`: an array containing all the right keys
 The default `-MergeExpressio`n is: `{$Left.$_, $Right.$_}`
