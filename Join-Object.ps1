@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 2.4.2
+.VERSION 2.4.3
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -88,11 +88,11 @@
 		* $_: iterates each property name
 		* $Keys: an array containing all the (left and right) keys
 		* $Left: the current left object (each self-contained -LeftObject)
-		* $LeftOrNull: the left object otherwise an object with null values
+		* $LeftOrVoid: the left object otherwise an object with null values
 		* $LeftOrRight: the left object otherwise the right object
 		* $LeftKeys: an array containing all the left keys
 		* $Right: the current right object (each self-contained -RightObject)
-		* $RightOrNull: the right object otherwise an object with null values
+		* $RightOrVoid: the right object otherwise an object with null values
 		* $RightOrLeft: the right object otherwise the left object
 		* $RightKeys: an array containing all the right keys
 
@@ -224,7 +224,7 @@ Function Join-Object {
 	[CmdletBinding(DefaultParametersetName='None')][OutputType([Object[]])]Param (
 		[Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject,
 		[Parameter(Position = 1, ParameterSetName='On')][Alias("Using")]$On, [Parameter(ParameterSetName='On')][String]$Equals,
-		[Parameter(Position = 2)][ScriptBlock]$MergeExpression = {$LeftOrNull.$_, $RightOrNull.$_},
+		[Parameter(Position = 2)][ScriptBlock]$MergeExpression = {$LeftOrVoid.$_, $RightOrVoid.$_},
 		[Parameter(Position = 3)]$Property,
 		[Parameter(Position = 4)][ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner'
 	)
@@ -232,7 +232,7 @@ Function Join-Object {
 		$Script:Keys = @(); $Script:All = $False; $Expression = @{}; $Script:New = New-Object System.Collections.Specialized.OrderedDictionary
 		$RightKeys = @(); $RightObject[0].PSObject.Properties | ForEach-Object {$RightKeys += $_.Name}
 		$RightLength = @($RightObject).Length; $Script:RightOffs = @($False) * $RightLength; $LeftIndex = 0
-		Function Join-Output($Left, $Right, $LeftOrRight, $RightOrLeft, $LeftOrNull, $RightOrNull) {
+		Function Join-Output($Left, $Right, $LeftOrRight, $RightOrLeft, $LeftOrVoid, $RightOrVoid) {
 			$Keys | ForEach-Object {$Script:New.$_ = &$Expression.$_}; New-Object PSObject -Property $New
 		}
 	}
@@ -251,7 +251,7 @@ Function Join-Object {
 					$Keys | Where-Object {!$Expression.ContainsKey($_)} | ForEach-Object {
 						$Using = If ($On -is [Array]) {@($On) -Contains $_} Else {$On -isnot [ScriptBlock] -and !$Equals -and $_ -eq $On}
 						$Expression.$_ = If ($Using) {{$LeftOrRight.$_}}
-						ElseIf ($LeftKeys -Contains $_) {If ($RightKeys -Contains $_) {$MergeExpression} Else {{$LeftOrNull.$_}}} Else {{$RightOrNull.$_}}
+						ElseIf ($LeftKeys -Contains $_) {If ($RightKeys -Contains $_) {$MergeExpression} Else {{$LeftOrVoid.$_}}} Else {{$RightOrVoid.$_}}
 					}
 				}
 				$Keys | ForEach-Object {$Script:New.$_ = $Null}; $Void = New-Object PSObject -Property $New
