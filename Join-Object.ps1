@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 2.4.3
+.VERSION 2.4.4
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -229,32 +229,32 @@ Function Join-Object {
 		[Parameter(Position = 4)][ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner'
 	)
 	Begin {
-		$Script:Keys = @(); $Script:All = $False; $Expression = @{}; $Script:New = New-Object System.Collections.Specialized.OrderedDictionary
+		$Keys = @(); $All = $False; $Expression = @{}; $New = New-Object System.Collections.Specialized.OrderedDictionary
 		$RightKeys = @(); $RightObject[0].PSObject.Properties | ForEach-Object {$RightKeys += $_.Name}
-		$RightLength = @($RightObject).Length; $Script:RightOffs = @($False) * $RightLength; $LeftIndex = 0
+		$RightLength = @($RightObject).Length; $RightOffs = @($False) * $RightLength; $LeftIndex = 0
 		Function Join-Output($Left, $Right, $LeftOrRight, $RightOrLeft, $LeftOrVoid, $RightOrVoid) {
-			$Keys | ForEach-Object {$Script:New.$_ = &$Expression.$_}; New-Object PSObject -Property $New
+			$Keys | ForEach-Object {$New.$_ = &$Expression.$_}; New-Object PSObject -Property $New
 		}
 	}
 	Process {
 		ForEach ($Left in @($LeftObject)) {
-			$Script:LeftOff = $False
+			$LeftOff = $False
 			If (!$LeftIndex) {
 				$LeftKeys = @(); $LeftObject[0].PSObject.Properties | ForEach-Object {$LeftKeys += $_.Name}
-				If ($Property.PSTypeNames -Match "^System.Collections") {$Expression = $Property; $Script:Keys = $Property.Keys}
+				If ($Property.PSTypeNames -Match "^System.Collections") {$Expression = $Property; $Keys = $Property.Keys}
 				Else {
 					@($Property) | Where-Object {$_} | ForEach-Object {
-						If ($_.PSObject.Properties['Keys']) {$Expression += $_; $Script:Keys += $_.Keys}
-						Else {If ($_ -eq "*") {$Script:All = $True} Else {$Script:Keys += "$_"}}
+						If ($_.PSObject.Properties['Keys']) {$Expression += $_; $Keys += $_.Keys}
+						Else {If ($_ -eq "*") {[Ref]$All.Value = $True} Else {$Keys += "$_"}}
 					}
-					If (!$Property -or $Script:All) {$Script:Keys = $Keys + $LeftKeys + $RightKeys | Select-Object -Unique}
+					If (!$Property -or $All) {$Keys = $Keys + $LeftKeys + $RightKeys | Select-Object -Unique}
 					$Keys | Where-Object {!$Expression.ContainsKey($_)} | ForEach-Object {
 						$Using = If ($On -is [Array]) {@($On) -Contains $_} Else {$On -isnot [ScriptBlock] -and !$Equals -and $_ -eq $On}
 						$Expression.$_ = If ($Using) {{$LeftOrRight.$_}}
 						ElseIf ($LeftKeys -Contains $_) {If ($RightKeys -Contains $_) {$MergeExpression} Else {{$LeftOrVoid.$_}}} Else {{$RightOrVoid.$_}}
 					}
 				}
-				$Keys | ForEach-Object {$Script:New.$_ = $Null}; $Void = New-Object PSObject -Property $New
+				$Keys | ForEach-Object {$New.$_ = $Null}; $Void = New-Object PSObject -Property $New
 			}
 			If ($On -or $JoinType -eq "Cross") {
 				For ($RightIndex = 0; $RightIndex -lt $RightLength; $RightIndex++) {$Right = $RightObject[$RightIndex]
@@ -262,13 +262,13 @@ Function Join-Object {
 						ElseIf ($On -is [ScriptBlock]) {&$On} Else {If ($Equals) {$Left.$On -eq $Right.$Equals} Else {$Left.$On -eq $Right.$On}}
 					If ($Select) {
 						Join-Output $Left $Right $Left $Right $Left $Right
-						$Script:LeftOff = $True; $Script:RightOffs[$RightIndex] = $True
+						$LeftOff = $True; $RightOffs[$RightIndex] = $True
 					}
 				}
 			} Elseif ($LeftIndex -lt $RightLength) {
 				$RightIndex = $LeftIndex; $Right = $RightObject[$RightIndex]
 				Join-Output $Left $Right $Left $Right $Left $Right
-				$Script:LeftOff = $True; $Script:RightOffs[$RightIndex] = $True
+				$LeftOff = $True; $RightOffs[$RightIndex] = $True
 			}
 			If (!$LeftOff -And ($JoinType -eq "Left" -or $JoinType -eq "Full")) {Join-Output $Left $Null $Left $Left $Left $Void}
 			$LeftIndex++
