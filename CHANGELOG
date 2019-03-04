@@ -20,3 +20,4 @@
 2.4.2     2019-02-08 mcclimont   Compliant with StrictMode -Version 2 (https://github.com/iRon7/Join-Object/pull/3)
 2.4.3     2019-02-06 Ronald Bode Changed $LeftOrNull and $RightOrNull to $LeftOrVoid and $RightOrVoid
 2.4.4     2019-02-24 Ronald Bode Resolved scope bug when invoked multiple times in the same stream
+2.5.1     2019-03-03 Ronald Bode Added -Pair (alias -Merge) feature to separate duplicated unrelated property names
