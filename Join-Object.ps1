@@ -89,8 +89,8 @@
 		<String>,<String>
 		If the value is not a ScriptBlock, it is presumed a string array with
 		one or two items defining the left and right key format. If the item
-		includes an asterisks, the asterisks will be replaced with the property
-		name otherwise the item will be used to prefix the property name.
+		includes an asterisks (*), the asterisks will be replaced with the
+		property name otherwise the item will be used to prefix the property name.
 
 		Note: A consecutive number will be automatically added to the property
 		name if the property name already exists.
@@ -111,9 +111,6 @@
 		* $RightKeys: an array containing all the right keys
 
 		The default -Pair is: {$LeftOrVoid.$_, $RightOrVoid.$_}
-
-		The merge expression is only used in case that the left and right
-		properties are overlapping
 
 	.PARAMETER Property
 		A hash table or list of property names (strings) and/or hash tables.
