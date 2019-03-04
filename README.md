@@ -166,12 +166,27 @@ defined by the `-On` value requires to be equal to the property of the
 right object defined by the `-Equals` value for the objects to be joined
 and added to the result sets.
 
-`-MergeExpression`
+`-Pair`
+The `-Pair` (alias `-Merge`) parameter defines how unrelated properties
+with the same name are paired.
+	he `-Pair` parameter supports the following formats:
+
+`Pair <String>,<String>`
+If the value is not a ScriptBlock, it is presumed a string array with
+one or two items defining the left and right key format. If the item
+includes an asterisks (`*`), the asterisks will be replaced with the
+property name otherwise the item will be used to prefix the property name.
+
+_Note_: A consecutive number will be automatically added to the property
+name if the property name already exists.
+
+`Pair <ScriptBlock>`
 An expression that defines how the left and right properties with the
 common property should be merged. Where the following variables are
 available:
+
 - `$_`: iterates each property name
-- `$Keys`: an array containing all the (left and right) keys
+- `$Void`: an object with all (left and right) properties set to $Null
 - `$Left`: the current left object (each self-contained -`LeftObject`)
 - `$LeftOrVoid`: the left object otherwise an object with null values
 - `$LeftOrRight`: the left object otherwise the right object
@@ -180,9 +195,7 @@ available:
 - `$RightOrVoid`: the right object otherwise an object with null values
 - `$RightOrLeft`: the right object otherwise the left object
 - `$RightKeys`: an array containing all the right keys
-The default `-MergeExpressio`n is: `{$Left.$_, $Right.$_}`
-The merge expression is only used in case that the left and right
-properties are overlapping
+The default `-Pair` is: `{$LeftOrVoid.$_, $RightOrVoid.$_}`
 
 `-Property`
 A hash table or list of property names (strings) and/or hash tables.
