@@ -227,7 +227,71 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 	}
-	
+
+	Context 'Pair columns' {
+
+		It '$Employee | InnerJoin $Department -On Country -Pair Employee, Department' {
+			$Actual = $Employee | InnerJoin $Department -On Country -Pair Employee, Department
+			$Expected = ConvertFrom-SourceTable '
+				EmployeeName DepartmentName Country Department  Manager
+				------------ -------------- ------- ----------  -------
+				Bauer        Engineering    Germany Engineering Meyer
+				Cook         Marketing      England Sales       Morris
+				Duval        Sales          France  Engineering Millet
+				Evans        Marketing      England Marketing   Morris
+				Fischer      Engineering    Germany Engineering Meyer'
+				
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It '$Employee | LeftJoin $Department -On Country -Pair *1, *2' {
+			$Actual = $Employee | InnerJoin $Department -On Country -Pair *1, *2
+			$Expected = ConvertFrom-SourceTable '
+				Name1   Name2       Country Department  Manager
+				-----   -----       ------- ----------  -------
+				Bauer   Engineering Germany Engineering Meyer
+				Cook    Marketing   England Sales       Morris
+				Duval   Sales       France  Engineering Millet
+				Evans   Marketing   England Marketing   Morris
+				Fischer Engineering Germany Engineering Meyer'
+				
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It '$Employee | CrossJoin $Department -Pair ""' {
+			$Actual = $Employee | CrossJoin $Department -Pair ''
+			$Expected = ConvertFrom-SourceTable '
+				Name    Name1       Country Country1    Department  Manager
+				----    -----       ------- --------    ----------  -------
+				Aerts   Engineering Belgium Germany     Sales       Meyer
+				Aerts   Marketing   Belgium England     Sales       Morris
+				Aerts   Sales       Belgium France      Sales       Millet
+				Aerts   Board       Belgium Netherlands Sales       Mans
+				Bauer   Engineering Germany Germany     Engineering Meyer
+				Bauer   Marketing   Germany England     Engineering Morris
+				Bauer   Sales       Germany France      Engineering Millet
+				Bauer   Board       Germany Netherlands Engineering Mans
+				Cook    Engineering England Germany     Sales       Meyer
+				Cook    Marketing   England England     Sales       Morris
+				Cook    Sales       England France      Sales       Millet
+				Cook    Board       England Netherlands Sales       Mans
+				Duval   Engineering France  Germany     Engineering Meyer
+				Duval   Marketing   France  England     Engineering Morris
+				Duval   Sales       France  France      Engineering Millet
+				Duval   Board       France  Netherlands Engineering Mans
+				Evans   Engineering England Germany     Marketing   Meyer
+				Evans   Marketing   England England     Marketing   Morris
+				Evans   Sales       England France      Marketing   Millet
+				Evans   Board       England Netherlands Marketing   Mans
+				Fischer Engineering Germany Germany     Engineering Meyer
+				Fischer Marketing   Germany England     Engineering Morris
+				Fischer Sales       Germany France      Engineering Millet
+				Fischer Board       Germany Netherlands Engineering Mans'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+	}
+
 	Context 'Single object' {
 
 		It 'Single left object' {
@@ -264,17 +328,17 @@ Describe 'Join-Object' {
 
 	Context "-On ... -Equals ..." {
 
-		It '$Employee | InnerJoin $Department -On Department -Eq Name' {
-			$Actual = $Employee | InnerJoin $Department -On Department -Eq Name
+		It '$Employee | InnerJoin $Department -On Department -Eq Name -Property *, @{Country = {$Left.$_}}' {
+			$Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property *, @{Country = {$Left.$_}}
 			$Expected = ConvertFrom-SourceTable '
-				             Country Department                      Name Manager
-				             ------- ----------- ------------------------ -------
-				 "Belgium", "France" Sales               "Aerts", "Sales" Millet
-				"Germany", "Germany" Engineering   "Bauer", "Engineering" Meyer
-				 "England", "France" Sales                "Cook", "Sales" Millet
-				 "France", "Germany" Engineering   "Duval", "Engineering" Meyer
-				"England", "England" Marketing       "Evans", "Marketing" Morris
-				"Germany", "Germany" Engineering "Fischer", "Engineering" Meyer'
+				Country                     Name Department  Manager
+				-------                     ---- ----------  -------
+				Belgium         "Aerts", "Sales" Sales       Millet
+				Germany   "Bauer", "Engineering" Engineering Meyer
+				England          "Cook", "Sales" Sales       Millet
+				France    "Duval", "Engineering" Engineering Meyer
+				England     "Evans", "Marketing" Marketing   Morris
+				Germany "Fischer", "Engineering" Engineering Meyer'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -429,7 +493,18 @@ Describe 'Join-Object' {
 			
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
-
+		
+		It 'Stackoverflow answers' {
+		# https://stackoverflow.com/a/54855458/1701026
+		# https://stackoverflow.com/q/36574792/1701026
+		# https://stackoverflow.com/a/54607741/1701026
+		# https://stackoverflow.com/q/23766558/1701026
+		# https://stackoverflow.com/a/54855647/1701026
+		# https://stackoverflow.com/a/52235645/1701026
+		# https://stackoverflow.com/a/54949056/1701026
+		# https://stackoverflow.com/a/54981257/1701026
+		}
+		
 		It 'performance test' {
 			
 			$Left = 1..1000 | Foreach-Object {[PSCustomObject]@{Name = "jsmith$_"; Birthday = (Get-Date).adddays(-1)}}
