@@ -131,27 +131,27 @@ Anne Dodsworth   Steven Buchanan
 
 ## Parameters
 
-`-LeftObject`
+`-LeftObject`  
 The LeftObject, usually provided through the pipeline, defines the
 left object (or list of objects) to be joined.
 
-`-RightObject`
+`-RightObject`  
 The RightObject, provided by the (first) argument, defines the right
 object (or list of objects) to be joined.
 
-`-On`
+`-On`  
 The `-On` (alias `-Using`) parameter defines the condition that specify
 how to join the left and right object and which objects to include in the
 (inner) result set. The -On parameter supports the following formats:
 
-`-On <String> or <Array>`
+`-On <String> or <Array>`  
 If the value is a string or array type, the `-O` parameter is similar to
 the SQL using clause. This means that all the listed properties require
 to be equal (at the left and right side) to be included in the (inner)
 result set. The listed properties will output a single value by default
 (see also the `-Property` parameter).
 
-`-On <ScriptBlock>`
+`-On <ScriptBlock>`  
 Any conditional expression (where `$Left` refers to each left object and
 `$Right` refers to each right object) which requires to evaluate to true
 in order to join the objects.
@@ -166,12 +166,12 @@ defined by the `-On` value requires to be equal to the property of the
 right object defined by the `-Equals` value for the objects to be joined
 and added to the result sets.
 
-`-Pair`
+`-Pair`  
 The `-Pair` (alias `-Merge`) parameter defines how unrelated properties
 with the same name are paired.
 	he `-Pair` parameter supports the following formats:
 
-`Pair <String>,<String>`
+`Pair <String>,<String>`  
 If the value is not a ScriptBlock, it is presumed a string array with
 one or two items defining the left and right key format. If the item
 includes an asterisks (`*`), the asterisks will be replaced with the
@@ -180,7 +180,7 @@ property name otherwise the item will be used to prefix the property name.
 _Note_: A consecutive number will be automatically added to the property
 name if the property name already exists.
 
-`Pair <ScriptBlock>`
+`Pair <ScriptBlock>`  
 An expression that defines how the left and right properties with the
 common property should be merged. Where the following variables are
 available:
@@ -197,7 +197,7 @@ available:
 - `$RightKeys`: an array containing all the right keys
 The default `-Pair` is: `{$LeftOrVoid.$_, $RightOrVoid.$_}`
 
-`-Property`
+`-Property`  
 A hash table or list of property names (strings) and/or hash tables.
 
 Hash tables should be in the format `@{<PropertyName> = <Expression>}`
