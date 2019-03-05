@@ -228,10 +228,10 @@ Describe 'Join-Object' {
 		}
 	}
 
-	Context 'Pair columns' {
+	Context 'Unify columns' {
 
-		It '$Employee | InnerJoin $Department -On Country -Pair Employee, Department' {
-			$Actual = $Employee | InnerJoin $Department -On Country -Pair Employee, Department
+		It '$Employee | InnerJoin $Department -On Country -Unify Employee, Department' {
+			$Actual = $Employee | InnerJoin $Department -On Country -Unify Employee, Department
 			$Expected = ConvertFrom-SourceTable '
 				EmployeeName DepartmentName Country Department  Manager
 				------------ -------------- ------- ----------  -------
@@ -244,8 +244,8 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | LeftJoin $Department -On Country -Pair *1, *2' {
-			$Actual = $Employee | InnerJoin $Department -On Country -Pair *1, *2
+		It '$Employee | LeftJoin $Department -On Country -Unify *1, *2' {
+			$Actual = $Employee | InnerJoin $Department -On Country -Unify *1, *2
 			$Expected = ConvertFrom-SourceTable '
 				Name1   Name2       Country Department  Manager
 				-----   -----       ------- ----------  -------
@@ -258,8 +258,8 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | CrossJoin $Department -Pair ""' {
-			$Actual = $Employee | CrossJoin $Department -Pair ''
+		It '$Employee | CrossJoin $Department -Unify ""' {
+			$Actual = $Employee | CrossJoin $Department -Unify ''
 			$Expected = ConvertFrom-SourceTable '
 				Name    Name1       Country Country1    Department  Manager
 				----    -----       ------- --------    ----------  -------
