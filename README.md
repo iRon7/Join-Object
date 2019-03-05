@@ -166,21 +166,23 @@ defined by the `-On` value requires to be equal to the property of the
 right object defined by the `-Equals` value for the objects to be joined
 and added to the result sets.
 
-`-Pair`  
-The `-Pair` (alias `-Merge`) parameter defines how unrelated properties
-with the same name are paired.
-	he `-Pair` parameter supports the following formats:
+`-Unify`  
+The `-Unify` (alias `-Merge`) parameter defines how to unify the left and
+right object with respect to the unrelated common properties. The
+common properties can discerned (`<String>[,<String>]`) or merged
+(`<ScriptBlock>`). By default the unrelated common properties wil be
+merged using the expression: `{$LeftOrVoid.$_, $RightOrVoid.$_}`
 
-`Pair <String>,<String>`  
+`-Unify <String>[,<String>]`  
 If the value is not a ScriptBlock, it is presumed a string array with
 one or two items defining the left and right key format. If the item
 includes an asterisks (`*`), the asterisks will be replaced with the
 property name otherwise the item will be used to prefix the property name.
 
-_Note_: A consecutive number will be automatically added to the property
-name if the property name already exists.
+_Note_: A consecutive number will be automatically added to a common
+property name if is already used.
 
-`Pair <ScriptBlock>`  
+`-Unify <ScriptBlock>`  
 An expression that defines how the left and right properties with the
 common property should be merged. Where the following variables are
 available:
@@ -195,19 +197,19 @@ available:
 - `$RightOrVoid`: the right object otherwise an object with null values
 - `$RightOrLeft`: the right object otherwise the left object
 - `$RightKeys`: an array containing all the right keys
-The default `-Pair` is: `{$LeftOrVoid.$_, $RightOrVoid.$_}`
+
+_Note_: Property expressions set by the `-Unify` paramter might be
+overwritten by specific `-Property` expressions.
 
 `-Property`  
 A hash table or list of property names (strings) and/or hash tables.
-
 Hash tables should be in the format `@{<PropertyName> = <Expression>}`
-where the `<Expression>` usually defines how the specific left and
+where the <Expression> usually defines how the specific left and
 right properties should be merged.
 
-If only a name (string) is supplied, the default merge expression
-is used
+If only a name (string) is supplied, either the left or the right
+value is used for unique properties or the default unify expression
+is used for unrelated common properties.
 
-Existing properties set by the (default) merge expression will be
-overwritten by the -Property parameter.
+_Note_: Any unknown properties will be added to the output object.
 
-Any unknown properties will be added to the output object.
