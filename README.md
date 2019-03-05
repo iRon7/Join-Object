@@ -204,7 +204,7 @@ overwritten by specific `-Property` expressions.
 `-Property`  
 A hash table or list of property names (strings) and/or hash tables.
 Hash tables should be in the format `@{<PropertyName> = <Expression>}`
-where the <Expression> usually defines how the specific left and
+where the `<Expression>` usually defines how the specific left and
 right properties should be merged.
 
 If only a name (string) is supplied, either the left or the right
