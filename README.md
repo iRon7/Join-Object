@@ -27,106 +27,93 @@ Each command has an alias equal to its verb (omitting `-Object`).
  ## Examples 
 A simple inner join on the country property considering the following
 existing list of objects:
+
 ```powershell
 PS C:\> $Employee
 
-Name    Country Department
-----    ------- ----------
-Aerts   Belgium Sales
-Bauer   Germany Engineering
-Cook    England Sales
-Duval   France  Engineering
-Evans   England Marketing
-Fischer Germany Engineering
+Id Name    Country Department  Age ReportsTo
+-- ----    ------- ----------  --- ---------
+ 1 Aerts   Belgium Sales        40         5
+ 2 Bauer   Germany Engineering  31         4
+ 3 Cook    England Sales        69         1
+ 4 Duval   France  Engineering  21         5
+ 5 Evans   England Marketing    35
+ 6 Fischer Germany Engineering  29         4
 
 PS C:\> $Department
 
-Name        Manager Country
-----        ------- -------
-Engineering Meyer   Germany
-Marketing   Morris  England
-Sales       Millet  France
-Board       Mans    Netherlands
+Name        Country
+----        -------
+Engineering Germany
+Marketing   England
+Sales       France
+Purchase    France
 
-PS C:\> $Employee | LeftJoin $Department -On Country
-Department  Name                   Country Manager
-----------  ----                   ------- -------
-Sales       {Aerts, $null}         Belgium
-Engineering {Bauer, Engineering}   Germany Meyer
-Sales       {Cook, Marketing}      England Morris
-Engineering {Duval, Sales}         France  Millet
-Marketing   {Evans, Marketing}     England Morris
-Engineering {Fischer, Engineering} Germany Meyer
+
+PS C:\> $Employee | InnerJoin $Department -On Country
+
+Country Id Name                   Department  Age ReportsTo
+------- -- ----                   ----------  --- ---------
+Germany  2 {Bauer, Engineering}   Engineering  31         4
+England  3 {Cook, Marketing}      Sales        69         1
+France   4 {Duval, Sales}         Engineering  21         5
+France   4 {Duval, Purchase}      Engineering  21         5
+England  5 {Evans, Marketing}     Marketing    35
+Germany  6 {Fischer, Engineering} Engineering  29         4
 ```
 
-Updating an existing object list:
+Unifing columns
+```powershell
+.EXAMPLE
+
+PS C:\> $Employee | InnerJoin $Department -On Department -Equals -Unify Employee, Department
+
+Id EmployeeName DepartmentName EmployeeCountry DepartmentCountry Department  Age ReportsTo
+-- ------------ -------------- --------------- ----------------- ----------  --- ---------
+ 1 Aerts        Sales          Belgium         France            Sales        40         5
+ 2 Bauer        Engineering    Germany         Germany           Engineering  31         4
+ 3 Cook         Sales          England         France            Sales        69         1
+ 4 Duval        Engineering    France          Germany           Engineering  21         5
+ 5 Evans        Marketing      England         England           Marketing    35
+ 6 Fischer      Engineering    Germany         Germany           Engineering  29         4
+```
+
+Merging (update and insert) a new list
 ```powershell
 PS C:\> $Changes
 
-Name    Country Department
-----    ------- ----------
-Aerts   Germany Sales
-Bauer   Germany Marketing
-Geralds Belgium Engineering
+Id Name    Country Department  Age ReportsTo
+-- ----    ------- ----------  --- ---------
+ 3 Cook    England Sales        69         5
+ 6 Fischer France  Engineering  29         4
+ 7 Geralds Belgium Sales        71         1
 
-PS C:\> $Employee | Merge $Changes -On Name
 
-Department  Name    Country
-----------  ----    -------
-Sales       Aerts   Germany
-Marketing   Bauer   Germany
-Sales       Cook    England
-Engineering Duval   France
-Marketing   Evans   England
-Engineering Fischer Germany
-Engineering Geralds Belgium
+PS C:\> $Employee | Merge $Changes -On Id
+
+Id Name    Country Department  Age ReportsTo
+-- ----    ------- ----------  --- ---------
+ 1 Aerts   Belgium Sales        40         5
+ 2 Bauer   Germany Engineering  31         4
+ 3 Cook    England Sales        69         5
+ 4 Duval   France  Engineering  21         5
+ 5 Evans   England Marketing    35
+ 6 Fischer France  Engineering  29         4
+ 7 Geralds Belgium Sales        71         1
 ```
 
-Defining the employee's manager based on department:
+Self join on Id:
 ```powershell
-PS C:\> $Employee | Join $Department -On Department -Eq Name -Property @{Name = {$Left.$_}}, "Manager"
+PS C:\> LeftJoin $Employee -On ReportsTo -Equals Id
 
-Name    Manager
-----    -------
-Aerts   Millet
-Bauer   Meyer
-Cook    Millet
-Duval   Meyer
-Evans   Morris
-Fischer Meyer
-```
-
-Defining the employee's manager using a self-join based on Employee id:
-```powershell
-PS C:\> $Employees
-
-EmployeeId FirstName LastName  ReportsTo
----------- --------- --------  ---------
-         1 Nancy     Davolio           2
-         2 Andrew    Fuller
-         3 Janet     Leveling          2
-         4 Margaret  Peacock           2
-         5 Steven    Buchanan          2
-         6 Michael   Suyama            5
-         7 Robert    King              5
-         8 Laura     Callahan          2
-         9 Anne      Dodsworth         5
-
-PS C:\> $Employees | InnerJoin $Employees -On ReportsTo -Eq EmployeeID -Property @{
-            Name = {"$($Left.FirstName) $($Left.LastName)"}
-            Manager = {"$($Right.FirstName) $($Right.LastName)"}
-        }
-
-Name             Manager
-----             -------
-Nancy Davolio    Andrew Fuller
-Janet Leveling   Andrew Fuller
-Margaret Peacock Andrew Fuller
-Steven Buchanan  Andrew Fuller
-Michael Suyama   Steven Buchanan
-Robert King      Steven Buchanan
-Laura Callahan   Andrew Fuller
-Anne Dodsworth   Steven Buchanan
+Id         Name             Country            Department                 Age         ReportsTo
+--         ----             -------            ----------                 ---         ---------
+{1, 5}     {Aerts, Evans}   {Belgium, England} {Sales, Marketing}         {40, 35}    {5, }
+{2, 4}     {Bauer, Duval}   {Germany, France}  {Engineering, Engineering} {31, 21}    {4, 5}
+{3, 1}     {Cook, Aerts}    {England, Belgium} {Sales, Sales}             {69, 40}    {1, 5}
+{4, 5}     {Duval, Evans}   {France, England}  {Engineering, Marketing}   {21, 35}    {5, }
+{5, $null} {Evans, $null}   {England, $null}   {Marketing, $null}         {35, $null} {, $null}
+{6, 4}     {Fischer, Duval} {Germany, France}  {Engineering, Engineering} {29, 21}    {4, 5}
 ```
 
 ## Parameters
