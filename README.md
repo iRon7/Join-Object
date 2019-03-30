@@ -126,12 +126,12 @@ left object (or list of objects) to be joined.
 The RightObject, provided by the (first) argument, defines the right
 object (or list of objects) to be joined.
 
-`-On`
+`-On`  
 The `-On` (alias `-Using`) parameter defines the condition that specify how
 to join the left and right object and which objects to include in the
 (inner) result set. The `-On` parameter supports the following formats:
 
-`-On <String> or <Array>`
+`-On <String> or <Array>`  
 If the value is a string or array type, the `-On` parameter is similar to
 the SQL using clause. This means that the left and right object will be
 merged and added to the result set if all the left object properties
@@ -145,7 +145,7 @@ and visa versa.
 _Note 2:_ The equal properties will be merged to a single (left) property
 by default (see also the `-Property` parameter).
 
-`-On <ScriptBlock>`
+`-On <ScriptBlock>`  
 Any conditional expression (where `$Left` refers to each left object and
 `$Right` refers to each right object) which requires to evaluate to true
 in order to join the objects.
@@ -156,7 +156,7 @@ possibilities but is considerable slower than the other types.
 _Note 2:_ If the `-On` and the `-Equal` parameter are omitted, a join by
 row index is returned.
 
-`-Equals`
+`-Equals`  
 The left and right object will be merged and added to the result set
 if all the right object properties listed by the `-Equal` parameter are
 equal to the left object properties (listed by the -On parameter).
@@ -171,7 +171,7 @@ row index is returned.
 _Note 3:_ The `-Equals` parameter cannot be used in combination with an
 -On parameter expression.
 
-`-Where`
+`-Where`  
 An expression that defines the condition to be met for the objects to
 be returned. There is no limit to the number of predicates that can be
 included in the condition.
