@@ -159,13 +159,13 @@ row index is returned.
 `-Equals`  
 The left and right object will be merged and added to the result set
 if all the right object properties listed by the `-Equal` parameter are
-equal to the left object properties (listed by the -On parameter).
+equal to the left object properties (listed by the `-On` parameter).
 
 _Note 1:_ The list of properties defined by the `-Equal` parameter will be
-justified with the list of properties defined by the -On parameter and
+justified with the list of properties defined by the `-On` parameter and
 visa versa.
 
-_Note 2:_ If the -Equal and the `-O`n parameter are omitted, a join by
+_Note 2:_ If the `-Equal` and the `-On` parameter are omitted, a join by
 row index is returned.
 
 _Note 3:_ The `-Equals` parameter cannot be used in combination with an
