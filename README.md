@@ -126,32 +126,55 @@ left object (or list of objects) to be joined.
 The RightObject, provided by the (first) argument, defines the right
 object (or list of objects) to be joined.
 
-`-On`  
-The `-On` (alias `-Using`) parameter defines the condition that specify
-how to join the left and right object and which objects to include in the
-(inner) result set. The -On parameter supports the following formats:
+`-On`
+The `-On` (alias `-Using`) parameter defines the condition that specify how
+to join the left and right object and which objects to include in the
+(inner) result set. The `-On` parameter supports the following formats:
 
-`-On <String> or <Array>`  
-If the value is a string or array type, the `-O` parameter is similar to
-the SQL using clause. This means that all the listed properties require
-to be equal (at the left and right side) to be included in the (inner)
-result set. The listed properties will output a single value by default
-(see also the `-Property` parameter).
+`-On <String> or <Array>`
+If the value is a string or array type, the `-On` parameter is similar to
+the SQL using clause. This means that the left and right object will be
+merged and added to the result set if all the left object properties
+listed by the `-On` parameter are equal to the right object properties
+(listed by the `-Equals` parameter).
 
-`-On <ScriptBlock>`  
+_Note 1:_ The list of properties defined by the `-On` parameter will be
+justified with the list of properties defined by the `-Equals` parameter
+and visa versa.
+
+_Note 2:_ The equal properties will be merged to a single (left) property
+by default (see also the `-Property` parameter).
+
+`-On <ScriptBlock>`
 Any conditional expression (where `$Left` refers to each left object and
 `$Right` refers to each right object) which requires to evaluate to true
 in order to join the objects.
 
-_Note 1_: The -On <ScriptBlock> type has the most complex comparison
+_Note 1:_ The `-On <ScriptBlock>` type has the most complex comparison
 possibilities but is considerable slower than the other types.
 
-_Note 2_: If the -On parameter is omitted, a join by index is returned.
+_Note 2:_ If the `-On` and the `-Equal` parameter are omitted, a join by
+row index is returned.
 
-Requires the `-On` value to be a string. The property of the left object
-defined by the `-On` value requires to be equal to the property of the
-right object defined by the `-Equals` value for the objects to be joined
-and added to the result sets.
+`-Equals`
+The left and right object will be merged and added to the result set
+if all the right object properties listed by the `-Equal` parameter are
+equal to the left object properties (listed by the -On parameter).
+
+_Note 1:_ The list of properties defined by the `-Equal` parameter will be
+justified with the list of properties defined by the -On parameter and
+visa versa.
+
+_Note 2:_ If the -Equal and the `-O`n parameter are omitted, a join by
+row index is returned.
+
+_Note 3:_ The `-Equals` parameter cannot be used in combination with an
+-On parameter expression.
+
+`-Where`
+An expression that defines the condition to be met for the objects to
+be returned. There is no limit to the number of predicates that can be
+included in the condition.
 
 `-Unify`  
 The `-Unify` (alias `-Merge`) parameter defines how to unify the left and
