@@ -454,7 +454,7 @@ Describe 'Join-Object' {
 
 	Context 'Unify columns' {
 
-		It '$Employee | InnerJoin $Department -On Department -Equals -Unify Employee, Department' {
+		It '$Employee | InnerJoin $Department -On Department -Equals Name -Unify Employee, Department' {
 			$Actual = $Employee | InnerJoin $Department -On Department -Equals Name -Unify Employee, Department
 			$Expected = ConvertFrom-SourceTable '
 				Id EmployeeName DepartmentName EmployeeCountry DepartmentCountry Department  Age ReportsTo
@@ -922,6 +922,25 @@ server2,item2'
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}	
 
+		# It 'Efficiently merge large object datasets having mulitple matching keys' { # https://stackoverflow.com/questions/53655616/efficiently-merge-large-object-datasets-having-mulitple-matching-keys
+
+			# $dsLength = 10
+			# $dataset1 = 0..$dsLength | %{
+				# New-Object psobject -Property @{ A=$_ ; B="val$_" ; XY = "foo$_"; ZY ="bar$_" }
+			# }
+			# $dataset2 = ($dsLength/2)..($dsLength*1.5) | %{
+				# New-Object psobject -Property @{ A=$_ ; B="val$_" ; ABC = "foo$_"; GH ="bar$_" }
+			# }
+
+			# $Actual = $Csv1 | Join $Csv2 -Unify *1, *2
+			# $Expected = ConvertFrom-SourceTable '
+				# Server1 Server2 Info1 Info2
+				# ------- ------- ----- -----
+				# server1 server2 item1 item2
+				# server1 server2 item1 item2'
+
+			# Compare-PSObject $Actual $Expected | Should -BeNull
+		# }	
 
 	}
 }
