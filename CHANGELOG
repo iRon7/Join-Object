@@ -21,3 +21,9 @@
 2.4.3     2019-02-06 Ronald Bode Changed $LeftOrNull and $RightOrNull to $LeftOrVoid and $RightOrVoid
 2.4.4     2019-02-24 Ronald Bode Resolved scope bug when invoked multiple times in the same stream
 2.5.1     2019-03-03 Ronald Bode Added -Pair (alias -Merge) feature to separate duplicated unrelated property names
+2.5.2     2019-03-04 Ronald Bode Changed -Pair to -Unify
+2.6.0     2019-03-10 Ronald Bode Improved performance by using a HashTable for the inner (right) loop where possible
+3.7.0     2019-03-25 Ronald Bode Added -Where clause
+3.7.1     2019-03-29 Ronald Bode Improved self join syntax
+3.0.0     2019-03-30 Ronald Bode New release with new test set
+3.0.1     2019-03-30 Ronald Bode Updates embedded examples
