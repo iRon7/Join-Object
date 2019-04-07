@@ -922,25 +922,89 @@ server2,item2'
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}	
 
-		# It 'Efficiently merge large object datasets having mulitple matching keys' { # https://stackoverflow.com/questions/53655616/efficiently-merge-large-object-datasets-having-mulitple-matching-keys
+		It 'Merge two CSV files while adding new and overwriting existing entries' { # https://stackoverflow.com/a/54949056/1701026
+		
+			$configuration = ConvertFrom-SourceTable '
+				| path       | item  | value  | type |
+				|------------|-------|--------|------|
+				| some/path  | item1 | value1 | ALL  |
+				| some/path  | item2 | UPDATE | ALL  |
+				| other/path | item1 | value2 | SOME |
+				| other/path | item1 | value3 | ALL  |
+			'
+			$customization= ConvertFrom-SourceTable '
+				| path       | item  | value  | type |
+				|------------|-------|--------|------|
+				| some/path  | item2 | value3 | ALL  |
+				| new/path   | item3 | value3 | SOME |
+				| new/path   | item3 | value4 | ALL  |
+			'
 
-			# $dsLength = 10
-			# $dataset1 = 0..$dsLength | %{
-				# New-Object psobject -Property @{ A=$_ ; B="val$_" ; XY = "foo$_"; ZY ="bar$_" }
-			# }
-			# $dataset2 = ($dsLength/2)..($dsLength*1.5) | %{
-				# New-Object psobject -Property @{ A=$_ ; B="val$_" ; ABC = "foo$_"; GH ="bar$_" }
-			# }
+			$Actual = $configuration | Merge $customization -on path, item
+			$Expected = ConvertFrom-SourceTable '
+				path       item  value  type
+				----       ----  -----  ----
+				some/path  item1 value1 ALL
+				some/path  item2 value3 ALL
+				other/path item1 value2 SOME
+				other/path item1 value3 ALL
+				new/path   item3 value3 SOME
+				new/path   item3 value4 ALL
+			'
+			Compare-PSObject $Actual $Expected | Should -BeNull
 
-			# $Actual = $Csv1 | Join $Csv2 -Unify *1, *2
-			# $Expected = ConvertFrom-SourceTable '
-				# Server1 Server2 Info1 Info2
-				# ------- ------- ----- -----
-				# server1 server2 item1 item2
-				# server1 server2 item1 item2'
+		}
+		It 'Efficiently merge large object datasets having mulitple matching keys' { # https://stackoverflow.com/a/55543321/1701026
 
-			# Compare-PSObject $Actual $Expected | Should -BeNull
-		# }	
+			$dataset1 = ConvertFrom-SourceTable '
+				A B    XY    ZY  
+				- -    --    --  
+				1 val1 foo1  bar1
+				2 val2 foo2  bar2
+				3 val3 foo3  bar3
+				4 val4 foo4  bar4
+				4 val4 foo4a bar4a
+				5 val5 foo5  bar5
+				6 val6 foo6  bar6
+			'
+			$dataset2 = ConvertFrom-SourceTable '
+				A B    ABC   GH  
+				- -    ---   --  
+				3 val3 foo3  bar3
+				4 val4 foo4  bar4
+				5 val5 foo5  bar5
+				5 val5 foo5a bar5a
+				6 val6 foo6  bar6
+				7 val7 foo7  bar7
+				8 val8 foo8  bar8
+			'
 
+			$Actual = $Dataset1 | FullJoin $dataset2 -On A, B
+			$Expected = ConvertFrom-SourceTable '
+				A B    XY      ZY      ABC    GH
+				- -    --      --      ---    --
+				1 val1 foo1    bar1     $Null  $Null
+				2 val2 foo2    bar2     $Null  $Null
+				3 val3 foo3    bar3    foo3   bar3
+				4 val4 foo4    bar4    foo4   bar4
+				4 val4 foo4a   bar4a   foo4   bar4
+				5 val5 foo5    bar5    foo5   bar5
+				5 val5 foo5    bar5    foo5a  bar5a
+				6 val6 foo6    bar6    foo6   bar6
+				7 val7  $Null   $Null  foo7   bar7
+				8 val8  $Null   $Null  foo8   bar8
+			'
+			Compare-PSObject $Actual $Expected | Should -BeNull
+
+			$dsLength = 1000
+			$dataset1 = 0..$dsLength | %{
+				New-Object psobject -Property @{ A=$_ ; B="val$_" ; XY = "foo$_"; ZY ="bar$_" }
+			}
+			$dataset2 = ($dsLength/2)..($dsLength*1.5) | %{
+				New-Object psobject -Property @{ A=$_ ; B="val$_" ; ABC = "foo$_"; GH ="bar$_" }
+			}
+			
+			(Measure-Command {$dataset1| FullJoin $dataset2 -On A, B}).TotalSeconds | Should -BeLessThan 10
+		}	
 	}
 }
