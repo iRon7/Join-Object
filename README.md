@@ -16,9 +16,9 @@ Returns the joined objects and the rest of the right objects
 Returns the joined objects and the rest of the left and right objects
 - `CrossJoin-Object` (`Join-Object -JoinType Cross`)  
 Joins each left object to each right object
-- `Update-Object` (`Join-Object -JoinType Left -MergeExpression = {RightOrLeft.$_}`)  
+- `Update-Object` (`Join-Object -JoinType Left -Merge = {RightOrLeft.$_}`)  
 Updates the left object with the right object properties
-- `Merge-Object` (`Join-Object -JoinType Full -MergeExpression = {RightOrLeft.$_}`)  
+- `Merge-Object` (`Join-Object -JoinType Full -Merge = {RightOrLeft.$_}`)  
 Updates the left object with the right object properties and inserts
 right if the values of the related property is not equal.
 
