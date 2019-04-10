@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.0.1
+.VERSION 3.0.2
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -37,9 +37,9 @@
 	  Returns the joined objects and the rest of the left and right objects
 	* CrossJoin-Object (Join-Object -JoinType Cross)
 	  Joins each left object to each right object
-	* Update-Object (Join-Object -JoinType Left -MergeExpression = {RightOrLeft.$_})
+	* Update-Object (Join-Object -JoinType Left -Merge = {RightOrLeft.$_})
 	  Updates the left object with the right object properties
-	* Merge-Object (Join-Object -JoinType Full -MergeExpression = {RightOrLeft.$_})
+	* Merge-Object (Join-Object -JoinType Full -Merge = {RightOrLeft.$_})
 	  Updates the left object with the right object properties and inserts
 	  right if the values of the related property is not equal.
 
@@ -63,10 +63,10 @@
 		the SQL using clause. This means that the left and right object will be
 		merged and added to the result set if all the left object properties
 		listed by the -On parameter are equal to the right object properties
-		(listed by the -Equal parameter).
+		(listed by the -Equals parameter).
 
 		Note 1: The list of properties defined by the -On parameter will be
-		justified with the list of properties defined by the -Eqaul parameter
+		justified with the list of properties defined by the -Equals parameter
 		and visa versa.
 
 		Note 2: The equal properties will be merged to a single (left) property
@@ -246,7 +246,7 @@ Function Join-Object {
 	)
 	Begin {
 		$HashTable = $Null; $Esc = [Char]27;$EscNull = $Esc + 'Null'; $EscSeparator = $Esc + ','
-		$Expression = New-Object System.Collections.Specialized.OrderedDictionary; $New = New-Object System.Collections.Specialized.OrderedDictionary
+		$Expression = [Ordered]@{}; $New = [Ordered]@{}
 		$RightKeys = @(); $RightObject[0].PSObject.Properties | ForEach-Object {$RightKeys += $_.Name}
 		$RightLength = @($RightObject).Length; $LeftIndex = 0; $InnerRight = @($False) * $RightLength
 		Function Out-Join($LeftIndex, $RightIndex, $Left, $Right, $LeftOrRight, $RightOrLeft, $LeftOrVoid, $RightOrVoid) {
