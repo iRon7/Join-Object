@@ -922,6 +922,36 @@ server2,item2'
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}	
 
+		It 'Comparing two CSVs using one property to compare another' { # https://stackoverflow.com/questions/55602662/comparing-two-csvs-using-one-property-to-compare-another
+		
+$file1='"FACILITY","FILENAME"
+"16","abc.txt"
+"16","def.txt"
+"12","abc.txt"
+"17","def.txt"
+"18","abc.txt"
+"19","abc.txt"'|convertfrom-csv
+
+$file2='"FACILITY","FILENAME"
+"16","jkl.txt"
+"16","abc.txt"
+"12","abc.txt"
+"17","jkl.txt"
+"18","jkl.txt"
+"19","jkl.txt"'|convertfrom-csv
+
+
+			$Actual = $file1 | Join $file2 -On Facility, Filename
+			$Expected = ConvertFrom-SourceTable '
+				FACILITY FILENAME
+				-------- --------
+				16       abc.txt
+				12       abc.txt
+			'
+			Compare-PSObject $Actual $Expected | Should -BeNull
+
+		}
+
 		It 'Merge two CSV files while adding new and overwriting existing entries' { # https://stackoverflow.com/a/54949056/1701026
 		
 			$configuration = ConvertFrom-SourceTable '
@@ -954,6 +984,7 @@ server2,item2'
 			Compare-PSObject $Actual $Expected | Should -BeNull
 
 		}
+
 		It 'Efficiently merge large object datasets having mulitple matching keys' { # https://stackoverflow.com/a/55543321/1701026
 
 			$dataset1 = ConvertFrom-SourceTable '
