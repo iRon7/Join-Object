@@ -341,7 +341,7 @@ Function Join-Object {
 
 Function Copy-Command([System.Management.Automation.CommandInfo]$Command, [String]$Name, [HashTable]$DefaultParameters) {
 	Try {
-		$MetaData = [System.Management.Automation.CommandMetadata]::New($Command)
+		$MetaData = [System.Management.Automation.CommandMetadata] $Command
 		$Value = [System.Management.Automation.ProxyCommand]::Create($MetaData)
 		$Null = New-Item -Path Function:\ -Name "Script:$Name" -Value $Value -Force
 		ForEach ($Key in $DefaultParameters.Keys) {$PSDefaultParameterValues["$Name`:$Key"] = $DefaultParameters.$Key}
