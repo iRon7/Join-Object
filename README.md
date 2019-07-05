@@ -120,11 +120,11 @@ Id         Name             Country            Department                 Age   
 
 `-LeftObject`  
 The LeftObject, usually provided through the pipeline, defines the
-left object (or list of objects) to be joined.
+left object (or datatable) to be joined.
 
 `-RightObject`  
 The RightObject, provided by the (first) argument, defines the right
-object (or list of objects) to be joined.
+object (or datatable) to be joined.
 
 `-On`  
 The `-On` (alias `-Using`) parameter defines the condition that specify how
