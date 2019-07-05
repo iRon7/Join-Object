@@ -637,6 +637,106 @@ Describe 'Join-Object' {
 		}
 
 	}
+	
+	Context "DataTables" {
+	
+		$DataTable1 = New-Object Data.DataTable
+		$Null = $DataTable1.Columns.Add((New-Object Data.DataColumn 'Column1'), [String])
+		$Null = $DataTable1.Columns.Add((New-Object Data.DataColumn 'Column2'), [Int])
+		$DataRow = $DataTable1.NewRow()
+		$DataRow.Item('Column1') = "A"
+		$DataRow.Item('Column2') = 1
+		$DataTable1.Rows.Add($DataRow)
+		$DataRow = $DataTable1.NewRow()
+		$DataRow.Item('Column1') = "B"
+		$DataRow.Item('Column2') = 2
+		$DataTable1.Rows.Add($DataRow)
+		$DataRow = $DataTable1.NewRow()
+		$DataRow.Item('Column1') = "C"
+		$DataRow.Item('Column2') = 3
+		$DataTable1.Rows.Add($DataRow)
+
+		$DataTable2 = New-Object Data.DataTable
+		$Null = $DataTable2.Columns.Add((New-Object Data.DataColumn 'Column1'), [String])
+		$Null = $DataTable2.Columns.Add((New-Object Data.DataColumn 'Column3'), [Int])
+		$DataRow = $DataTable2.NewRow()
+		$DataRow.Item('Column1') = "B"
+		$DataRow.Item('Column3') = 3
+		$DataTable2.Rows.Add($DataRow)
+		$DataRow = $DataTable2.NewRow()
+		$DataRow.Item('Column1') = "C"
+		$DataRow.Item('Column3') = 4
+		$DataTable2.Rows.Add($DataRow)
+		$DataRow = $DataTable2.NewRow()
+		$DataRow.Item('Column1') = "D"
+		$DataRow.Item('Column3') = 5
+		$DataTable2.Rows.Add($DataRow)
+		
+		It '(inner)join DataTables' {
+			$Actual = $DataTable1 | Join $DataTable2 -On Column1
+			$Expected = ConvertFrom-SourceTable '
+				Column1 Column2 Column3
+				------- ------- -------
+				B             2       3
+				C             3       4
+			'
+			
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'Leftjoin DataTables' {
+			$Actual = $DataTable1 | LeftJoin $DataTable2 -On Column1
+			$Expected = ConvertFrom-SourceTable '
+				Column1 Column2 Column3
+				------- ------- -------
+				A             1   $Null
+				B             2       3
+				C             3       4
+			'
+			
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'Rightjoin DataTables' {
+			$Actual = $DataTable1 | RightJoin $DataTable2 -On Column1
+			$Expected = ConvertFrom-SourceTable '
+				Column1 Column2 Column3
+				------- ------- -------
+				B             2       3
+				C             3       4
+				D         $Null       5
+			'
+			
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'Fulljoin DataTables' {
+			$Actual = $DataTable1 | FullJoin $DataTable2 -On Column1
+			$Expected = ConvertFrom-SourceTable '
+				Column1 Column2 Column3
+				------- ------- -------
+				A             1   $Null
+				B             2       3
+				C             3       4
+				D         $Null       5
+			'
+			
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'Self join DataTable' {
+			$Actual = Join $DataTable1 -On Column1
+			$Expected = ConvertFrom-SourceTable '
+				Column1 Column2
+				------- -------
+				A          1, 1
+				B          2, 2
+				C          3, 3
+			'
+			
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+	}
 
 	Context 'Regression tests' {
 
@@ -646,7 +746,7 @@ Describe 'Join-Object' {
 			Country Id Name                 Department  Age ReportsTo
 			------- -- ----                 ----------  --- ---------
 			Germany  2 {Bauer, Engineering} Engineering  31         4
-		' | Select-Object Country, Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Department, Age, ReportsTo
+			' | Select-Object Country, Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Department, Age, ReportsTo
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -658,7 +758,7 @@ Describe 'Join-Object' {
 				------- -- ----                   ----------  --- ---------
 				Germany  2 {Bauer, Engineering}   Engineering  31         4
 				Germany  6 {Fischer, Engineering} Engineering  29         4
-		' | Select-Object Country, Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Department, Age, ReportsTo
+			' | Select-Object Country, Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Department, Age, ReportsTo
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
