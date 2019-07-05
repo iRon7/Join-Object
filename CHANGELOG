@@ -28,3 +28,4 @@
 3.0.0     2019-03-30 Ronald Bode New release with new test set
 3.0.1     2019-03-30 Ronald Bode Updated embedded examples
 3.0.2     2019-04-10 Ronald Bode Fixed default unify issue due to -On case difference
+3.0.3     2019-07-02 Ronald Bode Support for datatables
