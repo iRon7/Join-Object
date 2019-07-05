@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.0.2
+.VERSION 3.0.3
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -36,22 +36,22 @@
 	* FullJoin-Object (Join-Object -JoinType Full)
 	  Returns the joined objects and the rest of the left and right objects
 	* CrossJoin-Object (Join-Object -JoinType Cross)
-	  Joins each left object to each right object
+	  Returns each left object joined to each right object
 	* Update-Object (Join-Object -JoinType Left -Merge = {RightOrLeft.$_})
-	  Updates the left object with the right object properties
+	  Returns each left object updated with the right object properties
 	* Merge-Object (Join-Object -JoinType Full -Merge = {RightOrLeft.$_})
-	  Updates the left object with the right object properties and inserts
-	  right if the values of the related property is not equal.
+	  Returns each left object updated with the right object properties
+	  and the rest of the right objects
 
 	Each command has an alias equal to its verb (omitting '-Object').
 
 	.PARAMETER LeftObject
 		The LeftObject, usually provided through the pipeline, defines the
-		left object (or list of objects) to be joined.
+		left object (or datatable) to be joined.
 
 	.PARAMETER RightObject
 		The RightObject, provided by the (first) argument, defines the right
-		object (or list of objects) to be joined.
+		object (or datatable) to be joined.
 
 	.PARAMETER On
 		The -On (alias -Using) parameter defines the condition that specify how
@@ -238,7 +238,8 @@
 #>
 Function Join-Object {
 	[CmdletBinding()][OutputType([Object[]])]Param (
-		[Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject,
+		# [Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject,
+		[Parameter(ValueFromPipeLine = $True)]$LeftObject, [Parameter(Position=0)]$RightObject,
 		[Parameter(Position = 1)][Alias("Using")]$On, [String[]]$Equals, [ScriptBlock]$Where,
 		[Parameter(Position = 2)][Alias("Merge")]$Unify = {$LeftOrVoid.$_, $RightOrVoid.$_},
 		[Parameter(Position = 3)]$Property,
@@ -247,18 +248,24 @@ Function Join-Object {
 	Begin {
 		$HashTable = $Null; $Esc = [Char]27;$EscNull = $Esc + 'Null'; $EscSeparator = $Esc + ','
 		$Expression = [Ordered]@{}; $New = [Ordered]@{}
-		$RightKeys = @(); $RightObject[0].PSObject.Properties | ForEach-Object {$RightKeys += $_.Name}
+		$RightKeys = @(
+			If ($RightObject -is [Data.DataTable]) {$RightObject.Columns | Select-Object -ExpandProperty 'ColumnName'}
+			Else {($RightObject | Select-Object -First 1).PSObject.Properties | Select-Object -ExpandProperty 'Name'}
+		)
 		$RightLength = @($RightObject).Length; $LeftIndex = 0; $InnerRight = @($False) * $RightLength
 		Function Out-Join($LeftIndex, $RightIndex, $Left, $Right, $LeftOrRight, $RightOrLeft, $LeftOrVoid, $RightOrVoid) {
 			$Expression.Get_Keys() | ForEach-Object {$New.$_ = &$Expression.$_}; New-Object PSObject -Property $New
 		}
 	}
 	Process {
-		If (!$PSBoundParameters.ContainsKey('LeftObject')) {$LeftObject = $RightObject}
+		If (!$PSBoundParameters.ContainsKey('LeftObject')) {$LeftObject = $RightObject}		#Self join
 		ForEach ($Left in @($LeftObject)) {
 			$InnerLeft = $Null; $All = !$PSBoundParameters.ContainsKey('Property')
 			If (!$LeftIndex) {
-				$LeftKeys = @(); $LeftObject[0].PSObject.Properties | ForEach-Object {$LeftKeys += $_.Name}
+				$LeftKeys = @(
+					If ($Left -is [Data.DataRow]) {$Left.Table.Columns | Select-Object -ExpandProperty 'ColumnName'}
+					Else {$Left.PSObject.Properties | Select-Object -ExpandProperty 'Name'}
+				)
 				If ($Property.PSTypeNames -Match "^System.Collections") {$Expression = $Property}
 				Else {
 					@($Property) | Where-Object {$_} | ForEach-Object {
@@ -273,14 +280,14 @@ Function Join-Object {
 						If ($i -ge $On.Length) {$On += $Equals[$i]}
 						If ($LeftKeys -NotContains $On[$i]) {Throw "The property '$($On[$i])' cannot be found on the left object."}
 						If ($i -ge $Equals.Length) {$Equals += $On[$i]}
-						If ($RightKeys  -NotContains $Equals[$i]) {Throw "The property '$($Equals[$i])' cannot be found on the right object."}
+						If ($RightKeys -NotContains $Equals[$i]) {Throw "The property '$($Equals[$i])' cannot be found on the right object."}
 						If ($On[$i] -eq $Equals[$i] -and ($All -or $Expression[$On[$i]]) -and !"$($Expression[$On[$i]])") {$Expression[$On[$i]] = {$LeftOrRight.$_}}
 					}
 				}
 				If ($On -is [Array]) {$HashTable = @{}
-					For ($i = 0; $i -lt $RightLength; $i++) {$Right = $RightObject[$i]
+					$RightIndex = 0; ForEach ($Right in $RightObject) {
 						$Values = $Equals | ForEach-Object {If ($Null -ne $Right.$_) {$Right.$_} Else {$EscNull}}
-						[Array]$HashTable[[system.String]::Join($EscSeparator, $Values)] += $i
+						[Array]$HashTable[[String]::Join($EscSeparator, $Values)] += $RightIndex++
 					}
 				}
 				$Items = @{}; $LeftKeys + $RightKeys | Select-Object -Unique | ForEach-Object {$Items.$_ = $Null
@@ -304,7 +311,7 @@ Function Join-Object {
 			$RightList = `
 				If ($On -is [Array]) {
 					$Values = $On | ForEach-Object {If ($Null -ne $Left.$_) {$Left.$_} Else {$EscNull}}
-					$HashTable[[system.String]::Join($EscSeparator, $Values)]
+					$HashTable[[String]::Join($EscSeparator, $Values)]
 				} ElseIf ($On -is [ScriptBlock]) {
 					For ($RightIndex = 0; $RightIndex -lt $RightLength; $RightIndex++) {
 						$Right = $RightObject[$RightIndex]; If (&$On) {$RightIndex}
@@ -312,7 +319,8 @@ Function Join-Object {
 				}
 				ElseIf ($JoinType -eq "Cross") {0..($RightObject.Length - 1)}
 				ElseIf ($LeftIndex -lt $RightLength) {$LeftIndex} Else {$Null}
-			ForEach ($RightIndex in $RightList) {$Right = $RightObject[$RightIndex]
+			ForEach ($RightIndex in $RightList) {
+				$Right = If ($RightObject -is [Data.DataTable]) {$RightObject.Rows[$RightIndex]} Else {$RightObject[$RightIndex]}
 				If (!$Where -Or (&$Where)) {
 					Out-Join -LeftIndex $LeftIndex -RightIndex $RightIndex `
 						-Left $Left -Right $Right -LeftOrRight $Left -RightOrLeft $Right -LeftOrVoid $Left -RightOrVoid $Right
@@ -328,12 +336,12 @@ Function Join-Object {
 	}
 	End {
 		If ($JoinType -eq "Right" -or $JoinType -eq "Full") {$Left = $Null
-			For ($RightIndex = 0; $RightIndex -lt $RightObject.Length; $RightIndex++) {
+			$RightIndex = 0; ForEach ($Right in $RightObject) {
 				If (!$InnerRight[$RightIndex]) {
-					$Right = $RightObject[$RightIndex]
 					Out-Join -LeftIndex $Null -RightIndex $RightIndex `
 						-Left $Null -Right $Right -LeftOrRight $Right -RightOrLeft $Right -LeftOrVoid $Void -RightOrVoid $Right
 				}
+				$RightIndex++
 			}
 		}
 	}
