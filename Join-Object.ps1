@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.0.3
+.VERSION 3.0.6
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -69,7 +69,7 @@
 		justified with the list of properties defined by the -Equals parameter
 		and visa versa.
 
-		Note 2: The equal properties will be merged to a single (left) property
+		Note 2: Related properties will be merged to a single (left) property
 		by default (see also the -Property parameter).
 
 		<ScriptBlock>
@@ -92,7 +92,7 @@
 		justified with the list of properties defined by the -On parameter and
 		visa versa.
 
-		Note 2: If the -Equal and the -On parameter are omitted, a join by
+		Note 2: If the -On and the -Equals parameter are omitted, a join by
 		row index is returned.
 
 		Note 3: The -Equals parameter cannot be used in combination with an
@@ -238,7 +238,6 @@
 #>
 Function Join-Object {
 	[CmdletBinding()][OutputType([Object[]])]Param (
-		# [Parameter(ValueFromPipeLine = $True)][Object[]]$LeftObject, [Parameter(Position=0)][Object[]]$RightObject,
 		[Parameter(ValueFromPipeLine = $True)]$LeftObject, [Parameter(Position=0)]$RightObject,
 		[Parameter(Position = 1)][Alias("Using")]$On, [String[]]$Equals, [ScriptBlock]$Where,
 		[Parameter(Position = 2)][Alias("Merge")]$Unify = {$LeftOrVoid.$_, $RightOrVoid.$_},
@@ -254,7 +253,7 @@ Function Join-Object {
 		)
 		$RightLength = @($RightObject).Length; $LeftIndex = 0; $InnerRight = @($False) * $RightLength
 		Function Out-Join($LeftIndex, $RightIndex, $Left, $Right, $LeftOrRight, $RightOrLeft, $LeftOrVoid, $RightOrVoid) {
-			$Expression.Get_Keys() | ForEach-Object {$New.$_ = &$Expression.$_}; New-Object PSObject -Property $New
+			ForEach ($_ in $Expression.Get_Keys()) {$New.$_ = &$Expression.$_}; New-Object PSObject -Property $New
 		}
 	}
 	Process {
@@ -268,9 +267,11 @@ Function Join-Object {
 				)
 				If ($Property.PSTypeNames -Match "^System.Collections") {$Expression = $Property}
 				Else {
-					@($Property) | Where-Object {$_} | ForEach-Object {
-						If ($_.PSObject.Properties['Keys']) {$Expression += $_}
-						Else {If ($_ -eq "*") {$All = $True} Else {$Expression.$_ = {}}}
+					ForEach ($Item in @($Property)) {
+						If ($Item) {
+							If ($Item.PSObject.Properties['Keys']) {$Expression += $Item}
+							Else {If ($Item -eq "*") {$All = $True} Else {$Expression.$Item = {}}}
+						}
 					}
 				}
 				If ($On -is [ScriptBlock]) {If ($Equals) {Throw "The Equals parameter cannot be used with an On parameter expression"}}
@@ -286,31 +287,32 @@ Function Join-Object {
 				}
 				If ($On -is [Array]) {$HashTable = @{}
 					$RightIndex = 0; ForEach ($Right in $RightObject) {
-						$Values = $Equals | ForEach-Object {If ($Null -ne $Right.$_) {$Right.$_} Else {$EscNull}}
+						$Values = ForEach ($Name in @($Equals)) {If ($Null -ne $Right.$Name) {$Right.$Name} Else {$EscNull}}
 						[Array]$HashTable[[String]::Join($EscSeparator, $Values)] += $RightIndex++
 					}
 				}
-				$Items = @{}; $LeftKeys + $RightKeys | Select-Object -Unique | ForEach-Object {$Items.$_ = $Null
-					If (($All -or $Expression[$_]) -and !"$($Expression[$_])") {
-						If ($LeftKeys -Contains $_ ) {
-							If ($RightKeys -Contains $_) {
+				$Items = @{}; ForEach ($Name in ($LeftKeys + $RightKeys | Select-Object -Unique)) {
+					$Items.$Name = $Null
+					If (($All -or $Expression[$Name]) -and !"$($Expression[$Name])") {
+						If ($LeftKeys -Contains $Name ) {
+							If ($RightKeys -Contains $Name) {
 								If ($Unify -is [ScriptBlock]) {
-									$Expression.$_ = $Unify
+									$Expression.$Name = $Unify
 								} Else {
 									ForEach ($01 in 0, 1) {$Key = (@($Unify) + "")[$01]
-										$Key = If ("$Key".Contains("*"))  {([Regex]"\*").Replace("$Key", $_, 1)} Else {"$Key$_"}
+										$Key = If ("$Key".Contains("*"))  {([Regex]"\*").Replace("$Key", $Name, 1)} Else {"$Key$Name"}
 										$i = ""; While ($Expression.Keys -Contains "$Key$i") {$i = [Int]$i + 1}; $Key = "$Key$i"
-										$Expression.$Key = [ScriptBlock]::Create("$(('$LeftOrVoid', '$RightOrVoid')[$01]).'$_'")
+										$Expression.$Key = [ScriptBlock]::Create("$(('$LeftOrVoid', '$RightOrVoid')[$01]).'$Name'")
 									}
 								}
-							} Else {$Expression.$_ = {$LeftOrVoid.$_}}
-						} Else {$Expression.$_ = {$RightOrVoid.$_}}
+							} Else {$Expression.$Name = {$LeftOrVoid.$_}}
+						} Else {$Expression.$Name = {$RightOrVoid.$_}}
 					}
 				}; $Void = New-Object PSObject -Property $Items
 			}
 			$RightList = `
 				If ($On -is [Array]) {
-					$Values = $On | ForEach-Object {If ($Null -ne $Left.$_) {$Left.$_} Else {$EscNull}}
+					$Values = ForEach ($Name in @($On)) {If ($Null -ne $Left.$Name) {$Left.$Name} Else {$EscNull}}
 					$HashTable[[String]::Join($EscSeparator, $Values)]
 				} ElseIf ($On -is [ScriptBlock]) {
 					For ($RightIndex = 0; $RightIndex -lt $RightLength; $RightIndex++) {
@@ -349,7 +351,7 @@ Function Join-Object {
 
 Function Copy-Command([System.Management.Automation.CommandInfo]$Command, [String]$Name, [HashTable]$DefaultParameters) {
 	Try {
-		$MetaData = [System.Management.Automation.CommandMetadata]::New($Command)
+		$MetaData = [System.Management.Automation.CommandMetadata]$Command
 		$Value = [System.Management.Automation.ProxyCommand]::Create($MetaData)
 		$Null = New-Item -Path Function:\ -Name "Script:$Name" -Value $Value -Force
 		ForEach ($Key in $DefaultParameters.Keys) {$PSDefaultParameterValues["$Name`:$Key"] = $DefaultParameters.$Key}
