@@ -29,6 +29,10 @@
 3.0.1     2019-03-30 Ronald Bode Updated embedded examples
 3.0.2     2019-04-10 Ronald Bode Fixed default unify issue due to -On case difference
 3.0.3     2019-07-02 Ronald Bode Support for datatables
-3.0.4     2019-07-03 Ronald Bode Expermental version (not implemented)
+3.0.4     2019-07-03 Ronald Bode Experimental version (not implemented)
 3.0.5     2019-07-14 meany       Issue #5, resolved: Cannot dot source / invoke script on 2012 R2 bug
 3.0.6     2019-07-16 Ronald Bode Issue #6, improved performance (~2x on large tables), thanks to @burkasaurusrex' suggestion
+3.0.7     2019-11-01 Ronald Bode Renamed -Unify parameter to -Discern and divided -Discern from -Property parameter
+3.0.8     2019-11-07 Ronald Bode Better support chaining multiple joins and simplified available expression objects: 
+                                 All properties of the $Left and $Right object are set to $Null in the outer join part.
+3.1.0     2019-11-08 Ronald Bode Adjusted help
