@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.0.6
+.VERSION 3.1.0
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -18,7 +18,7 @@
 
 <#
 	.SYNOPSIS
-	Combines two objects lists based on a related property between them.
+	Combines two object lists based on a related property between them.
 
 	.DESCRIPTION
 	Combines properties from one or more objects. It creates a set that can
@@ -50,7 +50,7 @@
 		left object (or datatable) to be joined.
 
 	.PARAMETER RightObject
-		The RightObject, provided by the (first) argument, defines the right
+		The RightObject, provided by the first argument, defines the right
 		object (or datatable) to be joined.
 
 	.PARAMETER On
@@ -66,10 +66,10 @@
 		(listed by the -Equals parameter).
 
 		Note 1: The list of properties defined by the -On parameter will be
-		justified with the list of properties defined by the -Equals parameter
-		and visa versa.
+		complemented with the list of properties defined by the -Equals
+		parameter and vice versa.
 
-		Note 2: Related properties will be merged to a single (left) property
+		Note 2: Joined properties will be merged to a single (left) property
 		by default (see also the -Property parameter).
 
 		<ScriptBlock>
@@ -89,8 +89,8 @@
 		equal to the left object properties (listed by the -On parameter).
 
 		Note 1: The list of properties defined by the -Equal parameter will be
-		justified with the list of properties defined by the -On parameter and
-		visa versa.
+		complemented with the list of properties defined by the -On parameter
+		and visa versa.
 
 		Note 2: If the -On and the -Equals parameter are omitted, a join by
 		row index is returned.
@@ -103,52 +103,64 @@
 		be returned. There is no limit to the number of predicates that can be
 		included in the condition.
 
-	.PARAMETER Unify
-		The -Unify (alias -Merge) parameter defines how to unify the left and
-		right object with respect to the unrelated common properties. The
-		common properties can discerned (<String>[,<String>]) or merged
-		(<ScriptBlock>). By default the unrelated common properties wil be
-		merged using the expression: {$LeftOrVoid.$_, $RightOrVoid.$_}
+	.PARAMETER Discern
+		The -Discern parameter defines how to discern the left and right object
+		with respect to the common properties that aren't joined.
 
 		<String>[,<String>]
-		If the value is not a ScriptBlock, it is presumed a string array with
-		one or two items defining the left and right key format. If the item
-		includes an asterisks (*), the asterisks will be replaced with the
-		property name otherwise the item will be used to prefix the property name.
+		The first string defines how to rename the left property, the second
+		string (if defined) defines how to rename the right property.
+		If the string contains an asterisks (*), the asterisks will be replaced
+		with the original property name, otherwise, the property name will be
+		prefixed with the given string.
 
-		Note: A consecutive number will be automatically added to a common
-		property name if is already used.
+		Properties that don't exist on both sides will not be renamed.
 
-		<ScriptBlock>
-		An expression that defines how the left and right properties with the
-		common property should be merged. Where the following variables are
-		available:
-		* $_: iterates each property name
-		* $Void: an object with all (left and right) properties set to $Null
-		* $Left: the current left object (each self-contained -LeftObject)
-		* $LeftOrVoid: the left object otherwise an object with null values
-		* $LeftOrRight: the left object otherwise the right object
-		* $LeftKeys: an array containing all the left keys
-		* $Right: the current right object (each self-contained -RightObject)
-		* $RightOrVoid: the right object otherwise an object with null values
-		* $RightOrLeft: the right object otherwise the left object
-		* $RightKeys: an array containing all the right keys
+		Joined properties (defined by the -On parameter) will be merged.
 
-		Note: Property expressions set by the -Unify paramter might be
-		overwritten by specific -Property expressions.
-
+		Note: The -Discern parameter cannot be used with the -Property parameter.
 
 	.PARAMETER Property
-		A hash table or list of property names (strings) and/or hash tables.
+		A hash table or list of property names (strings) and/or hash tables that
+		define a new selection of property names and values
+
 		Hash tables should be in the format @{<PropertyName> = <Expression>}
-		where the <Expression> usually defines how the specific left and
-		right properties should be merged.
+		where the <Expression> defines how the specific left and right
+		properties should be merged. Where the following variables are
+		available for each joined object:
+		* $_: iterates each property name
+		* $Left: the current left object (each self-contained -LeftObject)
+		* $LeftIndex: the index of the left object
+		* $Right: the current right object (each self-contained -RightObject)
+		* $RightIndex: the index of the right object
+		If the $LeftObject isn't joined in a Right- or FullJoin then $LeftIndex
+		will be $Null and the $Left object will represent an object with each
+		property set to $Null.
+		If the $RightObject isn't joined in a Left- or FullJoin then $RightIndex
+		will be $Null and the $Right object will represent an object with each
+		property set to $Null.
 
-		If only a name (string) is supplied, either the left or the right
-		value is used for unique properties or the default unify expression
-		is used for unrelated common properties.
+		An asterisks (*) represents all known left - and right properties.
 
-		Note: Any unknown properties will be added to the output object.
+		If the -Property and the -Discern parameters are ommited or in case a
+		property name (or an asterisks) is supplied without expression, the
+		expression will be automatically added using the following rules:
+		* If the property only exists on the left side, the expression is:
+		  {$Left.$_}
+		* If the property only exists on the right side, the expression is:
+		  {$Right.$_}
+		* If the left - and right properties aren't joined, the expression is:
+		  {$Left.$_, $Right.$_}
+		* If the left - and right property are joined, the expression is:
+		  {If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}}
+
+		If an expression without a property name assignment is supplied, it will
+		be assigned to all known properties in the $LeftObject and $RightObject.
+
+		The last defined expression will overrule any previous defined
+		expressions
+
+		Note: The -Property parameter cannot be used with the -Discern parameter.
 
 	.EXAMPLE
 
@@ -173,29 +185,29 @@
 		Purchase    France
 
 
-		PS C:\> $Employee | InnerJoin $Department -On Country
+		PS C:\> $Employee | InnerJoin $Department -On Country | Format-Table
 
-		Country Id Name                   Department  Age ReportsTo
-		------- -- ----                   ----------  --- ---------
-		Germany  2 {Bauer, Engineering}   Engineering  31         4
-		England  3 {Cook, Marketing}      Sales        69         1
-		France   4 {Duval, Sales}         Engineering  21         5
-		France   4 {Duval, Purchase}      Engineering  21         5
-		England  5 {Evans, Marketing}     Marketing    35
-		Germany  6 {Fischer, Engineering} Engineering  29         4
+		Id Name                   Country Department  Age ReportsTo
+		-- ----                   ------- ----------  --- ---------
+		 2 {Bauer, Engineering}   Germany Engineering  31         4
+		 3 {Cook, Marketing}      England Sales        69         1
+		 4 {Duval, Sales}         France  Engineering  21         5
+		 4 {Duval, Purchase}      France  Engineering  21         5
+		 5 {Evans, Marketing}     England Marketing    35
+		 6 {Fischer, Engineering} Germany Engineering  29         4
 
 	.EXAMPLE
 
-		PS C:\> $Employee | InnerJoin $Department -On Department -Equals -Unify Employee, Department
+		PS C:\> $Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
 
-		Id EmployeeName DepartmentName EmployeeCountry DepartmentCountry Department  Age ReportsTo
-		-- ------------ -------------- --------------- ----------------- ----------  --- ---------
-		 1 Aerts        Sales          Belgium         France            Sales        40         5
-		 2 Bauer        Engineering    Germany         Germany           Engineering  31         4
-		 3 Cook         Sales          England         France            Sales        69         1
-		 4 Duval        Engineering    France          Germany           Engineering  21         5
-		 5 Evans        Marketing      England         England           Marketing    35
-		 6 Fischer      Engineering    Germany         Germany           Engineering  29         4
+		Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
+		-- ------------ --------------- ----------  --- --------- -------------- -----------------
+		 1 Aerts        Belgium         Sales        40         5 Sales          France
+		 2 Bauer        Germany         Engineering  31         4 Engineering    Germany
+		 3 Cook         England         Sales        69         1 Sales          France
+		 4 Duval        France          Engineering  21         5 Engineering    Germany
+		 5 Evans        England         Marketing    35           Marketing      England
+		 6 Fischer      Germany         Engineering  29         4 Engineering    Germany
 
 	.EXAMPLE
 
@@ -208,7 +220,7 @@
 		 7 Geralds Belgium Sales        71         1
 
 
-		PS C:\> $Employee | Merge $Changes -On Id
+		PS C:\> $Employee | Merge $Changes -On Id | Format-Table
 
 		Id Name    Country Department  Age ReportsTo
 		-- ----    ------- ----------  --- ---------
@@ -222,58 +234,70 @@
 
 	.EXAMPLE
 
-		PS C:\> LeftJoin $Employee -On ReportsTo -Equals Id
+		PS C:\> LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = {$Left.Name}; Manager = {$Right.Name}}
 
-		Id         Name             Country            Department                 Age         ReportsTo
-		--         ----             -------            ----------                 ---         ---------
-		{1, 5}     {Aerts, Evans}   {Belgium, England} {Sales, Marketing}         {40, 35}    {5, }
-		{2, 4}     {Bauer, Duval}   {Germany, France}  {Engineering, Engineering} {31, 21}    {4, 5}
-		{3, 1}     {Cook, Aerts}    {England, Belgium} {Sales, Sales}             {69, 40}    {1, 5}
-		{4, 5}     {Duval, Evans}   {France, England}  {Engineering, Marketing}   {21, 35}    {5, }
-		{5, $null} {Evans, $null}   {England, $null}   {Marketing, $null}         {35, $null} {, $null}
-		{6, 4}     {Fischer, Duval} {Germany, France}  {Engineering, Engineering} {29, 21}    {4, 5}
+		Name    Manager
+		----    -------
+		Aerts   Evans
+		Bauer   Duval
+		Cook    Aerts
+		Duval   Evans
+		Evans
+		Fischer Duval
 
 	.LINK
 		https://github.com/iRon7/Join-Object
 #>
 Function Join-Object {
-	[CmdletBinding()][OutputType([Object[]])]Param (
-		[Parameter(ValueFromPipeLine = $True)]$LeftObject, [Parameter(Position=0)]$RightObject,
-		[Parameter(Position = 1)][Alias("Using")]$On, [String[]]$Equals, [ScriptBlock]$Where,
-		[Parameter(Position = 2)][Alias("Merge")]$Unify = {$LeftOrVoid.$_, $RightOrVoid.$_},
-		[Parameter(Position = 3)]$Property,
-		[Parameter(Position = 4)][ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner'
+	[CmdletBinding(DefaultParameterSetName='Property')][OutputType([Object[]])]Param (
+		[Parameter(ValueFromPipeLine = $True)]$LeftObject,
+		[Parameter(Position = 0, ParameterSetName = 'Property', Mandatory = $True)][Parameter(Position = 0, ParameterSetName = 'Discern', Mandatory = $True)]$RightObject,
+		[Parameter(Position = 1, ParameterSetName = 'Property')][Parameter(Position = 1, ParameterSetName = 'Discern')][Alias("Using")]$On,
+		[Parameter(ParameterSetName = 'Property')][Parameter(ParameterSetName = 'Discern')][String[]]$Equals,
+		[Parameter(Position = 2, ParameterSetName = 'Discern')][String[]]$Discern,
+		[Parameter(ParameterSetName = 'Property')]$Property = {$Left.$_, $Right.$_},
+		[Parameter(Position = 3, ParameterSetName = 'Property')][Parameter(Position = 3, ParameterSetName = 'Discern')][ScriptBlock]$Where,
+		[Parameter(ParameterSetName = 'Property')][Parameter(ParameterSetName = 'Discern')][ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner'
 	)
 	Begin {
 		$HashTable = $Null; $Esc = [Char]27;$EscNull = $Esc + 'Null'; $EscSeparator = $Esc + ','
-		$Expression = [Ordered]@{}; $New = [Ordered]@{}
+		$Expression = [Ordered]@{}; $PropertyList = [Ordered]@{}; $Related = @()
 		$RightKeys = @(
 			If ($RightObject -is [Data.DataTable]) {$RightObject.Columns | Select-Object -ExpandProperty 'ColumnName'}
 			Else {($RightObject | Select-Object -First 1).PSObject.Properties | Select-Object -ExpandProperty 'Name'}
 		)
+		$RightProperties = @{}; ForEach ($Key in $RightKeys) {$RightProperties.$Key = $Null}
+		$RightVoid = New-Object PSCustomObject -Property $RightProperties
 		$RightLength = @($RightObject).Length; $LeftIndex = 0; $InnerRight = @($False) * $RightLength
-		Function Out-Join($LeftIndex, $RightIndex, $Left, $Right, $LeftOrRight, $RightOrLeft, $LeftOrVoid, $RightOrVoid) {
-			ForEach ($_ in $Expression.Get_Keys()) {$New.$_ = &$Expression.$_}; New-Object PSObject -Property $New
+		Function Out-Join($LeftIndex, $RightIndex, $Left = $LeftVoid, $Right = $RightVoid) {
+			ForEach ($_ in $Expression.Get_Keys()) {$PropertyList.$_ = &$Expression.$_}
+			New-Object PSCustomObject -Property $PropertyList
+		}
+		Function SetPropertyExpression([String]$Key, [ScriptBlock]$Default = {$Left.$_, $Right.$_}) {
+			If ($LeftKeys -Contains $Key) {
+				If ($RightKeys -Contains $Key) {
+					If ($Related -Contains $Key) {$Expression.$Key = {If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}}
+					Else {$Expression.$Key = $Default}
+				} Else {$Expression.$Key = {$Left.$_}}
+			} Else {$Expression.$Key = {$Right.$_}}
+		}
+		Function AddInputProperties([ScriptBlock]$Default = {$Left.$_, $Right.$_}) {
+			ForEach ($Key in ($LeftKeys + $RightKeys)) {
+				If (!$Expression.Contains($Key)) {SetPropertyExpression $Key $Default}
+			}
 		}
 	}
 	Process {
-		If (!$PSBoundParameters.ContainsKey('LeftObject')) {$LeftObject = $RightObject}		#Self join
+		$SelfJoin = !$PSBoundParameters.ContainsKey('LeftObject'); If ($SelfJoin) {$LeftObject = $RightObject}
 		ForEach ($Left in @($LeftObject)) {
-			$InnerLeft = $Null; $All = !$PSBoundParameters.ContainsKey('Property')
+			$InnerLeft = $Null
 			If (!$LeftIndex) {
 				$LeftKeys = @(
 					If ($Left -is [Data.DataRow]) {$Left.Table.Columns | Select-Object -ExpandProperty 'ColumnName'}
 					Else {$Left.PSObject.Properties | Select-Object -ExpandProperty 'Name'}
 				)
-				If ($Property.PSTypeNames -Match "^System.Collections") {$Expression = $Property}
-				Else {
-					ForEach ($Item in @($Property)) {
-						If ($Item) {
-							If ($Item.PSObject.Properties['Keys']) {$Expression += $Item}
-							Else {If ($Item -eq "*") {$All = $True} Else {$Expression.$Item = {}}}
-						}
-					}
-				}
+				$LeftProperties = @{}; ForEach ($Key in $LeftKeys) {$LeftProperties.$Key = $Null}
+				$LeftVoid = New-Object PSCustomObject -Property $LeftProperties
 				If ($On -is [ScriptBlock]) {If ($Equals) {Throw "The Equals parameter cannot be used with an On parameter expression"}}
 				ElseIf ($Null -ne $On -or $Null -ne $Equals) {
 					$On = If ($On) {,@($On)} Else {,@()}; $Equals = If ($Equals) {,@($Equals)} Else {,@()}
@@ -282,7 +306,7 @@ Function Join-Object {
 						If ($LeftKeys -NotContains $On[$i]) {Throw "The property '$($On[$i])' cannot be found on the left object."}
 						If ($i -ge $Equals.Length) {$Equals += $On[$i]}
 						If ($RightKeys -NotContains $Equals[$i]) {Throw "The property '$($Equals[$i])' cannot be found on the right object."}
-						If ($On[$i] -eq $Equals[$i] -and ($All -or $Expression[$On[$i]]) -and !"$($Expression[$On[$i]])") {$Expression[$On[$i]] = {$LeftOrRight.$_}}
+						If ($On[$i] -eq $Equals[$i]) {$Related += $On[$i]}
 					}
 				}
 				If ($On -is [Array]) {$HashTable = @{}
@@ -291,24 +315,39 @@ Function Join-Object {
 						[Array]$HashTable[[String]::Join($EscSeparator, $Values)] += $RightIndex++
 					}
 				}
-				$Items = @{}; ForEach ($Name in ($LeftKeys + $RightKeys | Select-Object -Unique)) {
-					$Items.$Name = $Null
-					If (($All -or $Expression[$Name]) -and !"$($Expression[$Name])") {
-						If ($LeftKeys -Contains $Name ) {
-							If ($RightKeys -Contains $Name) {
-								If ($Unify -is [ScriptBlock]) {
-									$Expression.$Name = $Unify
-								} Else {
-									ForEach ($01 in 0, 1) {$Key = (@($Unify) + "")[$01]
-										$Key = If ("$Key".Contains("*"))  {([Regex]"\*").Replace("$Key", $Name, 1)} Else {"$Key$Name"}
-										$i = ""; While ($Expression.Keys -Contains "$Key$i") {$i = [Int]$i + 1}; $Key = "$Key$i"
-										$Expression.$Key = [ScriptBlock]::Create("$(('$LeftOrVoid', '$RightOrVoid')[$01]).'$Name'")
-									}
-								}
-							} Else {$Expression.$Name = {$LeftOrVoid.$_}}
-						} Else {$Expression.$Name = {$RightOrVoid.$_}}
+				If ($Discern) {
+					If (@($Discern).Count -le 1) {$Discern = @($Discern) + ''}
+					ForEach ($Key in $LeftKeys) {
+						If ($RightKeys -Contains $Key) {
+							If ($Related -Contains $Key) {
+								$Expression[$Key] = {If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}
+							} Else {
+								$Name = If ($Discern[0].Contains('*')) {([Regex]"\*").Replace($Discern[0], $Key, 1)} Else {$Discern[0] + $Key}
+								$Expression[$Name] = [ScriptBlock]::Create("`$Left.'$Key'")
+							}
+						} Else {$Expression[$Key] = {$Left.$_}}
 					}
-				}; $Void = New-Object PSObject -Property $Items
+					ForEach ($Key in $RightKeys) {
+						If ($LeftKeys -Contains $Key) {
+							If ($Related -NotContains $Key) {
+								$Name = If ($Discern[1].Contains('*')) {([Regex]"\*").Replace($Discern[1], $Key, 1)} Else {$Discern[1] + $Key}
+								$Expression[$Name] = [ScriptBlock]::Create("`$Right.'$Key'")
+							}
+						} Else {$Expression[$Key] = {$Right.$_}}
+					}
+				} Else {
+					ForEach ($Item in @($Property)) {
+						If ($Item -is [ScriptBlock]) {AddInputProperties $Item}
+						ElseIf ($Item -is [System.Collections.IDictionary]) {
+							ForEach ($Key in $Item.Get_Keys()) {
+								If ($Key -eq '*') {AddInputProperties $Item.$Key} Else {$Expression.$Key = $Item.$Key}
+							}
+						}
+						ElseIf ($Item -eq '*') {AddInputProperties}
+						ElseIf ($LeftKeys -Contains $Item -or $RightKeys -Contains $Item) {SetPropertyExpression $Item}
+						Else {Throw "The property '$Item' cannot be found on the left or right object."}
+					}
+				}
 			}
 			$RightList = `
 				If ($On -is [Array]) {
@@ -324,14 +363,12 @@ Function Join-Object {
 			ForEach ($RightIndex in $RightList) {
 				$Right = If ($RightObject -is [Data.DataTable]) {$RightObject.Rows[$RightIndex]} Else {$RightObject[$RightIndex]}
 				If (!$Where -Or (&$Where)) {
-					Out-Join -LeftIndex $LeftIndex -RightIndex $RightIndex `
-						-Left $Left -Right $Right -LeftOrRight $Left -RightOrLeft $Right -LeftOrVoid $Left -RightOrVoid $Right
+					Out-Join -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right
 					$InnerLeft = $True; $InnerRight[$RightIndex] = $True
 				}
 			}
 			If (!$InnerLeft -and ($JoinType -eq "Left" -or $JoinType -eq "Full")) {
-				Out-Join -LeftIndex $LeftIndex -RightIndex $Null `
-					-Left $Left -Right $Null -LeftOrRight $Left -RightOrLeft $Left -LeftOrVoid $Left -RightOrVoid $Void
+				Out-Join -LeftIndex $LeftIndex -Left $Left
 			}
 			$LeftIndex++
 		}
@@ -340,8 +377,7 @@ Function Join-Object {
 		If ($JoinType -eq "Right" -or $JoinType -eq "Full") {$Left = $Null
 			$RightIndex = 0; ForEach ($Right in $RightObject) {
 				If (!$InnerRight[$RightIndex]) {
-					Out-Join -LeftIndex $Null -RightIndex $RightIndex `
-						-Left $Null -Right $Right -LeftOrRight $Right -RightOrLeft $Right -LeftOrVoid $Void -RightOrVoid $Right
+					Out-Join -RightIndex $RightIndex -Right $Right
 				}
 				$RightIndex++
 			}
@@ -364,5 +400,5 @@ Copy-Command -Command $JoinCommand -Name LeftJoin-Object  -Default @{JoinType = 
 Copy-Command -Command $JoinCommand -Name RightJoin-Object -Default @{JoinType = 'Right'}; Set-Alias RightJoin RightJoin-Object
 Copy-Command -Command $JoinCommand -Name FullJoin-Object  -Default @{JoinType = 'Full'};  Set-Alias FullJoin  FullJoin-Object
 Copy-Command -Command $JoinCommand -Name CrossJoin-Object -Default @{JoinType = 'Cross'}; Set-Alias CrossJoin CrossJoin-Object
-Copy-Command -Command $JoinCommand -Name Update-Object    -Default @{JoinType = 'Left'; Merge = {{$RightOrLeft.$_}}}; Set-Alias Update Update-Object
-Copy-Command -Command $JoinCommand -Name Merge-Object     -Default @{JoinType = 'Full'; Merge = {{$RightOrLeft.$_}}}; Set-Alias Merge  Merge-Object
+Copy-Command -Command $JoinCommand -Name Update-Object    -Default @{JoinType = 'Left'; Property = {{If ($Null -ne $RightIndex) {$Right.$_} Else {$Left.$_}}}}; Set-Alias Update Update-Object
+Copy-Command -Command $JoinCommand -Name Merge-Object     -Default @{JoinType = 'Full'; Property = {{If ($Null -ne $RightIndex) {$Right.$_} Else {$Left.$_}}}}; Set-Alias Merge  Merge-Object
