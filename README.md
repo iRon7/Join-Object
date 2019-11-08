@@ -229,4 +229,4 @@ be assigned to all known properties in the `$LeftObject` and `$RightObject`.
 
 The last defined expression will overrule any previous defined expressions
 
-_Note_: The -Property parameter cannot be used with the -Discern parameter.
+_Note_: The `-Property` parameter cannot be used with the `-Discern` parameter.
