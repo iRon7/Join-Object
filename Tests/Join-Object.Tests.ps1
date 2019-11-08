@@ -58,6 +58,48 @@ Describe 'Join-Object' {
 
 	Context 'Join types' {
 
+		It '$Employee | InnerJoin $Department -On Country -Discern Employee, Department' {
+			$Actual = $Employee | InnerJoin $Department -On Country -Discern Employee, Department
+			$Expected = ConvertFrom-SourceTable '
+				Id EmployeeName Country Department  Age ReportsTo DepartmentName
+				-- ------------ ------- ----------  --- --------- --------------
+				 2 Bauer        Germany Engineering  31         4 Engineering
+				 3 Cook         England Sales        69         1 Marketing
+				 4 Duval        France  Engineering  21         5 Sales
+				 4 Duval        France  Engineering  21         5 Purchase
+				 5 Evans        England Marketing    35           Marketing
+				 6 Fischer      Germany Engineering  29         4 Engineering'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It '$Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department' {
+			$Actual = $Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department
+			$Expected = ConvertFrom-SourceTable '
+				Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
+				-- ------------ --------------- ----------  --- --------- -------------- -----------------
+				 1 Aerts        Belgium         Sales        40         5 Sales          France
+				 2 Bauer        Germany         Engineering  31         4 Engineering    Germany
+				 3 Cook         England         Sales        69         1 Sales          France
+				 4 Duval        France          Engineering  21         5 Engineering    Germany
+				 5 Evans        England         Marketing    35           Marketing      England
+				 6 Fischer      Germany         Engineering  29         4 Engineering    Germany'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It '$Employee | InnerJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
+			$Actual = $Employee | InnerJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
+			$Expected = ConvertFrom-SourceTable '
+				Id EmployeeName Country Department  Age ReportsTo DepartmentName
+				-- ------------ ------- ----------  --- --------- --------------
+				 2 Bauer        Germany Engineering  31         4 Engineering
+				 5 Evans        England Marketing    35           Marketing
+				 6 Fischer      Germany Engineering  29         4 Engineering'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
 		It '$Employee | InnerJoin $Department -On Country' {
 			$Actual = $Employee | InnerJoin $Department -On Country
 			$Expected = ConvertFrom-SourceTable '
@@ -74,31 +116,48 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | InnerJoin $Department -On Department -Equals Name' {
-			$Actual = $Employee | InnerJoin $Department -On Department -Equals Name
+		It '$Employee | LeftJoin $Department -On Country -Discern Employee, Department' {
+			$Actual = $Employee | LeftJoin $Department -On Country -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Id Name                   Country            Department  Age ReportsTo
-				-- ----                   -------            ----------  --- ---------
-				 1 {Aerts, Sales}         {Belgium, France}  Sales        40         5
-				 2 {Bauer, Engineering}   {Germany, Germany} Engineering  31         4
-				 3 {Cook, Sales}          {England, France}  Sales        69         1
-				 4 {Duval, Engineering}   {France, Germany}  Engineering  21         5
-				 5 {Evans, Marketing}     {England, England} Marketing    35
-				 6 {Fischer, Engineering} {Germany, Germany} Engineering  29         4
-			' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
+				Id EmployeeName Country Department  Age ReportsTo DepartmentName
+				-- ------------ ------- ----------  --- --------- --------------
+				 1 Aerts        Belgium Sales        40         5          $Null
+				 2 Bauer        Germany Engineering  31         4 Engineering
+				 3 Cook         England Sales        69         1 Marketing
+				 4 Duval        France  Engineering  21         5 Sales
+				 4 Duval        France  Engineering  21         5 Purchase
+				 5 Evans        England Marketing    35           Marketing
+				 6 Fischer      Germany Engineering  29         4 Engineering'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | InnerJoin $Department -On Department, Country -Equals Name' {
-			$Actual = $Employee | InnerJoin $Department -On Department, Country -Equals Name
+		It '$Employee | LeftJoin $Department -On Department -Equals Name -Discern Employee, Department' {
+			$Actual = $Employee | LeftJoin $Department -On Department -Equals Name -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Country Id Name                   Department  Age ReportsTo
-				------- -- ----                   ----------  --- ---------
-				Germany  2 {Bauer, Engineering}   Engineering  31         4
-				England  5 {Evans, Marketing}     Marketing    35
-				Germany  6 {Fischer, Engineering} Engineering  29         4
-			' | Select-Object Country, Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Department, Age, ReportsTo
+				Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
+				-- ------------ --------------- ----------  --- --------- -------------- -----------------
+				 1 Aerts        Belgium         Sales        40         5 Sales          France
+				 2 Bauer        Germany         Engineering  31         4 Engineering    Germany
+				 3 Cook         England         Sales        69         1 Sales          France
+				 4 Duval        France          Engineering  21         5 Engineering    Germany
+				 5 Evans        England         Marketing    35           Marketing      England
+				 6 Fischer      Germany         Engineering  29         4 Engineering    Germany'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It '$Employee | LeftJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
+			$Actual = $Employee | LeftJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
+			$Expected = ConvertFrom-SourceTable '
+				Id EmployeeName Country Department  Age ReportsTo DepartmentName
+				-- ------------ ------- ----------  --- --------- --------------
+				 1 Aerts        Belgium Sales        40         5          $Null
+				 2 Bauer        Germany Engineering  31         4 Engineering
+				 3 Cook         England Sales        69         1          $Null
+				 4 Duval        France  Engineering  21         5          $Null
+				 5 Evans        England Marketing    35           Marketing
+				 6 Fischer      Germany Engineering  29         4 Engineering'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -120,34 +179,47 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | LeftJoin $Department -On Department -Equals Name' {
-			$Actual = $Employee | LeftJoin $Department -On Department -Equals Name
+		It '$Employee | RightJoin $Department -On Country -Discern Employee, Department' {
+			$Actual = $Employee | RightJoin $Department -On Country -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Id Name                   Country            Department  Age ReportsTo
-				-- ----                   -------            ----------  --- ---------
-				 1 {Aerts, Sales}         {Belgium, France}  Sales        40         5
-				 2 {Bauer, Engineering}   {Germany, Germany} Engineering  31         4
-				 3 {Cook, Sales}          {England, France}  Sales        69         1
-				 4 {Duval, Engineering}   {France, Germany}  Engineering  21         5
-				 5 {Evans, Marketing}     {England, England} Marketing    35
-				 6 {Fischer, Engineering} {Germany, Germany} Engineering  29         4
-			' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
+				Id EmployeeName Country Department  Age ReportsTo DepartmentName
+				-- ------------ ------- ----------  --- --------- --------------
+				 2 Bauer        Germany Engineering  31         4 Engineering
+				 3 Cook         England Sales        69         1 Marketing
+				 4 Duval        France  Engineering  21         5 Sales
+				 4 Duval        France  Engineering  21         5 Purchase
+				 5 Evans        England Marketing    35           Marketing
+				 6 Fischer      Germany Engineering  29         4 Engineering'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | LeftJoin $Department -On Department, Country -Equals Name' {
-			$Actual = $Employee | LeftJoin $Department -On Department, Country -Equals Name
+		It '$Employee | RightJoin $Department -On Department -Equals Name -Discern Employee, Department' {
+			$Actual = $Employee | RightJoin $Department -On Department -Equals Name -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Country Id Name                   Department  Age ReportsTo
-				------- -- ----                   ----------  --- ---------
-				Belgium  1 {Aerts, $null}         Sales        40         5
-				Germany  2 {Bauer, Engineering}   Engineering  31         4
-				England  3 {Cook, $null}          Sales        69         1
-				France   4 {Duval, $null}         Engineering  21         5
-				England  5 {Evans, Marketing}     Marketing    35
-				Germany  6 {Fischer, Engineering} Engineering  29         4
-			' | Select-Object Country, Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Department, Age, ReportsTo
+				   Id EmployeeName EmployeeCountry Department    Age ReportsTo DepartmentName DepartmentCountry
+				   -- ------------ --------------- ----------    --- --------- -------------- -----------------
+				    1 Aerts        Belgium         Sales          40         5 Sales          France
+				    2 Bauer        Germany         Engineering    31         4 Engineering    Germany
+				    3 Cook         England         Sales          69         1 Sales          France
+				    4 Duval        France          Engineering    21         5 Engineering    Germany
+				    5 Evans        England         Marketing      35           Marketing      England
+				    6 Fischer      Germany         Engineering    29         4 Engineering    Germany
+				$Null        $Null           $Null       $Null $Null     $Null Purchase       France'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It '$Employee | RightJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
+			$Actual = $Employee | RightJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
+			$Expected = ConvertFrom-SourceTable '
+				   Id EmployeeName Country Department    Age ReportsTo DepartmentName
+				   -- ------------ ------- ----------    --- --------- --------------
+				    2 Bauer        Germany Engineering    31         4 Engineering
+				    5 Evans        England Marketing      35           Marketing
+				    6 Fischer      Germany Engineering    29         4 Engineering
+				$Null        $Null France        $Null $Null     $Null Sales
+				$Null        $Null France        $Null $Null     $Null Purchase'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -168,34 +240,51 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | RightJoin $Department -On Department -Equals Name' {
-			$Actual = $Employee | RightJoin $Department -On Department -Equals Name
+		It '$Employee | FullJoin $Department -On Country -Discern Employee, Department' {
+			$Actual = $Employee | FullJoin $Department -On Country -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				    Id Name                   Country            Department     Age ReportsTo
-				------ ----                   -------            ----------  ------ ---------
-				     1 {Aerts, Sales}         {Belgium, France}  Sales           40         5
-				     2 {Bauer, Engineering}   {Germany, Germany} Engineering     31         4
-				     3 {Cook, Sales}          {England, France}  Sales           69         1
-				     4 {Duval, Engineering}   {France, Germany}  Engineering     21         5
-				     5 {Evans, Marketing}     {England, England} Marketing       35
-				     6 {Fischer, Engineering} {Germany, Germany} Engineering     29         4
-				 $Null {$null, Purchase}      {$null, France}          $Null  $Null     $Null
-			' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
+				Id EmployeeName Country Department  Age ReportsTo DepartmentName
+				-- ------------ ------- ----------  --- --------- --------------
+				 1 Aerts        Belgium Sales        40         5          $Null
+				 2 Bauer        Germany Engineering  31         4 Engineering
+				 3 Cook         England Sales        69         1 Marketing
+				 4 Duval        France  Engineering  21         5 Sales
+				 4 Duval        France  Engineering  21         5 Purchase
+				 5 Evans        England Marketing    35           Marketing
+				 6 Fischer      Germany Engineering  29         4 Engineering'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | RightJoin $Department -On Department, Country -Equals Name' {
-			$Actual = $Employee | RightJoin $Department -On Department, Country -Equals Name
+		It '$Employee | FullJoin $Department -On Department -Equals Name -Discern Employee, Department' {
+			$Actual = $Employee | FullJoin $Department -On Department -Equals Name -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Country     Id Name                   Department     Age ReportsTo
-				------- ------ ----                   ----------  ------ ---------
-				Germany      2 {Bauer, Engineering}   Engineering     31         4
-				England      5 {Evans, Marketing}     Marketing       35
-				Germany      6 {Fischer, Engineering} Engineering     29         4
-				France   $Null {$null, Sales}               $Null  $Null     $Null
-				France   $Null {$null, Purchase}            $Null  $Null     $Null
-			' | Select-Object Country, Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Department, Age, ReportsTo
+				   Id EmployeeName EmployeeCountry Department    Age ReportsTo DepartmentName DepartmentCountry
+				   -- ------------ --------------- ----------    --- --------- -------------- -----------------
+				    1 Aerts        Belgium         Sales          40         5 Sales          France
+				    2 Bauer        Germany         Engineering    31         4 Engineering    Germany
+				    3 Cook         England         Sales          69         1 Sales          France
+				    4 Duval        France          Engineering    21         5 Engineering    Germany
+				    5 Evans        England         Marketing      35           Marketing      England
+				    6 Fischer      Germany         Engineering    29         4 Engineering    Germany
+				$Null        $Null           $Null       $Null $Null     $Null Purchase       France'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It '$Employee | FullJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
+			$Actual = $Employee | FullJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
+			$Expected = ConvertFrom-SourceTable '
+				   Id EmployeeName    Country Department    Age ReportsTo DepartmentName
+				   -- ------------    ------- ----------    --- --------- --------------
+				    1 Aerts           Belgium Sales          40         5          $Null
+				    2 Bauer           Germany Engineering    31         4 Engineering
+				    3 Cook            England Sales          69         1          $Null
+				    4 Duval           France  Engineering    21         5          $Null
+				    5 Evans           England Marketing      35           Marketing
+				    6 Fischer         Germany Engineering    29         4 Engineering
+				$Null           $Null France        $Null $Null     $Null Sales
+				$Null           $Null France        $Null $Null     $Null Purchase'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -217,71 +306,35 @@ Describe 'Join-Object' {
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It '$Employee | FullJoin $Department -On Department -Equals Name' {
-			$Actual = $Employee | FullJoin $Department -On Department -Equals Name
+		It '$Employee | CrossJoin $Department -Discern Employee, Department' {
+			$Actual = $Employee | CrossJoin $Department -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				    Id Name                   Country            Department     Age ReportsTo
-				------ ----                   -------            ----------  ------ ---------
-				     1 {Aerts, Sales}         {Belgium, France}  Sales           40         5
-				     2 {Bauer, Engineering}   {Germany, Germany} Engineering     31         4
-				     3 {Cook, Sales}          {England, France}  Sales           69         1
-				     4 {Duval, Engineering}   {France, Germany}  Engineering     21         5
-				     5 {Evans, Marketing}     {England, England} Marketing       35
-				     6 {Fischer, Engineering} {Germany, Germany} Engineering     29         4
-				 $Null {$null, Purchase}      {$null, France}          $Null  $Null     $Null
-			' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
-
-			Compare-PSObject $Actual $Expected | Should -BeNull
-		}
-
-		It '$Employee | FullJoin $Department -On Department, Country -Equals Name' {
-			$Actual = $Employee | FullJoin $Department -On Department, Country -Equals Name
-			$Expected = ConvertFrom-SourceTable '
-				Country     Id Name                   Department     Age ReportsTo
-				------- ------ ----                   ----------  ------ ---------
-				Belgium      1 {Aerts, $null}         Sales           40         5
-				Germany      2 {Bauer, Engineering}   Engineering     31         4
-				England      3 {Cook, $null}          Sales           69         1
-				France       4 {Duval, $null}         Engineering     21         5
-				England      5 {Evans, Marketing}     Marketing       35
-				Germany      6 {Fischer, Engineering} Engineering     29         4
-				France   $Null {$null, Sales}               $Null  $Null     $Null
-				France   $Null {$null, Purchase}            $Null  $Null     $Null
-			' | Select-Object Country, Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Department, Age, ReportsTo
-
-			Compare-PSObject $Actual $Expected | Should -BeNull
-		}
-
-		It '$Employee | CrossJoin $Department' {
-			$Actual = $Employee | CrossJoin $Department
-			$Expected = ConvertFrom-SourceTable '
-				Id Name                   Country            Department  Age ReportsTo
-				-- ----                   -------            ----------  --- ---------
-				 1 {Aerts, Engineering}   {Belgium, Germany} Sales        40         5
-				 1 {Aerts, Marketing}     {Belgium, England} Sales        40         5
-				 1 {Aerts, Sales}         {Belgium, France}  Sales        40         5
-				 1 {Aerts, Purchase}      {Belgium, France}  Sales        40         5
-				 2 {Bauer, Engineering}   {Germany, Germany} Engineering  31         4
-				 2 {Bauer, Marketing}     {Germany, England} Engineering  31         4
-				 2 {Bauer, Sales}         {Germany, France}  Engineering  31         4
-				 2 {Bauer, Purchase}      {Germany, France}  Engineering  31         4
-				 3 {Cook, Engineering}    {England, Germany} Sales        69         1
-				 3 {Cook, Marketing}      {England, England} Sales        69         1
-				 3 {Cook, Sales}          {England, France}  Sales        69         1
-				 3 {Cook, Purchase}       {England, France}  Sales        69         1
-				 4 {Duval, Engineering}   {France, Germany}  Engineering  21         5
-				 4 {Duval, Marketing}     {France, England}  Engineering  21         5
-				 4 {Duval, Sales}         {France, France}   Engineering  21         5
-				 4 {Duval, Purchase}      {France, France}   Engineering  21         5
-				 5 {Evans, Engineering}   {England, Germany} Marketing    35
-				 5 {Evans, Marketing}     {England, England} Marketing    35
-				 5 {Evans, Sales}         {England, France}  Marketing    35
-				 5 {Evans, Purchase}      {England, France}  Marketing    35
-				 6 {Fischer, Engineering} {Germany, Germany} Engineering  29         4
-				 6 {Fischer, Marketing}   {Germany, England} Engineering  29         4
-				 6 {Fischer, Sales}       {Germany, France}  Engineering  29         4
-				 6 {Fischer, Purchase}    {Germany, France}  Engineering  29         4
-			' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
+				Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
+				-- ------------ --------------- ----------  --- --------- -------------- -----------------
+				 1 Aerts        Belgium         Sales        40         5 Engineering    Germany
+				 1 Aerts        Belgium         Sales        40         5 Marketing      England
+				 1 Aerts        Belgium         Sales        40         5 Sales          France
+				 1 Aerts        Belgium         Sales        40         5 Purchase       France
+				 2 Bauer        Germany         Engineering  31         4 Engineering    Germany
+				 2 Bauer        Germany         Engineering  31         4 Marketing      England
+				 2 Bauer        Germany         Engineering  31         4 Sales          France
+				 2 Bauer        Germany         Engineering  31         4 Purchase       France
+				 3 Cook         England         Sales        69         1 Engineering    Germany
+				 3 Cook         England         Sales        69         1 Marketing      England
+				 3 Cook         England         Sales        69         1 Sales          France
+				 3 Cook         England         Sales        69         1 Purchase       France
+				 4 Duval        France          Engineering  21         5 Engineering    Germany
+				 4 Duval        France          Engineering  21         5 Marketing      England
+				 4 Duval        France          Engineering  21         5 Sales          France
+				 4 Duval        France          Engineering  21         5 Purchase       France
+				 5 Evans        England         Marketing    35           Engineering    Germany
+				 5 Evans        England         Marketing    35           Marketing      England
+				 5 Evans        England         Marketing    35           Sales          France
+				 5 Evans        England         Marketing    35           Purchase       France
+				 6 Fischer      Germany         Engineering  29         4 Engineering    Germany
+				 6 Fischer      Germany         Engineering  29         4 Marketing      England
+				 6 Fischer      Germany         Engineering  29         4 Sales          France
+				 6 Fischer      Germany         Engineering  29         4 Purchase       France'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -328,107 +381,105 @@ Describe 'Join-Object' {
 	
 	Context 'Self join' {
 	
-		It 'LeftJoin $Employee -On ReportsTo -Equals Id' {
-			$Actual = LeftJoin $Employee -On ReportsTo -Equals Id
+		It 'LeftJoin $Employee -On ReportsTo -Equals Id -Discern *1,*2' {
+			$Actual = LeftJoin $Employee -On ReportsTo -Equals Id -Discern *1,*2
 			$Expected = ConvertFrom-SourceTable '
-				Id         Name             Country            Department                 Age         ReportsTo
-				--         ----             -------            ----------                 ---         ---------
-				{1, 5}     {Aerts, Evans}   {Belgium, England} {Sales, Marketing}         {40, 35}    {5, }
-				{2, 4}     {Bauer, Duval}   {Germany, France}  {Engineering, Engineering} {31, 21}    {4, 5}
-				{3, 1}     {Cook, Aerts}    {England, Belgium} {Sales, Sales}             {69, 40}    {1, 5}
-				{4, 5}     {Duval, Evans}   {France, England}  {Engineering, Marketing}   {21, 35}    {5, }
-				{5, $null} {Evans, $null}   {England, $null}   {Marketing, $null}         {35, $null} {, $null}
-				{6, 4}     {Fischer, Duval} {Germany, France}  {Engineering, Engineering} {29, 21}    {4, 5}
-			' | Select-Object @{N='Id'; E={ConvertTo-Array $_.Id}}, 
-				@{N='Name'; E={ConvertTo-Array $_.Name}},
-				@{N='Country'; E={ConvertTo-Array $_.Country}},
-				@{N='Department'; E={ConvertTo-Array $_.Department}},
-				@{N='Age'; E={ConvertTo-Array $_.Age}},
-				@{N='ReportsTo'; E={ConvertTo-Array $_.ReportsTo}}
+			Id1 Name1   Country1 Department1 Age1 ReportsTo1    Id2 Name2  Country2 Department2  Age2 ReportsTo2
+			--- -----   -------- ----------- ---- ----------    --- ------ -------- ----------- ----- ----------
+			  1 Aerts   Belgium  Sales         40          5      5 Evans  England  Marketing      35
+			  2 Bauer   Germany  Engineering   31          4      4 Duval  France   Engineering    21          5
+			  3 Cook    England  Sales         69          1      1 Aerts  Belgium  Sales          40          5
+			  4 Duval   France   Engineering   21          5      5 Evans  England  Marketing      35
+			  5 Evans   England  Marketing     35             $Null  $Null    $Null       $Null $Null      $Null
+			  6 Fischer Germany  Engineering   29          4      4 Duval  France   Engineering    21          5'
+			
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'InnerJoin $Employee -On ReportsTo, Department -Equals Id -Discern *1,*2' {
+			$Actual = InnerJoin $Employee -On ReportsTo, Department -Equals Id -Discern *1,*2
+			$Expected = ConvertFrom-SourceTable '
+				Id1 Name1   Country1 Department  Age1 ReportsTo1 Id2 Name2 Country2 Age2 ReportsTo2
+				--- -----   -------- ----------  ---- ---------- --- ----- -------- ---- ----------
+				  2 Bauer   Germany  Engineering   31          4   4 Duval France     21          5
+				  3 Cook    England  Sales         69          1   1 Aerts Belgium    40          5
+				  6 Fischer Germany  Engineering   29          4   4 Duval France     21          5'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It 'InnerJoin $Employee -On ReportsTo, Country -Equals Id' {
-			$Actual = InnerJoin $Employee -On ReportsTo, Department -Equals Id
+		It 'LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = {$Left.Name}; Manager = {$Right.Name}}' {
+			$Actual = LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = {$Left.Name}; Manager = {$Right.Name}}
 			$Expected = ConvertFrom-SourceTable '
-				Department  Id     Name             Country            Age      ReportsTo
-				----------  --     ----             -------            ---      ---------
-				Engineering {2, 4} {Bauer, Duval}   {Germany, France}  {31, 21} {4, 5}
-				Sales       {3, 1} {Cook, Aerts}    {England, Belgium} {69, 40} {1, 5}
-				Engineering {6, 4} {Fischer, Duval} {Germany, France}  {29, 21} {4, 5}
-			' | Select-Object @{N='Id'; E={ConvertTo-Array $_.Id}}, 
-				@{N='Name'; E={ConvertTo-Array $_.Name}},
-				@{N='Country'; E={ConvertTo-Array $_.Country}},
-				@{N='Department'; E={ConvertTo-Array $_.Department}},
-				@{N='Age'; E={ConvertTo-Array $_.Age}},
-				@{N='ReportsTo'; E={ConvertTo-Array $_.ReportsTo}}
+				Manager Name
+				------- ----
+				Evans   Aerts
+				Duval   Bauer
+				Aerts   Cook
+				Evans   Duval
+				  $Null Evans
+				Duval   Fischer'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
-
 	}
 	
 	Context 'Join by index' {
 
-		It '$Employee | InnerJoin $Department' {
-			$Actual = $Employee | InnerJoin $Department
+		It '$Employee | InnerJoin $Department -Discern Employee, Department' {
+			$Actual = $Employee | InnerJoin $Department -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Id Name                 Country            Department  Age ReportsTo
-				-- ----                 -------            ----------  --- ---------
-				 1 {Aerts, Engineering} {Belgium, Germany} Sales        40         5
-				 2 {Bauer, Marketing}   {Germany, England} Engineering  31         4
-				 3 {Cook, Sales}        {England, France}  Sales        69         1
-				 4 {Duval, Purchase}    {France, France}   Engineering  21         5
-			' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
+				Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
+				-- ------------ --------------- ----------  --- --------- -------------- -----------------
+				 1 Aerts        Belgium         Sales        40         5 Engineering    Germany
+				 2 Bauer        Germany         Engineering  31         4 Marketing      England
+				 3 Cook         England         Sales        69         1 Sales          France
+				 4 Duval        France          Engineering  21         5 Purchase       France'
 			
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 		
-		It '$Employee | LeftJoin $Department' {
-			$Actual = $Employee | LeftJoin $Department
+		It '$Employee | LeftJoin $Department -Discern Employee, Department' {
+			$Actual = $Employee | LeftJoin $Department -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Id Name                 Country            Department  Age ReportsTo
-				-- ----                 -------            ----------  --- ---------
-				 1 {Aerts, Engineering} {Belgium, Germany} Sales        40         5
-				 2 {Bauer, Marketing}   {Germany, England} Engineering  31         4
-				 3 {Cook, Sales}        {England, France}  Sales        69         1
-				 4 {Duval, Purchase}    {France, France}   Engineering  21         5
-				 5 {Evans, $null}       {England, $null}   Marketing    35
-				 6 {Fischer, $null}     {Germany, $null}   Engineering  29         4
-			' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
+				Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
+				-- ------------ --------------- ----------  --- --------- -------------- -----------------
+				 1 Aerts        Belgium         Sales        40         5 Engineering    Germany
+				 2 Bauer        Germany         Engineering  31         4 Marketing      England
+				 3 Cook         England         Sales        69         1 Sales          France
+				 4 Duval        France          Engineering  21         5 Purchase       France
+				 5 Evans        England         Marketing    35                    $Null             $Null
+				 6 Fischer      Germany         Engineering  29         4          $Null             $Null'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 		
-		It '$Department | RightJoin $Employee' {								# Swapped $Department and $Employee
-			$Actual = $Department | RightJoin $Employee
+		It '$Department | RightJoin $Employee -Discern Employee, Department' {				# Swapped $Department and $Employee
+			$Actual = $Department | RightJoin $Employee -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Name                 Country            Id Department  Age ReportsTo
-				----                 -------            -- ----------  --- ---------
-				{Engineering, Aerts} {Germany, Belgium}  1 Sales        40         5
-				{Marketing, Bauer}   {England, Germany}  2 Engineering  31         4
-				{Sales, Cook}        {France, England}   3 Sales        69         1
-				{Purchase, Duval}    {France, France}    4 Engineering  21         5
-				{$null, Evans}       {$null, England}    5 Marketing    35
-				{$null, Fischer}     {$null, Germany}    6 Engineering  29         4
-			' | Select-Object @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Id, Department, Age, ReportsTo
+				EmployeeName EmployeeCountry Id DepartmentName DepartmentCountry Department  Age ReportsTo
+				------------ --------------- -- -------------- ----------------- ----------  --- ---------
+				Engineering  Germany          1 Aerts          Belgium           Sales        40         5
+				Marketing    England          2 Bauer          Germany           Engineering  31         4
+				Sales        France           3 Cook           England           Sales        69         1
+				Purchase     France           4 Duval          France            Engineering  21         5
+				       $Null           $Null  5 Evans          England           Marketing    35
+				       $Null           $Null  6 Fischer        Germany           Engineering  29         4'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 		
-		It '$Employee | FullJoin $Department' {
-			$Actual = $Employee | FullJoin $Department
+		It '$Employee | FullJoin $Department -Discern Employee, Department' {
+			$Actual = $Employee | FullJoin $Department -Discern Employee, Department
 			$Expected = ConvertFrom-SourceTable '
-				Id Name                 Country            Department  Age ReportsTo
-				-- ----                 -------            ----------  --- ---------
-				 1 {Aerts, Engineering} {Belgium, Germany} Sales        40         5
-				 2 {Bauer, Marketing}   {Germany, England} Engineering  31         4
-				 3 {Cook, Sales}        {England, France}  Sales        69         1
-				 4 {Duval, Purchase}    {France, France}   Engineering  21         5
-				 5 {Evans, $null}       {England, $null}   Marketing    35
-				 6 {Fischer, $null}     {Germany, $null}   Engineering  29         4
-			' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
+				Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
+				-- ------------ --------------- ----------  --- --------- -------------- -----------------
+				 1 Aerts        Belgium         Sales        40         5 Engineering    Germany
+				 2 Bauer        Germany         Engineering  31         4 Marketing      England
+				 3 Cook         England         Sales        69         1 Sales          France
+				 4 Duval        France          Engineering  21         5 Purchase       France
+				 5 Evans        England         Marketing    35                    $Null             $Null
+				 6 Fischer      Germany         Engineering  29         4          $Null             $Null'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -437,7 +488,7 @@ Describe 'Join-Object' {
 	Context "Merge columns" {
 
 		It 'Use the left object property if exists otherwise use right object property' {
-			$Actual = $Employee | InnerJoin $Department -On Department -Eq Name {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}
+			$Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}
 			$Expected = ConvertFrom-SourceTable '
 				Id Name    Country Department  Age ReportsTo
 				-- ----    ------- ----------  --- ---------
@@ -447,71 +498,6 @@ Describe 'Join-Object' {
 				 4 Duval   France  Engineering  21         5
 				 5 Evans   England Marketing    35
 				 6 Fischer Germany Engineering  29         4'
-
-			Compare-PSObject $Actual $Expected | Should -BeNull
-		}
-	}
-
-	Context 'Unify columns' {
-
-		It '$Employee | InnerJoin $Department -On Department -Equals Name -Unify Employee, Department' {
-			$Actual = $Employee | InnerJoin $Department -On Department -Equals Name -Unify Employee, Department
-			$Expected = ConvertFrom-SourceTable '
-				Id EmployeeName DepartmentName EmployeeCountry DepartmentCountry Department  Age ReportsTo
-				-- ------------ -------------- --------------- ----------------- ----------  --- ---------
-				 1 Aerts        Sales          Belgium         France            Sales        40         5
-				 2 Bauer        Engineering    Germany         Germany           Engineering  31         4
-				 3 Cook         Sales          England         France            Sales        69         1
-				 4 Duval        Engineering    France          Germany           Engineering  21         5
-				 5 Evans        Marketing      England         England           Marketing    35
-				 6 Fischer      Engineering    Germany         Germany           Engineering  29         4'
-				
-			Compare-PSObject $Actual $Expected | Should -BeNull
-		}
-
-		It 'Join $Employee -On ReportsTo -Equals Id -Unify *1, *2' {
-			$Actual = Join $Employee -On ReportsTo -Equals Id -Unify *1, *2
-			$Expected = ConvertFrom-SourceTable '
-				Id1 Id2 Name1   Name2 Country1 Country2 Department1 Department2 Age1 Age2 ReportsTo1 ReportsTo2
-				--- --- -----   ----- -------- -------- ----------- ----------- ---- ---- ---------- ----------
-				  1   5 Aerts   Evans Belgium  England  Sales       Marketing     40   35          5
-				  2   4 Bauer   Duval Germany  France   Engineering Engineering   31   21          4          5
-				  3   1 Cook    Aerts England  Belgium  Sales       Sales         69   40          1          5
-				  4   5 Duval   Evans France   England  Engineering Marketing     21   35          5
-				  6   4 Fischer Duval Germany  France   Engineering Engineering   29   21          4          5'
-
-			Compare-PSObject $Actual $Expected
-		}
-
-		It '$Employee | CrossJoin $Department -Unify ""' {
-			$Actual = $Employee | CrossJoin $Department -Unify ''
-			$Expected = ConvertFrom-SourceTable '
-				Id Name    Name1       Country Country1 Department  Age ReportsTo
-				-- ----    -----       ------- -------- ----------  --- ---------
-				 1 Aerts   Engineering Belgium Germany  Sales        40         5
-				 1 Aerts   Marketing   Belgium England  Sales        40         5
-				 1 Aerts   Sales       Belgium France   Sales        40         5
-				 1 Aerts   Purchase    Belgium France   Sales        40         5
-				 2 Bauer   Engineering Germany Germany  Engineering  31         4
-				 2 Bauer   Marketing   Germany England  Engineering  31         4
-				 2 Bauer   Sales       Germany France   Engineering  31         4
-				 2 Bauer   Purchase    Germany France   Engineering  31         4
-				 3 Cook    Engineering England Germany  Sales        69         1
-				 3 Cook    Marketing   England England  Sales        69         1
-				 3 Cook    Sales       England France   Sales        69         1
-				 3 Cook    Purchase    England France   Sales        69         1
-				 4 Duval   Engineering France  Germany  Engineering  21         5
-				 4 Duval   Marketing   France  England  Engineering  21         5
-				 4 Duval   Sales       France  France   Engineering  21         5
-				 4 Duval   Purchase    France  France   Engineering  21         5
-				 5 Evans   Engineering England Germany  Marketing    35
-				 5 Evans   Marketing   England England  Marketing    35
-				 5 Evans   Sales       England France   Marketing    35
-				 5 Evans   Purchase    England France   Marketing    35
-				 6 Fischer Engineering Germany Germany  Engineering  29         4
-				 6 Fischer Marketing   Germany England  Engineering  29         4
-				 6 Fischer Sales       Germany France   Engineering  29         4
-				 6 Fischer Purchase    Germany France   Engineering  29         4'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -550,16 +536,16 @@ Describe 'Join-Object' {
 		}
 
 		It 'Use the left object property except for the country property' {
-			$Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Merge {$Left.$_} -Property @{Country = {$Right.$_}}, *
+			$Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property @{'*' = {$Left.$_}; Country = {$Right.$_}}
 			$Expected = ConvertFrom-SourceTable '
-				Country Id Name    Department  Age ReportsTo
-				------- -- ----    ----------  --- ---------
-				France   1 Aerts   Sales        40         5
-				Germany  2 Bauer   Engineering  31         4
-				France   3 Cook    Sales        69         1
-				Germany  4 Duval   Engineering  21         5
-				England  5 Evans   Marketing    35
-				Germany  6 Fischer Engineering  29         4'
+				Id Name    Country Department  Age ReportsTo
+				-- ----    ------- ----------  --- ---------
+				 1 Aerts   France  Sales        40         5
+				 2 Bauer   Germany Engineering  31         4
+				 3 Cook    France  Sales        69         1
+				 4 Duval   Germany Engineering  21         5
+				 5 Evans   England Marketing    35
+				 6 Fischer Germany Engineering  29         4'
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
@@ -725,13 +711,13 @@ Describe 'Join-Object' {
 		}
 
 		It 'Self join DataTable' {
-			$Actual = Join $DataTable1 -On Column1
+			$Actual = Join $DataTable1 -On Column1 -Property {$Left.$_}
 			$Expected = ConvertFrom-SourceTable '
 				Column1 Column2
 				------- -------
-				A          1, 1
-				B          2, 2
-				C          3, 3
+				A             1
+				B             2
+				C             3
 			'
 			
 			Compare-PSObject $Actual $Expected | Should -BeNull
@@ -782,15 +768,9 @@ Describe 'Join-Object' {
 				     0 Zero value
 				       Empty string'
 				
-			$Actual = Join $Test -On Value
-			$Expected = ConvertFrom-SourceTable '
-			Value                     Description
-			------                    -----------
-			 $Null                 "Null", "Null"
-			     0     "Zero value", "Zero value"
-			       "Empty string", "Empty string"'
-			
-			Compare-PSObject $Actual $Expected | Should -BeNull
+			$Actual = Join $Test -On Value -Property {$Left.$_}
+
+			Compare-PSObject $Actual $Test | Should -BeNull
 		}
 	}
 	
@@ -1012,7 +992,7 @@ server1,item1'
 server2,item2
 server2,item2'
 
-			$Actual = $Csv1 | Join $Csv2 -Unify *1, *2
+			$Actual = $Csv1 | Join $Csv2 -Discern *1, *2
 			$Expected = ConvertFrom-SourceTable '
 				Server1 Server2 Info1 Info2
 				------- ------- ----- -----
@@ -1137,5 +1117,78 @@ $file2='"FACILITY","FILENAME"
 			
 			(Measure-Command {$dataset1| FullJoin $dataset2 -On A, B}).TotalSeconds | Should -BeLessThan 10
 		}	
+
+		It 'PowerShell list combinator - optimize please' { # https://stackoverflow.com/a/57832299/1701026
+		}
+		
+		It 'Which operator provides quicker output -match -contains or Where-Object for large CSV files' { # https://stackoverflow.com/a/58474740/1701026
+		
+$AAA = ConvertFrom-Csv @'
+Number,Name,Domain
+Z001,ABC,Domain1
+Z002,DEF,Domain2
+Z003,GHI,Domain3
+'@
+
+$BBB = ConvertFrom-Csv @'
+Number,Name,Domain
+Z001,ABC,Domain1
+Z002,JKL,Domain2
+Z004,MNO,Domain4
+'@
+
+$CCC = ConvertFrom-Csv @'
+Number,Name,Domain
+Z005,PQR,Domain2
+Z001,ABC,Domain1
+Z001,STU,Domain2
+'@
+
+$DDD = ConvertFrom-Csv @'
+Number,Name,Domain
+Z005,VWX,Domain4
+Z006,XYZ,Domain1
+Z001,ABC,Domain3
+'@
+
+			$Expected = ConvertFrom-SourceTable '
+				Number AAAName AAADomain BBBName BBBDomain CCCName CCCDomain DDDName DDDDomain
+				------ ------- --------- ------- --------- ------- --------- ------- ---------
+				Z001   ABC     Domain1   ABC     Domain1   ABC     Domain1   ABC     Domain3
+				Z001   ABC     Domain1   ABC     Domain1   STU     Domain2   ABC     Domain3
+				Z002   DEF     Domain2   JKL     Domain2     $Null     $Null   $Null     $Null
+				Z003   GHI     Domain3     $Null     $Null   $Null     $Null   $Null     $Null
+				Z004     $Null     $Null MNO     Domain4     $Null     $Null   $Null     $Null
+				Z005     $Null     $Null   $Null     $Null PQR     Domain2   VWX     Domain4
+				Z006     $Null     $Null   $Null     $Null   $Null     $Null XYZ     Domain1'
+
+			$Actual = $AAA | FullJoin $BBB -On Number -Discern AAA |
+				FullJoin $CCC -On Number -Discern BBB |
+				FullJoin $DDD -On Number -Discern CCC,DDD
+				
+			Compare-PSObject $Actual $Expected | Should -BeNull
+
+			$Actual = $AAA | FullJoin $BBB Number AAA |
+				FullJoin $CCC Number BBB |
+				FullJoin $DDD Number CCC,DDD
+				
+			Compare-PSObject $Actual $Expected | Should -BeNull
+			
+			$Expected = ConvertFrom-SourceTable '
+				Number Name1   Domain1   Name2   Domain2   Name3   Domain3   Name4   Domain4
+				------ ------- --------- ------- --------- ------- --------- ------- ---------
+				Z001   ABC     Domain1   ABC     Domain1   ABC     Domain1   ABC     Domain3
+				Z001   ABC     Domain1   ABC     Domain1   STU     Domain2   ABC     Domain3
+				Z002   DEF     Domain2   JKL     Domain2     $Null     $Null   $Null     $Null
+				Z003   GHI     Domain3     $Null     $Null   $Null     $Null   $Null     $Null
+				Z004     $Null     $Null MNO     Domain4     $Null     $Null   $Null     $Null
+				Z005     $Null     $Null   $Null     $Null PQR     Domain2   VWX     Domain4
+				Z006     $Null     $Null   $Null     $Null   $Null     $Null XYZ     Domain1'
+
+				
+			$Actual = $AAA | FullJoin $BBB Number *1 |
+				FullJoin $CCC Number *2 |
+				FullJoin $DDD Number *3,*4
+		}
 	}
 }
