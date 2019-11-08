@@ -1,5 +1,5 @@
 # Join-Object
-Combines two objects lists based on a related property between them.
+Combines two object lists based on a related property between them.
 
 Combines properties from one or more objects. It creates a set that can
 be saved as a new object or used as it is. An object join is a means for
@@ -50,32 +50,30 @@ Sales       France
 Purchase    France
 
 
-PS C:\> $Employee | InnerJoin $Department -On Country
+PS C:\> $Employee | InnerJoin $Department -On Country | Format-Table
 
-Country Id Name                   Department  Age ReportsTo
-------- -- ----                   ----------  --- ---------
-Germany  2 {Bauer, Engineering}   Engineering  31         4
-England  3 {Cook, Marketing}      Sales        69         1
-France   4 {Duval, Sales}         Engineering  21         5
-France   4 {Duval, Purchase}      Engineering  21         5
-England  5 {Evans, Marketing}     Marketing    35
-Germany  6 {Fischer, Engineering} Engineering  29         4
+Id Name                   Country Department  Age ReportsTo
+-- ----                   ------- ----------  --- ---------
+ 2 {Bauer, Engineering}   Germany Engineering  31         4
+ 3 {Cook, Marketing}      England Sales        69         1
+ 4 {Duval, Sales}         France  Engineering  21         5
+ 4 {Duval, Purchase}      France  Engineering  21         5
+ 5 {Evans, Marketing}     England Marketing    35
+ 6 {Fischer, Engineering} Germany Engineering  29         4
 ```
 
-Unifing columns
+Renaming unrelated columns
 ```powershell
-.EXAMPLE
+PS C:\> $Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
 
-PS C:\> $Employee | InnerJoin $Department -On Department -Equals -Unify Employee, Department
-
-Id EmployeeName DepartmentName EmployeeCountry DepartmentCountry Department  Age ReportsTo
--- ------------ -------------- --------------- ----------------- ----------  --- ---------
- 1 Aerts        Sales          Belgium         France            Sales        40         5
- 2 Bauer        Engineering    Germany         Germany           Engineering  31         4
- 3 Cook         Sales          England         France            Sales        69         1
- 4 Duval        Engineering    France          Germany           Engineering  21         5
- 5 Evans        Marketing      England         England           Marketing    35
- 6 Fischer      Engineering    Germany         Germany           Engineering  29         4
+Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
+-- ------------ --------------- ----------  --- --------- -------------- -----------------
+ 1 Aerts        Belgium         Sales        40         5 Sales          France
+ 2 Bauer        Germany         Engineering  31         4 Engineering    Germany
+ 3 Cook         England         Sales        69         1 Sales          France
+ 4 Duval        France          Engineering  21         5 Engineering    Germany
+ 5 Evans        England         Marketing    35           Marketing      England
+ 6 Fischer      Germany         Engineering  29         4 Engineering    Germany
 ```
 
 Merging (update and insert) a new list
@@ -104,16 +102,16 @@ Id Name    Country Department  Age ReportsTo
 
 Self join on Id:
 ```powershell
-PS C:\> LeftJoin $Employee -On ReportsTo -Equals Id
+PS C:\> LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = {$Left.Name}; Manager = {$Right.Name}}
 
-Id         Name             Country            Department                 Age         ReportsTo
---         ----             -------            ----------                 ---         ---------
-{1, 5}     {Aerts, Evans}   {Belgium, England} {Sales, Marketing}         {40, 35}    {5, }
-{2, 4}     {Bauer, Duval}   {Germany, France}  {Engineering, Engineering} {31, 21}    {4, 5}
-{3, 1}     {Cook, Aerts}    {England, Belgium} {Sales, Sales}             {69, 40}    {1, 5}
-{4, 5}     {Duval, Evans}   {France, England}  {Engineering, Marketing}   {21, 35}    {5, }
-{5, $null} {Evans, $null}   {England, $null}   {Marketing, $null}         {35, $null} {, $null}
-{6, 4}     {Fischer, Duval} {Germany, France}  {Engineering, Engineering} {29, 21}    {4, 5}
+Name    Manager
+----    -------
+Aerts   Evans
+Bauer   Duval
+Cook    Aerts
+Duval   Evans
+Evans
+Fischer Duval
 ```
 
 ## Parameters
@@ -123,7 +121,7 @@ The LeftObject, usually provided through the pipeline, defines the
 left object (or datatable) to be joined.
 
 `-RightObject`  
-The RightObject, provided by the (first) argument, defines the right
+The RightObject, provided by the first argument, defines the right
 object (or datatable) to be joined.
 
 `-On`  
@@ -139,8 +137,8 @@ listed by the `-On` parameter are equal to the right object properties
 (listed by the `-Equals` parameter).
 
 _Note 1:_ The list of properties defined by the `-On` parameter will be
-justified with the list of properties defined by the `-Equals` parameter
-and visa versa.
+complemented with the list of properties defined by the `-Equals` parameter
+and vice versa.
 
 _Note 2:_ The equal properties will be merged to a single (left) property
 by default (see also the `-Property` parameter).
@@ -162,8 +160,8 @@ if all the right object properties listed by the `-Equal` parameter are
 equal to the left object properties (listed by the `-On` parameter).
 
 _Note 1:_ The list of properties defined by the `-Equal` parameter will be
-justified with the list of properties defined by the `-On` parameter and
-visa versa.
+complemented with the list of properties defined by the `-On` parameter and
+vice versa.
 
 _Note 2:_ If the `-Equal` and the `-On` parameter are omitted, a join by
 row index is returned.
@@ -176,50 +174,59 @@ An expression that defines the condition to be met for the objects to
 be returned. There is no limit to the number of predicates that can be
 included in the condition.
 
-`-Unify`  
-The `-Unify` (alias `-Merge`) parameter defines how to unify the left and
-right object with respect to the unrelated common properties. The
-common properties can discerned (`<String>[,<String>]`) or merged
-(`<ScriptBlock>`). By default the unrelated common properties wil be
-merged using the expression: `{$LeftOrVoid.$_, $RightOrVoid.$_}`
+`-Discern`  
+The `-Discern` parameter defines how to discern the left and right object
+with respect to the common properties that aren't joined.
 
-`-Unify <String>[,<String>]`  
-If the value is not a ScriptBlock, it is presumed a string array with
-one or two items defining the left and right key format. If the item
-includes an asterisks (`*`), the asterisks will be replaced with the
-property name otherwise the item will be used to prefix the property name.
+The first string defines how to rename the left property, the second
+string (if defined) defines how to rename the right property.
+If the string contains an asterisks (`*`), the asterisks will be replaced
+with the original property name, otherwise, the property name will be
+prefixed with the given string.
 
-_Note_: A consecutive number will be automatically added to a common
-property name if is already used.
+Properties that don't exist on both sides will not be renamed.
 
-`-Unify <ScriptBlock>`  
-An expression that defines how the left and right properties with the
-common property should be merged. Where the following variables are
-available:
+Joined properties (defined by the `-On` parameter) will be merged.
 
-- `$_`: iterates each property name
-- `$Void`: an object with all (left and right) properties set to $Null
-- `$Left`: the current left object (each self-contained -`LeftObject`)
-- `$LeftOrVoid`: the left object otherwise an object with null values
-- `$LeftOrRight`: the left object otherwise the right object
-- `$LeftKeys`: an array containing all the left keys
-- `$Right`: the current right object (each self-contained `-RightObject`)
-- `$RightOrVoid`: the right object otherwise an object with null values
-- `$RightOrLeft`: the right object otherwise the left object
-- `$RightKeys`: an array containing all the right keys
-
-_Note_: Property expressions set by the `-Unify` paramter might be
-overwritten by specific `-Property` expressions.
+_Note_: The `-Discern` parameter cannot be used with the `-Property` parameter.
 
 `-Property`  
-A hash table or list of property names (strings) and/or hash tables.
+A hash table or list of property names (strings) and/or hash tables that
+define a new selection of property names and values
+
 Hash tables should be in the format `@{<PropertyName> = <Expression>}`
-where the `<Expression>` usually defines how the specific left and
-right properties should be merged.
+where the `<Expression>` defines how the specific left and right
+properties should be merged. Where the following variables are
+available for each joined object:
+- `$_`: iterates each property name
+- `$Left`: the current left object (each self-contained `-LeftObject`)
+- `$LeftIndex`: the index of the left object
+- `$Right`: the current right object (each self-contained `-RightObject`)
+- `$RightIndex`: the index of the right object
+If the `$LeftObject` isn't joined in a Right- or FullJoin then `$LeftIndex`
+will be `$Null` and the `$Left` object will represent an object with each
+property set to `$Null`.
+If the `$RightObject` isn't joined in a Left- or FullJoin then `$RightIndex`
+will be `$Null` and the `$Right` object will represent an object with each
+property set to `$Null`.
 
-If only a name (string) is supplied, either the left or the right
-value is used for unique properties or the default unify expression
-is used for unrelated common properties.
+An asterisks (`*`) represents all known left - and right properties.
 
-_Note_: Any unknown properties will be added to the output object.
+If the `-Property` and the `-Discern` parameters are ommited or in case a
+property name (or an asterisks) is supplied without expression, the
+expression will be automatically added using the following rules:
+- If the property only exists on the left side, the expression is:
+  `{$Left.$_}`
+- If the property only exists on the right side, the expression is:
+  `{$Right.$_}`
+- If the left - and right properties aren't joined, the expression is:
+  `{$Left.$_, $Right.$_}`
+- If the left - and right property are joined, the expression is:
+  `{If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}}`
 
+If an expression without a property name assignment is supplied, it will
+be assigned to all known properties in the `$LeftObject` and `$RightObject`.
+
+The last defined expression will overrule any previous defined expressions
+
+_Note_: The -Property parameter cannot be used with the -Discern parameter.
