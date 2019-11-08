@@ -156,14 +156,14 @@ row index is returned.
 
 `-Equals`  
 The left and right object will be merged and added to the result set
-if all the right object properties listed by the `-Equal` parameter are
+if all the right object properties listed by the `-Equals` parameter are
 equal to the left object properties (listed by the `-On` parameter).
 
-_Note 1:_ The list of properties defined by the `-Equal` parameter will be
+_Note 1:_ The list of properties defined by the `-Equals` parameter will be
 complemented with the list of properties defined by the `-On` parameter and
 vice versa.
 
-_Note 2:_ If the `-Equal` and the `-On` parameter are omitted, a join by
+_Note 2:_ If the `-Equals` and the `-On` parameter are omitted, a join by
 row index is returned.
 
 _Note 3:_ The `-Equals` parameter cannot be used in combination with an
@@ -215,13 +215,13 @@ An asterisks (`*`) represents all known left - and right properties.
 If the `-Property` and the `-Discern` parameters are ommited or in case a
 property name (or an asterisks) is supplied without expression, the
 expression will be automatically added using the following rules:
-- If the property only exists on the left side, the expression is:
+- If the property only exists on the left side, the expression is:  
   `{$Left.$_}`
-- If the property only exists on the right side, the expression is:
+- If the property only exists on the right side, the expression is:  
   `{$Right.$_}`
-- If the left - and right properties aren't joined, the expression is:
+- If the left - and right properties aren't joined, the expression is:  
   `{$Left.$_, $Right.$_}`
-- If the left - and right property are joined, the expression is:
+- If the left - and right property are joined, the expression is:  
   `{If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}}`
 
 If an expression without a property name assignment is supplied, it will
