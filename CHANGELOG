@@ -36,3 +36,5 @@
 3.0.8     2019-11-07 Ronald Bode Better support chaining multiple joins and simplified available expression objects: 
                                  All properties of the $Left and $Right object are set to $Null in the outer join part.
 3.1.0     2019-11-08 Ronald Bode Adjusted help
+3.1.1     2019-11-10 Ronald Bode Improved -Property * implementation 
+3.1.2     2019-11-11 Ronald Bode Resolved bug with single right object
