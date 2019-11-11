@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.1.0
+.VERSION 3.1.2
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -90,7 +90,7 @@
 
 		Note 1: The list of properties defined by the -Equal parameter will be
 		complemented with the list of properties defined by the -On parameter
-		and visa versa.
+		and vice versa.
 
 		Note 2: If the -On and the -Equals parameter are omitted, a join by
 		row index is returned.
@@ -107,7 +107,6 @@
 		The -Discern parameter defines how to discern the left and right object
 		with respect to the common properties that aren't joined.
 
-		<String>[,<String>]
 		The first string defines how to rename the left property, the second
 		string (if defined) defines how to rename the right property.
 		If the string contains an asterisks (*), the asterisks will be replaced
@@ -254,14 +253,14 @@ Function Join-Object {
 		[Parameter(Position = 0, ParameterSetName = 'Property', Mandatory = $True)][Parameter(Position = 0, ParameterSetName = 'Discern', Mandatory = $True)]$RightObject,
 		[Parameter(Position = 1, ParameterSetName = 'Property')][Parameter(Position = 1, ParameterSetName = 'Discern')][Alias("Using")]$On,
 		[Parameter(ParameterSetName = 'Property')][Parameter(ParameterSetName = 'Discern')][String[]]$Equals,
-		[Parameter(Position = 2, ParameterSetName = 'Discern')][String[]]$Discern,
-		[Parameter(ParameterSetName = 'Property')]$Property = {$Left.$_, $Right.$_},
+		[Parameter(Position = 2, ParameterSetName = 'Discern')][String[]]$Discern, [Parameter(ParameterSetName = 'Property')]$Property,
 		[Parameter(Position = 3, ParameterSetName = 'Property')][Parameter(Position = 3, ParameterSetName = 'Discern')][ScriptBlock]$Where,
 		[Parameter(ParameterSetName = 'Property')][Parameter(ParameterSetName = 'Discern')][ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner'
 	)
 	Begin {
 		$HashTable = $Null; $Esc = [Char]27;$EscNull = $Esc + 'Null'; $EscSeparator = $Esc + ','
 		$Expression = [Ordered]@{}; $PropertyList = [Ordered]@{}; $Related = @()
+		If ($RightObject -isnot [Array] -and $RightObject -isnot [Data.DataTable]) {$RightObject = @($RightObject)}
 		$RightKeys = @(
 			If ($RightObject -is [Data.DataTable]) {$RightObject.Columns | Select-Object -ExpandProperty 'ColumnName'}
 			Else {($RightObject | Select-Object -First 1).PSObject.Properties | Select-Object -ExpandProperty 'Name'}
@@ -273,17 +272,25 @@ Function Join-Object {
 			ForEach ($_ in $Expression.Get_Keys()) {$PropertyList.$_ = &$Expression.$_}
 			New-Object PSCustomObject -Property $PropertyList
 		}
-		Function SetPropertyExpression([String]$Key, [ScriptBlock]$Default = {$Left.$_, $Right.$_}) {
-			If ($LeftKeys -Contains $Key) {
-				If ($RightKeys -Contains $Key) {
-					If ($Related -Contains $Key) {$Expression.$Key = {If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}}
-					Else {$Expression.$Key = $Default}
-				} Else {$Expression.$Key = {$Left.$_}}
-			} Else {$Expression.$Key = {$Right.$_}}
-		}
-		Function AddInputProperties([ScriptBlock]$Default = {$Left.$_, $Right.$_}) {
-			ForEach ($Key in ($LeftKeys + $RightKeys)) {
-				If (!$Expression.Contains($Key)) {SetPropertyExpression $Key $Default}
+		Function SetExpression([String]$Key, [ScriptBlock]$ScriptBlock) {
+			If ($Key -eq '*') {$Key = $Null}
+			If ($Key -and $ScriptBlock) {$Expression.$Key = $ScriptBlock}
+			Else {
+				$Keys = If ($Key) {@($Key)} Else {$LeftKeys + $RightKeys}
+				ForEach ($Key in $Keys) {
+					If (!$Expression.Contains($Key)) {
+						$InLeft  = $LeftKeys  -Contains $Key
+						$InRight = $RightKeys -Contains $Key
+						If ($InLeft -and $InRight) {
+							$Expression.$Key = If ($ScriptBlock) {$ScriptBlock}
+								ElseIf ($Related -NotContains $Key) {{$Left.$_, $Right.$_}}
+								Else {{If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}}
+						}
+						ElseIf ($InLeft)  {$Expression.$Key = {$Left.$_}}
+						ElseIf ($InRight) {$Expression.$Key = {$Right.$_}}
+						Else {Throw "The property '$Key' cannot be found on the left or right object."}
+					}
+				}
 			}
 		}
 	}
@@ -335,19 +342,13 @@ Function Join-Object {
 							}
 						} Else {$Expression[$Key] = {$Right.$_}}
 					}
-				} Else {
+				} ElseIf ($Property) {
 					ForEach ($Item in @($Property)) {
-						If ($Item -is [ScriptBlock]) {AddInputProperties $Item}
-						ElseIf ($Item -is [System.Collections.IDictionary]) {
-							ForEach ($Key in $Item.Get_Keys()) {
-								If ($Key -eq '*') {AddInputProperties $Item.$Key} Else {$Expression.$Key = $Item.$Key}
-							}
-						}
-						ElseIf ($Item -eq '*') {AddInputProperties}
-						ElseIf ($LeftKeys -Contains $Item -or $RightKeys -Contains $Item) {SetPropertyExpression $Item}
-						Else {Throw "The property '$Item' cannot be found on the left or right object."}
+						If ($Item -is [ScriptBlock]) {SetExpression $Null $Item}
+						ElseIf ($Item -is [System.Collections.IDictionary]) {ForEach ($Key in $Item.Get_Keys()) {SetExpression $Key $Item.$Key}}
+						Else {SetExpression $Item}
 					}
-				}
+				} Else {SetExpression}
 			}
 			$RightList = `
 				If ($On -is [Array]) {
