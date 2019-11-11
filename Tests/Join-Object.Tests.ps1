@@ -1190,5 +1190,18 @@ Z001,ABC,Domain3
 				FullJoin $CCC Number *2 |
 				FullJoin $DDD Number *3,*4
 		}
+
+		It 'Powershell "join"' { # 
+			$cpu = Get-CimInstance -Class Win32_Processor 
+			$mb = Get-CimInstance -Class Win32_BaseBoard
+			
+			$Actual = $cpu | Select-Object Name, Description | Join-Object ($mb | Select-Object Manufacturer, Product)
+			
+			$Actual.Name         | Should -Be $cpu.Name
+			$Actual.Description  | Should -Be $cpu.Description
+			$Actual.Manufacturer | Should -Be $mb.Manufacturer
+			$Actual.Product      | Should -Be $mb.Product
+		}
+		
 	}
 }
