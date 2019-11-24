@@ -1119,6 +1119,77 @@ $file2='"FACILITY","FILENAME"
 		}	
 
 		It 'PowerShell list combinator - optimize please' { # https://stackoverflow.com/a/57832299/1701026
+		
+$list1 = ConvertFrom-Csv -Delimiter ';' @'
+server
+hostname1
+hostname2
+hostname3
+hostname4
+hostname5
+hostname6
+hostname7
+'@
+
+$ADscan = ConvertFrom-Csv -Delimiter ';' @'
+server;OS
+hostname2;Microsoft Windows Server 2012 R2 Datacenter
+hostname3;Microsoft Windows Server 2008 R2 Standard
+'@
+
+$export2 = ConvertFrom-Csv -Delimiter ';' @'
+server;OS
+hostname1;w2k12
+hostname2;w2k12
+hostname3;w2k8
+hostname4;w2k8
+hostname5;w2k16
+'@
+
+$export3 = ConvertFrom-Csv -Delimiter ';' @'
+server;OS
+hostname2.suffix;windows server 2012
+hostname3.suffix;windows server 2008
+hostname6.suffix;windows server 2008
+'@
+
+$Actual = $List1 |
+	Merge $ADScan -On Server |
+	Merge $export2 -On Server |
+	Merge ($export3 | Select-Object @{n='Server';e={$_.Server.Split('.', 2)[0]}}, OS) -On Server
+
+			$Expected = ConvertFrom-SourceTable '
+				server    OS
+				------    --
+				hostname1 w2k12
+				hostname2 windows server 2012
+				hostname3 windows server 2008
+				hostname4 w2k8
+				hostname5 w2k16
+				hostname6 windows server 2008
+				hostname7               $Null'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+
+
+$Actual = $List1 |
+	Merge $ADScan -On Server |
+	Merge $export2 -On Server -Discern '',Export2 |
+	Merge ($export3 | Select-Object @{n='Server';e={$_.Server.Split('.', 2)[0]}}, OS) -On Server -Discern '',Export3
+
+			$Expected = ConvertFrom-SourceTable '
+server    OS                                          Export2OS Export3OS
+------    ------------------------------------------- --------- -------------------
+hostname1                                       $Null w2k12                   $Null
+hostname2 Microsoft Windows Server 2012 R2 Datacenter w2k12     windows server 2012
+hostname3 Microsoft Windows Server 2008 R2 Standard   w2k8      windows server 2008
+hostname4                                       $Null w2k8                    $Null
+hostname5                                       $Null w2k16                   $Null
+hostname6                                       $Null     $Null windows server 2008
+hostname7                                       $Null     $Null               $Null'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+
 		}
 		
 		It 'Which operator provides quicker output -match -contains or Where-Object for large CSV files' { # https://stackoverflow.com/a/58474740/1701026
@@ -1189,9 +1260,11 @@ Z001,ABC,Domain3
 			$Actual = $AAA | FullJoin $BBB Number *1 |
 				FullJoin $CCC Number *2 |
 				FullJoin $DDD Number *3,*4
+				
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 
-		It 'Powershell "join"' { # 
+		It 'Powershell "join"' { # https://stackoverflow.com/a/58800704/1701026
 			$cpu = Get-CimInstance -Class Win32_Processor 
 			$mb = Get-CimInstance -Class Win32_BaseBoard
 			
@@ -1202,6 +1275,182 @@ Z001,ABC,Domain3
 			$Actual.Manufacturer | Should -Be $mb.Manufacturer
 			$Actual.Product      | Should -Be $mb.Product
 		}
+
+		It 'Join/merge arrays' { # https://stackoverflow.com/a/58801439/1701026
+			$TxtTestcases = ConvertFrom-SourceTable '
+				Messages                                   Name   Error
+				--------                                   ----   -----
+				{\\APPS-EUAUTO1\C$\Users\xautosqa\AppDa... test 1 True
+				{[APPS-EUAUTO1] [prep] Setting agent op... test 2 False'
+
+			$RexTestcases = ConvertFrom-SourceTable '
+				TestPlan        Script          TestCase        TestData        ErrorCount      ErrorText       DateTime        Elapsed        
+				--------        ------          --------        --------        ----------      ---------       --------        -------        
+				D:\XHostMach... D:\XHostMach... rt1             1,\a\""         1               [#ERROR#][AP... 2014-03-28 1... 0:00:18        
+				D:\XHostMach... D:\XHostMach... rt2             1,\a\""         0                               2014-03-28 1... 0:00:08 '
+				
+			$Actual = $TxtTestcases | Join-Object $RexTestcases
+			$Expected = ConvertFrom-SourceTable '
+				Messages                                   Name   Error TestPlan        Script          TestCase TestData ErrorCount ErrorText       DateTime   Elapsed
+				--------                                   ----   ----- --------        ------          -------- -------- ---------- ---------       --------   -------
+				{\\APPS-EUAUTO1\C$\Users\xautosqa\AppDa... test 1 True  D:\XHostMach... D:\XHostMach... rt1      1,\a\""  1          [#ERROR#][AP... 2014-03-28 0:00:18
+				{[APPS-EUAUTO1] [prep] Setting agent op... test 2 False D:\XHostMach... D:\XHostMach... rt2      1,\a\""  0                          2014-03-28 0:00:08'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'Compare two different csv files using PowerShell' { # https://stackoverflow.com/a/58855413/1701026
 		
+			$Csv2 = ConvertFrom-Csv @'
+Client Name,Policy Name,KB Size
+hostname1,Company_Policy,487402463
+hostname2,Company_Policy,227850336
+hostname3,Company_Policy_11,8360960
+hostname4,Company_Policy_11,1238838488
+hostname1,Company_Policy_55,521423110
+hostname10,Company_Policy,28508975
+hostname3,Company_Policy_66,295925
+hostname5,Company_Policy_22,82001824
+hostname2,Company_Policy_33,26176885
+hostnameXX,Company_Policy_XXX,0
+hostnameXX,Company_Policy_XXX,41806794
+hostnameYY,Company_Policy_XXX,41806794
+'@
+
+			$Csv1 = ConvertFrom-Csv @'
+Client Name,Policy Name,KB Size
+hostname1,Company_Policy,487402555
+hostname2,Company_Policy,227850666
+hostname3,Company_Policy_11,8361200
+hostname4,Company_Policy_11,1638838488
+hostname1,Company_Policy_55,621423110
+hostname10,Company_Policy,28908975
+hostname3,Company_Policy_66,295928
+hostname5,Company_Policy_22,92001824
+hostname2,Company_Policy_33,36176885
+hostname22,Company_Policy,291768854
+hostname23,Company_Policy,291768854
+'@
+
+				$Actual = $CSV2 | FullJoin $CSV1 `
+					-On 'Client Name','Policy Name' `
+					-Property 'Client Name',
+							  'Policy Name', 
+							  @{'TB Size' = {[math]::Round(($Left.'KB Size' - $Right.'KB Size') / 1GB, 2)}} `
+					-Where {[math]::Abs($Left.'KB Size' - $Right.'KB Size') -gt 100MB}
+					
+			$Expected = ConvertFrom-SourceTable '
+					Client Name Policy Name       TB Size
+					----------- -----------       -------
+					hostname1   Company_Policy       0.45
+					hostname2   Company_Policy       0.21
+					hostname4   Company_Policy_11   -0.37
+					hostname1   Company_Policy_55    0.49
+					hostname1   Company_Policy      -0.45
+					hostname2   Company_Policy      -0.21
+					hostname1   Company_Policy_55   -0.58
+					hostname22  Company_Policy      -0.27
+					hostname23  Company_Policy      -0.27'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+		
+		It 'multiple lookup powershell array' { # https://stackoverflow.com/a/58880814/1701026
+		
+			$List = ConvertFrom-SourceTable '
+				org_id  org_name        parent_id
+				1       Company         NULL
+				2       HR              1
+				3       MARKETING       2
+				4       FINANCE         1
+				5       IT              4'
+
+			$Actual = FullJoin $List parent_id -eq org_id '', 'parent'
+			$Expected = ConvertFrom-SourceTable '
+				org_id org_name  parent_id parentorg_id parentorg_name parentparent_id
+				------ --------  --------- ------------ -------------- ---------------
+				1      Company   NULL             $Null          $Null           $Null 
+				2      HR        1         1            Company        NULL
+				3      MARKETING 2         2            HR             1
+				4      FINANCE   1         1            Company        NULL
+				5      IT        4         4            FINANCE        1
+				 $Null     $Null     $Null 3            MARKETING      2
+				 $Null     $Null     $Null 5            IT             4'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'Merge two json objects' { # https://stackoverflow.com/a/45563467/1701026
+		
+			$Json1 = ConvertFrom-Json '
+				{
+				  a:{
+				    b:"asda"
+				  },
+				  c:"asdasd"
+				}'
+
+			$Json2 = ConvertFrom-Json '
+				{
+				  a:{
+				   b:"d"
+				  }
+				}'
+				
+			$Actual = $Json1 | Merge $Json2
+			$Expected = ConvertFrom-Json '
+				{
+				  "a": {
+					"b": "d"
+				  },
+				  "c": "asdasd"
+				}'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+
+			$Actual = $Json1 | Join $Json2
+			$Expected = ConvertFrom-Json '
+				{
+				  "a": [
+					{
+					  "b": "asda"
+					},
+					{
+					  "b": "d"
+					}
+				  ],
+				  "c": "asdasd"
+				}'
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'Combine JSON objects in PowerShell' { # https://stackoverflow.com/q/57724976/1701026
+		
+			$aVar = '{ "oldEmployees" : [ { "firstName": "Jane", "lastName": "Doe" }, { "firstName": "John", "lastName": "Doe" } ] }'
+			$bVar = '{ "newEmployees" : [ { "firstName": "Joe", "lastName": "Doe" } ] }'
+
+
+			$Actual = ($aVar | ConvertFrom-Json) | Join ($bVar | ConvertFrom-Json)
+			$Expected = ConvertFrom-Json '
+				{
+				  "oldEmployees": [
+					{
+					  "firstName": "Jane",
+					  "lastName": "Doe"
+					},
+					{
+					  "firstName": "John",
+					  "lastName": "Doe"
+					}
+				  ],
+				  "newEmployees": {
+					"firstName": "Joe",
+					"lastName": "Doe"
+				  }
+				}'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
 	}
 }
