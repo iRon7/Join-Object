@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.1.2
+.VERSION 3.1.3
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -254,11 +254,11 @@ Function Join-Object {
 		[Parameter(Position = 1, ParameterSetName = 'Property')][Parameter(Position = 1, ParameterSetName = 'Discern')][Alias("Using")]$On,
 		[Parameter(ParameterSetName = 'Property')][Parameter(ParameterSetName = 'Discern')][String[]]$Equals,
 		[Parameter(Position = 2, ParameterSetName = 'Discern')][String[]]$Discern, [Parameter(ParameterSetName = 'Property')]$Property,
-		[Parameter(Position = 3, ParameterSetName = 'Property')][Parameter(Position = 3, ParameterSetName = 'Discern')][ScriptBlock]$Where,
+		[Parameter(Position = 3, ParameterSetName = 'Property')][Parameter(Position = 3, ParameterSetName = 'Discern')][ScriptBlock]$Where = {$True},
 		[Parameter(ParameterSetName = 'Property')][Parameter(ParameterSetName = 'Discern')][ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner'
 	)
 	Begin {
-		$HashTable = $Null; $Esc = [Char]27;$EscNull = $Esc + 'Null'; $EscSeparator = $Esc + ','
+		$HashTable = $Null; $Esc = [Char]27; $EscNull = $Esc + 'Null'; $EscSeparator = $Esc + ','
 		$Expression = [Ordered]@{}; $PropertyList = [Ordered]@{}; $Related = @()
 		If ($RightObject -isnot [Array] -and $RightObject -isnot [Data.DataTable]) {$RightObject = @($RightObject)}
 		$RightKeys = @(
@@ -268,9 +268,11 @@ Function Join-Object {
 		$RightProperties = @{}; ForEach ($Key in $RightKeys) {$RightProperties.$Key = $Null}
 		$RightVoid = New-Object PSCustomObject -Property $RightProperties
 		$RightLength = @($RightObject).Length; $LeftIndex = 0; $InnerRight = @($False) * $RightLength
-		Function Out-Join($LeftIndex, $RightIndex, $Left = $LeftVoid, $Right = $RightVoid) {
-			ForEach ($_ in $Expression.Get_Keys()) {$PropertyList.$_ = &$Expression.$_}
-			New-Object PSCustomObject -Property $PropertyList
+		Function OutObject($LeftIndex, $RightIndex, $Left = $LeftVoid, $Right = $RightVoid) {
+			If (&$Where) {
+				ForEach ($_ in $Expression.Get_Keys()) {$PropertyList.$_ = &$Expression.$_}
+				New-Object PSCustomObject -Property $PropertyList
+			}
 		}
 		Function SetExpression([String]$Key, [ScriptBlock]$ScriptBlock) {
 			If ($Key -eq '*') {$Key = $Null}
@@ -363,23 +365,17 @@ Function Join-Object {
 				ElseIf ($LeftIndex -lt $RightLength) {$LeftIndex} Else {$Null}
 			ForEach ($RightIndex in $RightList) {
 				$Right = If ($RightObject -is [Data.DataTable]) {$RightObject.Rows[$RightIndex]} Else {$RightObject[$RightIndex]}
-				If (!$Where -Or (&$Where)) {
-					Out-Join -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right
-					$InnerLeft = $True; $InnerRight[$RightIndex] = $True
-				}
+					$OutObject = OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right
+					If ($Null -ne $OutObject) {$OutObject; $InnerLeft = $True; $InnerRight[$RightIndex] = $True}
 			}
-			If (!$InnerLeft -and ($JoinType -eq "Left" -or $JoinType -eq "Full")) {
-				Out-Join -LeftIndex $LeftIndex -Left $Left
-			}
+			If (!$InnerLeft -and ($JoinType -eq "Left" -or $JoinType -eq "Full")) {OutObject -LeftIndex $LeftIndex -Left $Left}
 			$LeftIndex++
 		}
 	}
 	End {
 		If ($JoinType -eq "Right" -or $JoinType -eq "Full") {$Left = $Null
 			$RightIndex = 0; ForEach ($Right in $RightObject) {
-				If (!$InnerRight[$RightIndex]) {
-					Out-Join -RightIndex $RightIndex -Right $Right
-				}
+				If (!$InnerRight[$RightIndex]) {OutObject -RightIndex $RightIndex -Right $Right}
 				$RightIndex++
 			}
 		}
