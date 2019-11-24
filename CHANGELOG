@@ -38,3 +38,4 @@
 3.1.0     2019-11-08 Ronald Bode Adjusted help
 3.1.1     2019-11-10 Ronald Bode Improved -Property * implementation 
 3.1.2     2019-11-11 Ronald Bode Resolved bug with single right object
+3.1.3     2019-11-15 Ronald Bode Also apply -Where argument to outer join part (expression to evaluate $Null values)
