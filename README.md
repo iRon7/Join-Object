@@ -6,19 +6,19 @@ be saved as a new object or used as it is. An object join is a means for
 combining properties from one (self-join) or more tables by using values
 common to each. The Join-Object cmdlet supports a few proxy commands with
 their own defaults:
-- `InnerJoin-Object` (`Join-Object -JoinType Inner`)  
+- `InnerJoin-Object`  
 Only returns the joined objects
-- `LeftJoin-Object` (`Join-Object -JoinType Left`)  
+- `LeftJoin-Object`  
 Returns the joined objects and the rest of the left objects
-- `RightJoin-Object` (`Join-Object -JoinType Right`)  
+- `RightJoin-Object`  
 Returns the joined objects and the rest of the right objects
-- `FullJoin-Object` (`Join-Object -JoinType Full`)  
+- `FullJoin-Object`  
 Returns the joined objects and the rest of the left and right objects
-- `CrossJoin-Object` (`Join-Object -JoinType Cross`)  
+- `CrossJoin-Object`  
 Joins each left object to each right object
-- `Update-Object` (`Join-Object -JoinType Left -Merge = {RightOrLeft.$_}`)  
+- `Update-Object`  
 Updates the left object with the right object properties
-- `Merge-Object` (`Join-Object -JoinType Full -Merge = {RightOrLeft.$_}`)  
+- `Merge-Object`  
 Updates the left object with the right object properties and inserts
 right if the values of the related property is not equal.
 
