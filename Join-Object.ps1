@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.1.3
+.VERSION 3.2.0
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -25,25 +25,23 @@
 	be saved as a new object or used as it is. An object join is a means for
 	combining properties from one (self-join) or more tables by using values
 	common to each. The Join-Object cmdlet supports a few proxy commands with
-	their own defaults:
+	their own (-JoinType and -Property) defaults:
 
-	* InnerJoin-Object (Join-Object -JoinType Inner)
-	  Only returns the joined objects
-	* LeftJoin-Object (Join-Object -JoinType Left)
+	* InnerJoin-Object (Alias InnerJoin or Join)
+	  Returns the joined objects
+	* LeftJoin-Object (Alias LeftJoin)
 	  Returns the joined objects and the rest of the left objects
-	* RightJoin-Object (Join-Object -JoinType Right)
+	* RightJoin-Object (Alias RightJoin)
 	  Returns the joined objects and the rest of the right objects
-	* FullJoin-Object (Join-Object -JoinType Full)
+	* FullJoin-Object (Alias FullJoin)
 	  Returns the joined objects and the rest of the left and right objects
-	* CrossJoin-Object (Join-Object -JoinType Cross)
+	* CrossJoin-Object (Alias CrossJoin)
 	  Returns each left object joined to each right object
-	* Update-Object (Join-Object -JoinType Left -Merge = {RightOrLeft.$_})
+	* Update-Object (Alias Update)
 	  Returns each left object updated with the right object properties
-	* Merge-Object (Join-Object -JoinType Full -Merge = {RightOrLeft.$_})
+	* Merge-Object (Alias Merge)
 	  Returns each left object updated with the right object properties
 	  and the rest of the right objects
-
-	Each command has an alias equal to its verb (omitting '-Object').
 
 	.PARAMETER LeftObject
 		The LeftObject, usually provided through the pipeline, defines the
@@ -54,49 +52,53 @@
 		object (or datatable) to be joined.
 
 	.PARAMETER On
-		The -On (alias -Using) parameter defines the condition that specify how
-		to join the left and right object and which objects to include in the
-		(inner) result set. The -On parameter supports the following formats:
-
-		<String> or <Array>
-		If the value is a string or array type, the -On parameter is similar to
-		the SQL using clause. This means that the left and right object will be
-		merged and added to the result set if all the left object properties
-		listed by the -On parameter are equal to the right object properties
-		(listed by the -Equals parameter).
+		The -On parameter (alias -Using) defines which objects should be joined.
+		If the -Equals parameter is omitted, the value(s) of the properties
+		listed by the -On parameter should be equal at both sides in order to
+		join the left object with the right object.
 
 		Note 1: The list of properties defined by the -On parameter will be
 		complemented with the list of properties defined by the -Equals
 		parameter and vice versa.
 
-		Note 2: Joined properties will be merged to a single (left) property
-		by default (see also the -Property parameter).
+		Note 2: Related joined properties will be merged to a single (left)
+		property by default (see also the -Property parameter).
 
-		<ScriptBlock>
-		Any conditional expression (where $Left refers to each left object and
-		$Right refers to each right object) which requires to evaluate to true
-		in order to join the objects.
-
-		Note 1: The -On <ScriptBlock> type has the most complex comparison
-		possibilities but is considerable slower than the other types.
-
-		Note 2: If the -On and the -Equal parameter are omitted, a join by
-		row index is returned.
+		Note 3: If the -On and the -OnExpression parameter are omitted, a
+		join by row index is returned.
 
 	.PARAMETER Equals
-		The left and right object will be merged and added to the result set
-		if all the right object properties listed by the -Equal parameter are
-		equal to the left object properties (listed by the -On parameter).
+		If the -Equals parameter is supplied, the value(s) of the left object
+		properties listed by the -On parameter should be equal to the value(s)
+		of the right object listed by the -Equals parameter in order to join
+		the left object with the right object.
 
 		Note 1: The list of properties defined by the -Equal parameter will be
 		complemented with the list of properties defined by the -On parameter
 		and vice versa.
 
-		Note 2: If the -On and the -Equals parameter are omitted, a join by
-		row index is returned.
+		Note 2: The -Equals parameter can only be used with the -On parameter.
 
-		Note 3: The -Equals parameter cannot be used in combination with an
-		-On parameter expression.
+	.PARAMETER Strict
+		If the -Strict switch is set, the comparison between the related
+		properties defined by the -On Parameter (and the -Equals parameter) is
+		based on a strict equality (both type and value need to be equal).
+
+	.PARAMETER MatchCase
+		If the -MatchCase (alias -CaseSensitive) switch is set, the comparison
+		between the related properties defined by the -On Parameter (and the
+		-Equals parameter) will case sensitive.
+
+	.PARAMETER OnExpression
+		Any conditional expression (where $Left refers to each left object and
+		$Right refers to each right object) that requires to evaluate to true
+		in order to join the left object with the right object.
+
+		Note 1: The -OnExporession parameter has the most complex comparison
+		possibilities but is considerable slower than the other types.
+
+		Note 2: The -OnExpression parameter cannot be used with the -On
+		parameter.
 
 	.PARAMETER Where
 		An expression that defines the condition to be met for the objects to
@@ -148,10 +150,10 @@
 		  {$Left.$_}
 		* If the property only exists on the right side, the expression is:
 		  {$Right.$_}
-		* If the left - and right properties aren't joined, the expression is:
-		  {$Left.$_, $Right.$_}
-		* If the left - and right property are joined, the expression is:
+		* If the properties are joined by the -On parameter, the expression is:
 		  {If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}}
+		* If properties aren't joined by the -On parameter, the expression is:
+		  {$Left.$_, $Right.$_}
 
 		If an expression without a property name assignment is supplied, it will
 		be assigned to all known properties in the $LeftObject and $RightObject.
@@ -160,6 +162,13 @@
 		expressions
 
 		Note: The -Property parameter cannot be used with the -Discern parameter.
+
+	.PARAMETER JoinType
+		Defines which unrelated objects should be included (see: Descripton).
+		Valid values are: 'Inner', 'Left', 'Right', 'Full' or 'Cross'.
+		The default is 'Inner'.
+
+		Note: It is recommended to use the related proxy commands instead.
 
 	.EXAMPLE
 
@@ -248,17 +257,137 @@
 		https://github.com/iRon7/Join-Object
 #>
 Function Join-Object {
-	[CmdletBinding(DefaultParameterSetName='Property')][OutputType([Object[]])]Param (
-		[Parameter(ValueFromPipeLine = $True)]$LeftObject,
-		[Parameter(Position = 0, ParameterSetName = 'Property', Mandatory = $True)][Parameter(Position = 0, ParameterSetName = 'Discern', Mandatory = $True)]$RightObject,
-		[Parameter(Position = 1, ParameterSetName = 'Property')][Parameter(Position = 1, ParameterSetName = 'Discern')][Alias("Using")]$On,
-		[Parameter(ParameterSetName = 'Property')][Parameter(ParameterSetName = 'Discern')][String[]]$Equals,
-		[Parameter(Position = 2, ParameterSetName = 'Discern')][String[]]$Discern, [Parameter(ParameterSetName = 'Property')]$Property,
-		[Parameter(Position = 3, ParameterSetName = 'Property')][Parameter(Position = 3, ParameterSetName = 'Discern')][ScriptBlock]$Where = {$True},
-		[Parameter(ParameterSetName = 'Property')][Parameter(ParameterSetName = 'Discern')][ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner'
+	[CmdletBinding(DefaultParameterSetName='Default')][OutputType([Object[]])]Param (
+
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'Default')]
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'On')]
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'Expression')]
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'Property')]
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'Discern')]
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'OnProperty')]
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'OnDiscern')]
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'ExpressionProperty')]
+		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'ExpressionDiscern')]
+		$LeftObject,
+
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'Default')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'On')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'Expression')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'Property')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'Discern')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'OnProperty')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'OnDiscern')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'ExpressionProperty')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'ExpressionDiscern')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'Self')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'SelfOn')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'SelfExpression')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'SelfProperty')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'SelfDiscern')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'SelfOnProperty')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'SelfOnDiscern')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'SelfExpressionProperty')]
+		[Parameter(Position = 0, Mandatory = $True, ParameterSetName = 'SelfExpressionDiscern')]
+		$RightObject,
+
+		[Parameter(Position = 1, ParameterSetName = 'On', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'OnProperty', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'OnDiscern', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'SelfOn', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'SelfOnProperty', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'SelfOnDiscern', Mandatory = $True)]
+		[Alias("Using")][String[]]$On,
+
+		[Parameter(Position = 1, ParameterSetName = 'Expression', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'ExpressionProperty', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'ExpressionDiscern', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'SelfExpression', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'SelfExpressionProperty', Mandatory = $True)]
+		[Parameter(Position = 1, ParameterSetName = 'SelfExpressionDiscern', Mandatory = $True)]
+		[Alias("UsingExpression")][ScriptBlock]$OnExpression,
+
+		[Parameter(ParameterSetName = 'On')]
+		[Parameter(ParameterSetName = 'OnProperty')]
+		[Parameter(ParameterSetName = 'OnDiscern')]
+		[Parameter(ParameterSetName = 'SelfOn')]
+		[Parameter(ParameterSetName = 'SelfOnProperty')]
+		[Parameter(ParameterSetName = 'SelfOnDiscern')]
+		[String[]]$Equals,
+
+		[Parameter(Position = 2, ParameterSetName = 'Discern', Mandatory = $True)]
+		[Parameter(Position = 2, ParameterSetName = 'OnDiscern', Mandatory = $True)]
+		[Parameter(Position = 2, ParameterSetName = 'ExpressionDiscern', Mandatory = $True)]
+		[Parameter(Position = 2, ParameterSetName = 'SelfDiscern', Mandatory = $True)]
+		[Parameter(Position = 2, ParameterSetName = 'SelfOnDiscern', Mandatory = $True)]
+		[Parameter(Position = 2, ParameterSetName = 'SelfExpressionDiscern', Mandatory = $True)]
+		[AllowEmptyString()][String[]]$Discern,
+
+		[Parameter(ParameterSetName = 'Property', Mandatory = $True)]
+		[Parameter(ParameterSetName = 'OnProperty', Mandatory = $True)]
+		[Parameter(ParameterSetName = 'ExpressionProperty', Mandatory = $True)]
+		[Parameter(ParameterSetName = 'SelfProperty', Mandatory = $True)]
+		[Parameter(ParameterSetName = 'SelfOnProperty', Mandatory = $True)]
+		[Parameter(ParameterSetName = 'SelfExpressionProperty', Mandatory = $True)]
+		$Property,
+
+		[Parameter(Position = 3, ParameterSetName = 'Default')]
+		[Parameter(Position = 3, ParameterSetName = 'On')]
+		[Parameter(Position = 3, ParameterSetName = 'Expression')]
+		[Parameter(Position = 3, ParameterSetName = 'Property')]
+		[Parameter(Position = 3, ParameterSetName = 'Discern')]
+		[Parameter(Position = 3, ParameterSetName = 'OnProperty')]
+		[Parameter(Position = 3, ParameterSetName = 'OnDiscern')]
+		[Parameter(Position = 3, ParameterSetName = 'ExpressionProperty')]
+		[Parameter(Position = 3, ParameterSetName = 'ExpressionDiscern')]
+		[Parameter(Position = 3, ParameterSetName = 'Self')]
+		[Parameter(Position = 3, ParameterSetName = 'SelfOn')]
+		[Parameter(Position = 3, ParameterSetName = 'SelfExpression')]
+		[Parameter(Position = 3, ParameterSetName = 'SelfProperty')]
+		[Parameter(Position = 3, ParameterSetName = 'SelfDiscern')]
+		[Parameter(Position = 3, ParameterSetName = 'SelfOnProperty')]
+		[Parameter(Position = 3, ParameterSetName = 'SelfOnDiscern')]
+		[Parameter(Position = 3, ParameterSetName = 'SelfExpressionProperty')]
+		[Parameter(Position = 3, ParameterSetName = 'SelfExpressionDiscern')]
+		[ScriptBlock]$Where = {$True},
+
+		[Parameter(ParameterSetName = 'Default')]
+		[Parameter(ParameterSetName = 'On')]
+		[Parameter(ParameterSetName = 'Expression')]
+		[Parameter(ParameterSetName = 'Property')]
+		[Parameter(ParameterSetName = 'Discern')]
+		[Parameter(ParameterSetName = 'OnProperty')]
+		[Parameter(ParameterSetName = 'OnDiscern')]
+		[Parameter(ParameterSetName = 'ExpressionProperty')]
+		[Parameter(ParameterSetName = 'ExpressionDiscern')]
+		[Parameter(ParameterSetName = 'Self')]
+		[Parameter(ParameterSetName = 'SelfOn')]
+		[Parameter(ParameterSetName = 'SelfExpression')]
+		[Parameter(ParameterSetName = 'SelfProperty')]
+		[Parameter(ParameterSetName = 'SelfDiscern')]
+		[Parameter(ParameterSetName = 'SelfOnProperty')]
+		[Parameter(ParameterSetName = 'SelfOnDiscern')]
+		[Parameter(ParameterSetName = 'SelfExpressionProperty')]
+		[Parameter(ParameterSetName = 'SelfExpressionDiscern')]
+		[ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')]$JoinType = 'Inner',
+
+		[Parameter(ParameterSetName = 'On')]
+		[Parameter(ParameterSetName = 'OnProperty')]
+		[Parameter(ParameterSetName = 'OnDiscern')]
+		[Parameter(ParameterSetName = 'SelfOn')]
+		[Parameter(ParameterSetName = 'SelfOnProperty')]
+		[Parameter(ParameterSetName = 'SelfOnDiscern')]
+		[Switch]$Strict,
+
+		[Parameter(ParameterSetName = 'On')]
+		[Parameter(ParameterSetName = 'OnProperty')]
+		[Parameter(ParameterSetName = 'OnDiscern')]
+		[Parameter(ParameterSetName = 'SelfOn')]
+		[Parameter(ParameterSetName = 'SelfOnProperty')]
+		[Parameter(ParameterSetName = 'SelfOnDiscern')]
+		[Alias("CaseSensitive")][Switch]$MatchCase
 	)
 	Begin {
-		$HashTable = $Null; $Esc = [Char]27; $EscNull = $Esc + 'Null'; $EscSeparator = $Esc + ','
+		$HashTable = $Null; $Esc = [Char]27; $EscSeparator = $Esc + ','
 		$Expression = [Ordered]@{}; $PropertyList = [Ordered]@{}; $Related = @()
 		If ($RightObject -isnot [Array] -and $RightObject -isnot [Data.DataTable]) {$RightObject = @($RightObject)}
 		$RightKeys = @(
@@ -307,8 +436,7 @@ Function Join-Object {
 				)
 				$LeftProperties = @{}; ForEach ($Key in $LeftKeys) {$LeftProperties.$Key = $Null}
 				$LeftVoid = New-Object PSCustomObject -Property $LeftProperties
-				If ($On -is [ScriptBlock]) {If ($Equals) {Throw "The Equals parameter cannot be used with an On parameter expression"}}
-				ElseIf ($Null -ne $On -or $Null -ne $Equals) {
+				If ($Null -ne $On -or $Null -ne $Equals) {
 					$On = If ($On) {,@($On)} Else {,@()}; $Equals = If ($Equals) {,@($Equals)} Else {,@()}
 					For ($i = 0; $i -lt [Math]::Max($On.Length, $Equals.Length); $i++) {
 						If ($i -ge $On.Length) {$On += $Equals[$i]}
@@ -317,11 +445,12 @@ Function Join-Object {
 						If ($RightKeys -NotContains $Equals[$i]) {Throw "The property '$($Equals[$i])' cannot be found on the right object."}
 						If ($On[$i] -eq $Equals[$i]) {$Related += $On[$i]}
 					}
-				}
-				If ($On -is [Array]) {$HashTable = @{}
+					$HashTable = If ($MatchCase) {[HashTable]::New(0, [StringComparer]::Ordinal)} Else {@{}}
 					$RightIndex = 0; ForEach ($Right in $RightObject) {
-						$Values = ForEach ($Name in @($Equals)) {If ($Null -ne $Right.$Name) {$Right.$Name} Else {$EscNull}}
-						[Array]$HashTable[[String]::Join($EscSeparator, $Values)] += $RightIndex++
+						$Keys = ForEach ($Name in @($Equals)) {$Right.$Name}
+						$HashKey = If (!$Strict) {[String]::Join($EscSeparator, @($Keys))}
+						           Else {[System.Management.Automation.PSSerializer]::Serialize($Keys)}
+						[Array]$HashTable[$HashKey] += $RightIndex++
 					}
 				}
 				If ($Discern) {
@@ -353,12 +482,16 @@ Function Join-Object {
 				} Else {SetExpression}
 			}
 			$RightList = `
-				If ($On -is [Array]) {
-					$Values = ForEach ($Name in @($On)) {If ($Null -ne $Left.$Name) {$Left.$Name} Else {$EscNull}}
-					$HashTable[[String]::Join($EscSeparator, $Values)]
-				} ElseIf ($On -is [ScriptBlock]) {
+				If ($On) {
+					If ($JoinType -eq "Cross") {Throw "The On parameter cannot be used on a cross join."}
+					$Keys = ForEach ($Name in @($On)) {$Left.$Name}
+					$HashKey = If (!$Strict) {[String]::Join($EscSeparator, @($Keys))}
+							   Else {[System.Management.Automation.PSSerializer]::Serialize($Keys)}
+					$HashTable[$HashKey]
+				} ElseIf ($OnExpression) {
+					If ($JoinType -eq "Cross") {Throw "The OnExpression parameter cannot be used on a cross join."}
 					For ($RightIndex = 0; $RightIndex -lt $RightLength; $RightIndex++) {
-						$Right = $RightObject[$RightIndex]; If (&$On) {$RightIndex}
+						$Right = $RightObject[$RightIndex]; If (&$OnExpression) {$RightIndex}
 					}
 				}
 				ElseIf ($JoinType -eq "Cross") {0..($RightObject.Length - 1)}
