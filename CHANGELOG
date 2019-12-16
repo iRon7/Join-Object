@@ -39,3 +39,7 @@
 3.1.1     2019-11-10 Ronald Bode Improved -Property * implementation 
 3.1.2     2019-11-11 Ronald Bode Resolved bug with single right object
 3.1.3     2019-11-15 Ronald Bode Also apply -Where argument to outer join part (expression to evaluate $Null values)
+3.1.4     2019-12-02 Ronald Bode Throw "The -On parameter cannot be used on a cross join."
+3.1.5     2019-12-09 Ronald Bode Added -Strict parameter
+3.1.6     2019-12-10 Ronald Bode Added -MatchCase (alias -CaseSensitive) parameter
+3.2.0     2019-12-16 Ronald Bode Defined stricter parameter sets (separated -On <String[]> and -OnExpression <ScriptBlock>)
