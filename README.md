@@ -235,7 +235,7 @@ _Note_: The `-Property` parameter cannot be used with the `-Discern` parameter.
 
 `-JoinType`  
 Defines which unrelated objects should be included (see: **Descripton**).
-Valid values are: `Inner`, `Left`, `Right`, `Full`, `Cross`.
+Valid values are: `Inner`, `Left`, `Right`, `Full` or `Cross`.
 The default is `Inner`.
 
 _Note:_ It is recommended to use the related proxy commands instead.
