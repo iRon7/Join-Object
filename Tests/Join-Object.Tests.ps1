@@ -759,21 +759,82 @@ Describe 'Join-Object' {
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
-		
-		It 'Null, zero and empty string' {
-			$Test = ConvertFrom-SourceTable '
-				Value  Description
-				------ -----------
-				 $Null Null
-				     0 Zero value
-				       Empty string'
-				
-			$Actual = Join $Test -On Value -Property {$Left.$_}
+	}
 
-			Compare-PSObject $Actual $Test | Should -BeNull
+	Context 'Compare options' {
+
+		$LeftObject = ConvertFrom-SourceTable '
+			volume                                  vol-state lun-serial
+			------                                  --------- ----------
+			cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH
+			cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh'
+
+		$RightObject = ConvertFrom-SourceTable '
+			lun-serial   host-DiskNumber host-OperationalStatus
+			----------   --------------- ----------------------
+			QvaAo+E56ZNH 11              Online
+			QvaAo+E56ZNh 34              Offline'
+
+		It 'case insensitive (default)' {
+
+			$Actual = $LeftObject | LeftJoin $RightObject -On lun-serial
+			$Expected = ConvertFrom-SourceTable '
+				volume                                  vol-state lun-serial   host-DiskNumber host-OperationalStatus
+				------                                  --------- ----------   --------------- ----------------------
+				cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH 11              Online
+				cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNh 34              Offline
+				cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNH 11              Online
+				cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh 34              Offline'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'case sensitive' {
+
+			$Actual = $LeftObject | LeftJoin $RightObject -On lun-serial -CaseSensitive
+			$Expected = ConvertFrom-SourceTable '
+				volume                                  vol-state lun-serial   host-DiskNumber host-OperationalStatus
+				------                                  --------- ----------   --------------- ----------------------
+				cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH 11              Online
+				cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh 34              Offline'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+		$Object =
+			[pscustomobject]@{'Name' = 'Null'; 'Value' = $Null},
+			[pscustomobject]@{'Name' = 'String'; 'Value' = ''},
+			[pscustomobject]@{'Name' = 'abc'; 'Value' = 'abc'},
+			[pscustomobject]@{'Name' = 'Zero'; 'Value' = 0},
+			[pscustomobject]@{'Name' = 'One'; 'Value' = 1},
+			[pscustomobject]@{'Name' = 'Empty'; 'Value' = @()},
+			[pscustomobject]@{'Name' = 'Array'; 'Value' = @(0,1,2)}
+
+
+		It 'Default Join with null, zero, empty, etc.' {
+
+			$Actual = InnerJoin $Object -On Value Left,Right -Where {$LeftIndex -ne $RightIndex}
+			$Expected = 
+				[pscustomobject]@{'LeftName' = 'Null'; 'Value' = $Null; 'RightName' = 'String'},
+				[pscustomobject]@{'LeftName' = 'Null'; 'Value' = $Null; 'RightName' = 'Empty'},
+				[pscustomobject]@{'LeftName' = 'String'; 'Value' = ''; 'RightName' = 'Null'},
+				[pscustomobject]@{'LeftName' = 'String'; 'Value' = ''; 'RightName' = 'Empty'},
+				[pscustomobject]@{'LeftName' = 'Empty'; 'Value' = $Null; 'RightName' = 'Null'},
+				[pscustomobject]@{'LeftName' = 'Empty'; 'Value' = $Null; 'RightName' = 'String'}
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+
+		It 'Strict Join with null, zero, empty, etc.' {
+
+			$Actual = InnerJoin $Object -Strict -On Value Left,Right -Where {$LeftIndex -ne $RightIndex}
+			$Expected = 
+				[pscustomobject]@{'LeftName' = 'Null'; 'Value' = $Null; 'RightName' = 'Empty'},
+				[pscustomobject]@{'LeftName' = 'Empty'; 'Value' = $Null; 'RightName' = 'Null'}
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
 	}
-	
+
 	Context "Stackoverflow answers" {
 
 		It "In Powershell, what's the best way to join two tables into one?" { # https://stackoverflow.com/a/45483110/1701026
@@ -1332,12 +1393,12 @@ hostname22,Company_Policy,291768854
 hostname23,Company_Policy,291768854
 '@
 
-				$Actual = $CSV2 | FullJoin $CSV1 `
-					-On 'Client Name','Policy Name' `
-					-Property 'Client Name',
-							  'Policy Name', 
-							  @{'TB Size' = {[math]::Round(($Left.'KB Size' - $Right.'KB Size') / 1GB, 2)}} `
-					-Where {[math]::Abs($Left.'KB Size' - $Right.'KB Size') -gt 100MB}
+			$Actual = $CSV2 | FullJoin $CSV1 `
+				-On 'Client Name','Policy Name' `
+				-Property 'Client Name',
+						  'Policy Name', 
+						  @{'TB Size' = {[math]::Round(($Left.'KB Size' - $Right.'KB Size') / 1GB, 2)}} `
+				-Where {[math]::Abs($Left.'KB Size' - $Right.'KB Size') -gt 100MB}
 					
 			$Expected = ConvertFrom-SourceTable '
 					Client Name Policy Name       TB Size
