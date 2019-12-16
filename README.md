@@ -5,24 +5,22 @@ Combines properties from one or more objects. It creates a set that can
 be saved as a new object or used as it is. An object join is a means for
 combining properties from one (self-join) or more tables by using values
 common to each. The Join-Object cmdlet supports a few proxy commands with
-their own defaults:
-- `InnerJoin-Object`  
+their own  (`-JoinType` and `-Property`) defaults:
+- `InnerJoin-Object` (Alias `InnerJoin` or `Join`)  
 Only returns the joined objects
-- `LeftJoin-Object`  
+- `LeftJoin-Object` (Alias `LeftJoin`)  
 Returns the joined objects and the rest of the left objects
-- `RightJoin-Object`  
+- `RightJoin-Object` (Alias `RightJoin`)  
 Returns the joined objects and the rest of the right objects
-- `FullJoin-Object`  
+- `FullJoin-Object` (Alias `FullJoin`)  
 Returns the joined objects and the rest of the left and right objects
-- `CrossJoin-Object`  
+- `CrossJoin-Object` (Alias `CrossJoin`)  
 Joins each left object to each right object
-- `Update-Object`  
+- `Update-Object` (Alias `Update`)  
 Updates the left object with the right object properties
-- `Merge-Object`  
+- `Merge-Object` (Alias `Merge`)  
 Updates the left object with the right object properties and inserts
 right if the values of the related property is not equal.
-
-Each command has an alias equal to its verb (omitting `-Object`).
 
  ## Examples 
 A simple inner join on the country property considering the following
@@ -124,50 +122,54 @@ left object (or datatable) to be joined.
 The RightObject, provided by the first argument, defines the right
 object (or datatable) to be joined.
 
-`-On`  
-The `-On` (alias `-Using`) parameter defines the condition that specify how
-to join the left and right object and which objects to include in the
-(inner) result set. The `-On` parameter supports the following formats:
-
-`-On <String> or <Array>`  
-If the value is a string or array type, the `-On` parameter is similar to
-the SQL using clause. This means that the left and right object will be
-merged and added to the result set if all the left object properties
-listed by the `-On` parameter are equal to the right object properties
-(listed by the `-Equals` parameter).
+`-On`
+The `-On` parameter (alias `-Using`) defines which objects should be joined.
+If the `-Equals` parameter is omitted, the value(s) of the properties
+listed by the `-On` parameter should be equal at both sides in order to
+join the left object with the right object.
 
 _Note 1:_ The list of properties defined by the `-On` parameter will be
-complemented with the list of properties defined by the `-Equals` parameter
-and vice versa.
+complemented with the list of properties defined by the `-Equals`
+parameter and vice versa.
 
-_Note 2:_ The equal properties will be merged to a single (left) property
-by default (see also the `-Property` parameter).
+_Note 2:_ Related joined properties will be merged to a single (left)
+property by default (see also the -Property parameter).
 
-`-On <ScriptBlock>`  
-Any conditional expression (where `$Left` refers to each left object and
-`$Right` refers to each right object) which requires to evaluate to true
-in order to join the objects.
-
-_Note 1:_ The `-On <ScriptBlock>` type has the most complex comparison
-possibilities but is considerable slower than the other types.
-
-_Note 2:_ If the `-On` and the `-Equal` parameter are omitted, a join by
-row index is returned.
+_Note 3:_ If the `-On` and the `-OnExpression` parameter are omitted, a
+join by row index is returned.
 
 `-Equals`  
-The left and right object will be merged and added to the result set
-if all the right object properties listed by the `-Equals` parameter are
-equal to the left object properties (listed by the `-On` parameter).
+If the `-Equals` parameter is supplied, the value(s) of the left object
+properties listed by the `-On` parameter should be equal to the value(s)
+of the right object listed by the `-Equals` parameter in order to join
+the left object with the right object.
 
-_Note 1:_ The list of properties defined by the `-Equals` parameter will be
-complemented with the list of properties defined by the `-On` parameter and
-vice versa.
+_Note 1:_ The list of properties defined by the `-Equal` parameter will be
+complemented with the list of properties defined by the `-On` parameter
+and vice versa.
 
-_Note 2:_ If the `-Equals` and the `-On` parameter are omitted, a join by
-row index is returned.
+_Note 2:_ The `-Equals` parameter can only be used with the `-On` parameter.
 
-_Note 3:_ The `-Equals` parameter cannot be used in combination with an
--On parameter expression.
+`-Strict`  
+If the `-Strict` switch is set, the comparison between the related
+properties defined by the `-On` Parameter (and the `-Equals` parameter) is
+based on a strict equality (both type and value need to be equal).
+
+`- MatchCase`  
+If the `-MatchCase` (alias `-CaseSensitive`) switch is set, the comparison
+between the related properties defined by the `-On` Parameter (and the
+-`Equals` parameter) will case sensitive.
+
+`-OnExpression`
+Any conditional expression (where `$Left` refers to each left object and
+`$Right` refers to each right object) that requires to evaluate to true
+in order to join the left object with the right object.
+
+Note 1: The `-OnExpression` parameter has the most complex comparison
+possibilities but is considerable slower than the other types.
+
+Note 2: The `-OnExpression parameter` cannot be used with the `-On`
+parameter.
 
 `-Where`  
 An expression that defines the condition to be met for the objects to
@@ -230,3 +232,10 @@ be assigned to all known properties in the `$LeftObject` and `$RightObject`.
 The last defined expression will overrule any previous defined expressions
 
 _Note_: The `-Property` parameter cannot be used with the `-Discern` parameter.
+
+`-JoinType`  
+Defines which unrelated objects should be included (see: **Descripton**).
+Valid values are: `Inner`, `Left`, `Right`, `Full`, `Cross`.
+The default is `Inner`.
+
+_Note:_ It is recommended to use the related proxy commands instead.
