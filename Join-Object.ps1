@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.2.0
+.VERSION 3.2.1
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -257,6 +257,7 @@
 		https://github.com/iRon7/Join-Object
 #>
 Function Join-Object {
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseLiteralInitializerForHashtable', '', Scope='Function')]
 	[CmdletBinding(DefaultParameterSetName='Default')][OutputType([Object[]])]Param (
 
 		[Parameter(ValueFromPipeLine = $True, Mandatory = $True, ParameterSetName = 'Default')]
@@ -392,7 +393,11 @@ Function Join-Object {
 		If ($RightObject -isnot [Array] -and $RightObject -isnot [Data.DataTable]) {$RightObject = @($RightObject)}
 		$RightKeys = @(
 			If ($RightObject -is [Data.DataTable]) {$RightObject.Columns | Select-Object -ExpandProperty 'ColumnName'}
-			Else {($RightObject | Select-Object -First 1).PSObject.Properties | Select-Object -ExpandProperty 'Name'}
+			Else {
+				$First = $RightObject | Select-Object -First 1
+				If ($First -is [System.Collections.IDictionary]) {$First.Get_Keys()}
+				Else {$First.PSObject.Properties | Select-Object -ExpandProperty 'Name'}
+			}
 		)
 		$RightProperties = @{}; ForEach ($Key in $RightKeys) {$RightProperties.$Key = $Null}
 		$RightVoid = New-Object PSCustomObject -Property $RightProperties
@@ -432,6 +437,7 @@ Function Join-Object {
 			If (!$LeftIndex) {
 				$LeftKeys = @(
 					If ($Left -is [Data.DataRow]) {$Left.Table.Columns | Select-Object -ExpandProperty 'ColumnName'}
+					ElseIf ($Left -is [System.Collections.IDictionary]) {$Left.Get_Keys()}
 					Else {$Left.PSObject.Properties | Select-Object -ExpandProperty 'Name'}
 				)
 				$LeftProperties = @{}; ForEach ($Key in $LeftKeys) {$LeftProperties.$Key = $Null}
