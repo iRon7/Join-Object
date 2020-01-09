@@ -1063,7 +1063,7 @@ server2,item2'
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}	
 
-		It 'Comparing two CSVs using one property to compare another' { # https://stackoverflow.com/questions/55602662/comparing-two-csvs-using-one-property-to-compare-another
+		It 'Comparing two CSVs using one property to compare another' { # https://stackoverflow.com/q/55602662/1701026
 		
 $file1='"FACILITY","FILENAME"
 "16","abc.txt"
@@ -1512,6 +1512,143 @@ hostname23,Company_Policy,291768854
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
-
 	}
+		
+	Context "Github issues" {
+		It 'HashTables for input' { # https://github.com/iRon7/Join-Object/issues/10
+		
+			$hostNumaInfo = @{
+				TypeId            = 0
+				CpuID             = 11, 10, 9, 8
+				MemoryRangeBegin  = 0
+				MemoryRangeLength = 34259832832
+				PciId             = '0000:00:00.0', '0000:00:01.0', '0000:00:02.0', '0000:00:03.0'
+			}
+
+			$hostPciInfo = @{
+				Id           = '0000:00:00.0'
+				ClassId      = 1536
+				Bus          = 0
+				Slot         = 0
+				Function     = 0
+				VendorId     = -32634
+				SubVendorId  = -32634
+				VendorName   = 'Intel Corporation'
+				DeviceId     = 12032
+				SubDeviceId  = 0
+				ParentBridge = ''
+				DeviceName   = 'Xeon E7 v3/Xeon E5 v3/Core i7 DMI2'
+			}
+			
+			$Actual = $hostNumaInfo | InnerJoin-Object $hostPciInfo -On PciId -Equals Id
+			$Actual | Should -BeNullOrEmpty
+			$Actual = $hostNumaInfo | InnerJoin-Object $hostPciInfo -On TypeId -Equals Bus
+			$Expected = [pscustomobject]@{
+					'TypeId' = 0
+					'CpuID' = 11, 10, 9, 8
+					'PciId' = '0000:00:00.0', '0000:00:01.0', '0000:00:02.0', '0000:00:03.0'
+					'MemoryRangeLength' = 34259832832
+					'MemoryRangeBegin' = 0
+					'DeviceId' = 12032
+					'VendorName' = 'Intel Corporation'
+					'Bus' = 0
+					'Id' = '0000:00:00.0'
+					'ParentBridge' = ''
+					'Slot' = 0
+					'DeviceName' = 'Xeon E7 v3/Xeon E5 v3/Core i7 DMI2'
+					'VendorId' = -32634
+					'Function' = 0
+					'SubDeviceId' = 0
+					'ClassId' = 1536
+					'SubVendorId' = -32634
+			}
+			Compare-PSObject $Actual $Expected | Should -BeNull
+
+
+
+		}
+		
+		It 'FullJoin on hashtables' {
+		
+			$Employee =
+				@{'Id' = 1; 'Name' = 'Aerts'; 'Country' = 'Belgium'; 'Department' = 'Sales'; 'Age' = 40; 'ReportsTo' = 5},
+				@{'Id' = 2; 'Name' = 'Bauer'; 'Country' = 'Germany'; 'Department' = 'Engineering'; 'Age' = 31; 'ReportsTo' = 4},
+				@{'Id' = 3; 'Name' = 'Cook'; 'Country' = 'England'; 'Department' = 'Sales'; 'Age' = 69; 'ReportsTo' = 1},
+				@{'Id' = 4; 'Name' = 'Duval'; 'Country' = 'France'; 'Department' = 'Engineering'; 'Age' = 21; 'ReportsTo' = 5},
+				@{'Id' = 5; 'Name' = 'Evans'; 'Country' = 'England'; 'Department' = 'Marketing'; 'Age' = 35; 'ReportsTo' = ''},
+				@{'Id' = 6; 'Name' = 'Fischer'; 'Country' = 'Germany'; 'Department' = 'Engineering'; 'Age' = 29; 'ReportsTo' = 4}
+				
+			$Department =
+				@{'Name' = 'Engineering'; 'Country' = 'Germany'},
+				@{'Name' = 'Marketing'; 'Country' = 'England'},
+				@{'Name' = 'Sales'; 'Country' = 'France'},
+				@{'Name' = 'Purchase'; 'Country' = 'France'}
+
+			$Actual = $Employee | FullJoin $Department -On Country -Discern Employee, Department
+			$Expected = ConvertFrom-SourceTable '
+				Id EmployeeName Country Department  Age ReportsTo DepartmentName
+				-- ------------ ------- ----------  --- --------- --------------
+				 1 Aerts        Belgium Sales        40         5          $Null
+				 2 Bauer        Germany Engineering  31         4 Engineering
+				 3 Cook         England Sales        69         1 Marketing
+				 4 Duval        France  Engineering  21         5 Sales
+				 4 Duval        France  Engineering  21         5 Purchase
+				 5 Evans        England Marketing    35           Marketing
+				 6 Fischer      Germany Engineering  29         4 Engineering'
+
+			Compare-PSObject $Actual $Expected | Should -BeNull
+		}
+		
+		It 'Ordered for input' { # https://github.com/iRon7/Join-Object/issues/10
+		
+			$hostNumaInfo = [Ordered]@{
+				TypeId            = 0
+				CpuID             = 11, 10, 9, 8
+				MemoryRangeBegin  = 0
+				MemoryRangeLength = 34259832832
+				PciId             = '0000:00:00.0', '0000:00:01.0', '0000:00:02.0', '0000:00:03.0'
+			}
+
+			$hostPciInfo = [Ordered]@{
+				Id           = '0000:00:00.0'
+				ClassId      = 1536
+				Bus          = 0
+				Slot         = 0
+				Function     = 0
+				VendorId     = -32634
+				SubVendorId  = -32634
+				VendorName   = 'Intel Corporation'
+				DeviceId     = 12032
+				SubDeviceId  = 0
+				ParentBridge = ''
+				DeviceName   = 'Xeon E7 v3/Xeon E5 v3/Core i7 DMI2'
+			}
+			
+			$Actual = $hostNumaInfo | InnerJoin-Object $hostPciInfo -On PciId -Equals Id
+			$Actual | Should -BeNullOrEmpty
+			$Actual = $hostNumaInfo | InnerJoin-Object $hostPciInfo -On TypeId -Equals Bus
+			$Expected = [pscustomobject]@{
+					'TypeId' = 0
+					'CpuID' = 11, 10, 9, 8
+					'PciId' = '0000:00:00.0', '0000:00:01.0', '0000:00:02.0', '0000:00:03.0'
+					'MemoryRangeLength' = 34259832832
+					'MemoryRangeBegin' = 0
+					'DeviceId' = 12032
+					'VendorName' = 'Intel Corporation'
+					'Bus' = 0
+					'Id' = '0000:00:00.0'
+					'ParentBridge' = ''
+					'Slot' = 0
+					'DeviceName' = 'Xeon E7 v3/Xeon E5 v3/Core i7 DMI2'
+					'VendorId' = -32634
+					'Function' = 0
+					'SubDeviceId' = 0
+					'ClassId' = 1536
+					'SubVendorId' = -32634
+			}
+			Compare-PSObject $Actual $Expected | Should -BeNull
+
+		}
+	}
+
 }
