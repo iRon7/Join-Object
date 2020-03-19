@@ -155,7 +155,7 @@ If the `-Strict` switch is set, the comparison between the related
 properties defined by the `-On` Parameter (and the `-Equals` parameter) is
 based on a strict equality (both type and value need to be equal).
 
-`- MatchCase`  
+`-MatchCase`  
 If the `-MatchCase` (alias `-CaseSensitive`) switch is set, the comparison
 between the related properties defined by the `-On` Parameter (and the
 -`Equals` parameter) will case sensitive.
