@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.2.1
+.VERSION 3.2.2
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -94,7 +94,7 @@
 		$Right refers to each right object) that requires to evaluate to true
 		in order to join the left object with the right object.
 
-		Note 1: The -OnExporession parameter has the most complex comparison
+		Note 1: The -OnExpression parameter has the most complex comparison
 		possibilities but is considerable slower than the other types.
 
 		Note 2: The -OnExpression parameter cannot be used with the -On
@@ -117,7 +117,7 @@
 
 		Properties that don't exist on both sides will not be renamed.
 
-		Joined properties (defined by the -On parameter) will be merged.
+		Joined (equal) properties (defined by the -On parameter) will be merged.
 
 		Note: The -Discern parameter cannot be used with the -Property parameter.
 
@@ -134,12 +134,12 @@
 		* $LeftIndex: the index of the left object
 		* $Right: the current right object (each self-contained -RightObject)
 		* $RightIndex: the index of the right object
-		If the $LeftObject isn't joined in a Right- or FullJoin then $LeftIndex
-		will be $Null and the $Left object will represent an object with each
-		property set to $Null.
-		If the $RightObject isn't joined in a Left- or FullJoin then $RightIndex
-		will be $Null and the $Right object will represent an object with each
-		property set to $Null.
+		If the $LeftObject isn't joined in a Right- or a FullJoin then the
+		$LeftIndex will be $Null and the $Left object will represent an object
+		with each property set to $Null.
+		If the $RightObject isn't joined in a Left- or a FullJoin then the
+		$RightIndex will be $Null and the $Right object will represent an
+		object with each property set to $Null.
 
 		An asterisks (*) represents all known left - and right properties.
 
@@ -424,91 +424,95 @@ Function Join-Object {
 						}
 						ElseIf ($InLeft)  {$Expression.$Key = {$Left.$_}}
 						ElseIf ($InRight) {$Expression.$Key = {$Right.$_}}
-						Else {Throw "The property '$Key' cannot be found on the left or right object."}
+						Else {Throw [ArgumentException]"The property '$Key' cannot be found on the left or right object."}
 					}
 				}
 			}
 		}
 	}
 	Process {
-		$SelfJoin = !$PSBoundParameters.ContainsKey('LeftObject'); If ($SelfJoin) {$LeftObject = $RightObject}
-		ForEach ($Left in @($LeftObject)) {
-			$InnerLeft = $Null
-			If (!$LeftIndex) {
-				$LeftKeys = @(
-					If ($Left -is [Data.DataRow]) {$Left.Table.Columns | Select-Object -ExpandProperty 'ColumnName'}
-					ElseIf ($Left -is [System.Collections.IDictionary]) {$Left.Get_Keys()}
-					Else {$Left.PSObject.Properties | Select-Object -ExpandProperty 'Name'}
-				)
-				$LeftProperties = @{}; ForEach ($Key in $LeftKeys) {$LeftProperties.$Key = $Null}
-				$LeftVoid = New-Object PSCustomObject -Property $LeftProperties
-				If ($Null -ne $On -or $Null -ne $Equals) {
-					$On = If ($On) {,@($On)} Else {,@()}; $Equals = If ($Equals) {,@($Equals)} Else {,@()}
-					For ($i = 0; $i -lt [Math]::Max($On.Length, $Equals.Length); $i++) {
-						If ($i -ge $On.Length) {$On += $Equals[$i]}
-						If ($LeftKeys -NotContains $On[$i]) {Throw "The property '$($On[$i])' cannot be found on the left object."}
-						If ($i -ge $Equals.Length) {$Equals += $On[$i]}
-						If ($RightKeys -NotContains $Equals[$i]) {Throw "The property '$($Equals[$i])' cannot be found on the right object."}
-						If ($On[$i] -eq $Equals[$i]) {$Related += $On[$i]}
+		Try {
+			$SelfJoin = !$PSBoundParameters.ContainsKey('LeftObject'); If ($SelfJoin) {$LeftObject = $RightObject}
+			ForEach ($Left in @($LeftObject)) {
+				$InnerLeft = $Null
+				If (!$LeftIndex) {
+					$LeftKeys = @(
+						If ($Left -is [Data.DataRow]) {$Left.Table.Columns | Select-Object -ExpandProperty 'ColumnName'}
+						ElseIf ($Left -is [System.Collections.IDictionary]) {$Left.Get_Keys()}
+						Else {$Left.PSObject.Properties | Select-Object -ExpandProperty 'Name'}
+					)
+					$LeftProperties = @{}; ForEach ($Key in $LeftKeys) {$LeftProperties.$Key = $Null}
+					$LeftVoid = New-Object PSCustomObject -Property $LeftProperties
+					If ($Null -ne $On -or $Null -ne $Equals) {
+						$On = If ($On) {,@($On)} Else {,@()}; $Equals = If ($Equals) {,@($Equals)} Else {,@()}
+						For ($i = 0; $i -lt [Math]::Max($On.Length, $Equals.Length); $i++) {
+							If ($i -ge $On.Length) {$On += $Equals[$i]}
+							If ($LeftKeys -NotContains $On[$i]) {Throw [ArgumentException]"The property '$($On[$i])' cannot be found on the left object."}
+							If ($i -ge $Equals.Length) {$Equals += $On[$i]}
+							If ($RightKeys -NotContains $Equals[$i]) {Throw [ArgumentException]"The property '$($Equals[$i])' cannot be found on the right object."}
+							If ($On[$i] -eq $Equals[$i]) {$Related += $On[$i]}
+						}
+						$HashTable = If ($MatchCase) {[HashTable]::New(0, [StringComparer]::Ordinal)} Else {@{}}
+						$RightIndex = 0; ForEach ($Right in $RightObject) {
+							$Keys = ForEach ($Name in @($Equals)) {$Right.$Name}
+							$HashKey = If (!$Strict) {[String]::Join($EscSeparator, @($Keys))}
+									   Else {[System.Management.Automation.PSSerializer]::Serialize($Keys)}
+							[Array]$HashTable[$HashKey] += $RightIndex++
+						}
 					}
-					$HashTable = If ($MatchCase) {[HashTable]::New(0, [StringComparer]::Ordinal)} Else {@{}}
-					$RightIndex = 0; ForEach ($Right in $RightObject) {
-						$Keys = ForEach ($Name in @($Equals)) {$Right.$Name}
+					If ($Discern) {
+						If (@($Discern).Count -le 1) {$Discern = @($Discern) + ''}
+						ForEach ($Key in $LeftKeys) {
+							If ($RightKeys -Contains $Key) {
+								If ($Related -Contains $Key) {
+									$Expression[$Key] = {If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}
+								} Else {
+									$Name = If ($Discern[0].Contains('*')) {([Regex]"\*").Replace($Discern[0], $Key, 1)} Else {$Discern[0] + $Key}
+									$Expression[$Name] = [ScriptBlock]::Create("`$Left.'$Key'")
+								}
+							} Else {$Expression[$Key] = {$Left.$_}}
+						}
+						ForEach ($Key in $RightKeys) {
+							If ($LeftKeys -Contains $Key) {
+								If ($Related -NotContains $Key) {
+									$Name = If ($Discern[1].Contains('*')) {([Regex]"\*").Replace($Discern[1], $Key, 1)} Else {$Discern[1] + $Key}
+									$Expression[$Name] = [ScriptBlock]::Create("`$Right.'$Key'")
+								}
+							} Else {$Expression[$Key] = {$Right.$_}}
+						}
+					} ElseIf ($Property) {
+						ForEach ($Item in @($Property)) {
+							If ($Item -is [ScriptBlock]) {SetExpression $Null $Item}
+							ElseIf ($Item -is [System.Collections.IDictionary]) {ForEach ($Key in $Item.Get_Keys()) {SetExpression $Key $Item.$Key}}
+							Else {SetExpression $Item}
+						}
+					} Else {SetExpression}
+				}
+				$RightList = `
+					If ($On) {
+						If ($JoinType -eq "Cross") {Throw [ArgumentException]"The On parameter cannot be used on a cross join."}
+						$Keys = ForEach ($Name in @($On)) {$Left.$Name}
 						$HashKey = If (!$Strict) {[String]::Join($EscSeparator, @($Keys))}
-						           Else {[System.Management.Automation.PSSerializer]::Serialize($Keys)}
-						[Array]$HashTable[$HashKey] += $RightIndex++
+								   Else {[System.Management.Automation.PSSerializer]::Serialize($Keys)}
+						$HashTable[$HashKey]
+					} ElseIf ($OnExpression) {
+						If ($JoinType -eq "Cross") {Throw [ArgumentException]"The OnExpression parameter cannot be used on a cross join."}
+						For ($RightIndex = 0; $RightIndex -lt $RightLength; $RightIndex++) {
+							$Right = $RightObject[$RightIndex]; If (&$OnExpression) {$RightIndex}
+						}
 					}
+					ElseIf ($JoinType -eq "Cross") {0..($RightObject.Length - 1)}
+					ElseIf ($LeftIndex -lt $RightLength) {$LeftIndex} Else {$Null}
+				ForEach ($RightIndex in $RightList) {
+					$Right = If ($RightObject -is [Data.DataTable]) {$RightObject.Rows[$RightIndex]} Else {$RightObject[$RightIndex]}
+						$OutObject = OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right
+						If ($Null -ne $OutObject) {$OutObject; $InnerLeft = $True; $InnerRight[$RightIndex] = $True}
 				}
-				If ($Discern) {
-					If (@($Discern).Count -le 1) {$Discern = @($Discern) + ''}
-					ForEach ($Key in $LeftKeys) {
-						If ($RightKeys -Contains $Key) {
-							If ($Related -Contains $Key) {
-								$Expression[$Key] = {If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}
-							} Else {
-								$Name = If ($Discern[0].Contains('*')) {([Regex]"\*").Replace($Discern[0], $Key, 1)} Else {$Discern[0] + $Key}
-								$Expression[$Name] = [ScriptBlock]::Create("`$Left.'$Key'")
-							}
-						} Else {$Expression[$Key] = {$Left.$_}}
-					}
-					ForEach ($Key in $RightKeys) {
-						If ($LeftKeys -Contains $Key) {
-							If ($Related -NotContains $Key) {
-								$Name = If ($Discern[1].Contains('*')) {([Regex]"\*").Replace($Discern[1], $Key, 1)} Else {$Discern[1] + $Key}
-								$Expression[$Name] = [ScriptBlock]::Create("`$Right.'$Key'")
-							}
-						} Else {$Expression[$Key] = {$Right.$_}}
-					}
-				} ElseIf ($Property) {
-					ForEach ($Item in @($Property)) {
-						If ($Item -is [ScriptBlock]) {SetExpression $Null $Item}
-						ElseIf ($Item -is [System.Collections.IDictionary]) {ForEach ($Key in $Item.Get_Keys()) {SetExpression $Key $Item.$Key}}
-						Else {SetExpression $Item}
-					}
-				} Else {SetExpression}
+				If (!$InnerLeft -and ($JoinType -eq "Left" -or $JoinType -eq "Full")) {OutObject -LeftIndex $LeftIndex -Left $Left}
+				$LeftIndex++
 			}
-			$RightList = `
-				If ($On) {
-					If ($JoinType -eq "Cross") {Throw "The On parameter cannot be used on a cross join."}
-					$Keys = ForEach ($Name in @($On)) {$Left.$Name}
-					$HashKey = If (!$Strict) {[String]::Join($EscSeparator, @($Keys))}
-							   Else {[System.Management.Automation.PSSerializer]::Serialize($Keys)}
-					$HashTable[$HashKey]
-				} ElseIf ($OnExpression) {
-					If ($JoinType -eq "Cross") {Throw "The OnExpression parameter cannot be used on a cross join."}
-					For ($RightIndex = 0; $RightIndex -lt $RightLength; $RightIndex++) {
-						$Right = $RightObject[$RightIndex]; If (&$OnExpression) {$RightIndex}
-					}
-				}
-				ElseIf ($JoinType -eq "Cross") {0..($RightObject.Length - 1)}
-				ElseIf ($LeftIndex -lt $RightLength) {$LeftIndex} Else {$Null}
-			ForEach ($RightIndex in $RightList) {
-				$Right = If ($RightObject -is [Data.DataTable]) {$RightObject.Rows[$RightIndex]} Else {$RightObject[$RightIndex]}
-					$OutObject = OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right
-					If ($Null -ne $OutObject) {$OutObject; $InnerLeft = $True; $InnerRight[$RightIndex] = $True}
-			}
-			If (!$InnerLeft -and ($JoinType -eq "Left" -or $JoinType -eq "Full")) {OutObject -LeftIndex $LeftIndex -Left $Left}
-			$LeftIndex++
+		} Catch [ArgumentException] {
+			$PSCmdlet.ThrowTerminatingError($_)
 		}
 	}
 	End {
