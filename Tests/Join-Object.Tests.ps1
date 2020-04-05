@@ -1512,6 +1512,25 @@ hostname23,Company_Policy,291768854
 
 			Compare-PSObject $Actual $Expected | Should -BeNull
 		}
+		
+		It 'Match on two columns in two separate csvs then merge one column' { # https://stackoverflow.com/q/39733868/1701026
+		
+$Source = ConvertFrom-Csv @'
+"Employee ID","username","givenname","surname","emailaddress","title","Division","Location"
+"204264","ABDUL.JALIL@domain.com","Abdul Jalil","Bin Hajar","Abdul.jalil@domain.com","Warehouse Associate I","Singapore","Singapore, "
+"30053","ABEL.BARRAGAN@domain.com","Abel","Barragan","Abel.Barragan@domain.com","Manager, Customer Programs - CMS","Germany","Norderstedt, "
+'@
+
+$Change = ConvertFrom-Csv @'
+givenname,surname,samaccountname,emailaddress,mail,country,city,state
+Abigai,Teoyotl Rugerio,Abigai.Teoyotl,Abigai.TeoyotlRugerio@domain.com,Abigai.TeoyotlRugerio@domain.com,MX,,
+Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiyan@domain.com,US,VALENCIA,CALIFORNIA
+'@
+
+			# (some) Property do not show issue !!!
+			$Source | Update-Object $Change givenname,surname
+
+		}
 	}
 		
 	Context "Github issues" {
