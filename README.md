@@ -122,7 +122,7 @@ left object (or datatable) to be joined.
 The RightObject, provided by the first argument, defines the right
 object (or datatable) to be joined.
 
-`-On`
+`-On`  
 The `-On` parameter (alias `-Using`) defines which objects should be joined.
 If the `-Equals` parameter is omitted, the value(s) of the properties
 listed by the `-On` parameter should be equal at both sides in order to
