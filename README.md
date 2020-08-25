@@ -1,32 +1,33 @@
-# Join-Object
+## Join-Object
 Combines two object lists based on a related property between them.
 
-Combines properties from one or more objects. It creates a set that can
-be saved as a new object or used as it is. An object join is a means for
-combining properties from one (self-join) or more tables by using values
-common to each. The Join-Object cmdlet supports a few proxy commands with
-their own  (`-JoinType` and `-Property`) defaults:
-- `InnerJoin-Object` (Alias `InnerJoin` or `Join`)  
-Only returns the joined objects
-- `LeftJoin-Object` (Alias `LeftJoin`)  
-Returns the joined objects and the rest of the left objects
-- `RightJoin-Object` (Alias `RightJoin`)  
-Returns the joined objects and the rest of the right objects
-- `FullJoin-Object` (Alias `FullJoin`)  
-Returns the joined objects and the rest of the left and right objects
-- `CrossJoin-Object` (Alias `CrossJoin`)  
-Joins each left object to each right object
-- `Update-Object` (Alias `Update`)  
-Updates the left object with the right object properties
-- `Merge-Object` (Alias `Merge`)  
-Updates the left object with the right object properties and inserts
-right if the values of the related property is not equal.
+## Description
+Combines properties from one or more objects. It creates a set that can be saved as a new object or used as it is. An object join is a means for combining properties from one (self-join) or more object lists by using values common to each.
 
- ## Examples 
-A simple inner join on the country property considering the following
-existing list of objects:
+**Main features:**
+* Intuitive (SQL like) syntax
+* Smart property merging
+* Predefined join commands for updating, merging and specific join types
+* Well defined pipeline for the (left) input objects and output objects (preserves memory when correctly used)
+* Performs about 40% faster than Compare-Object on large object lists
+* Supports (custom) objects, data tables and dictionaries (e.g. hash tables) for input
+* Smart properties and calculated property expressions
+* Custom relation expressions
+* Easy installation (dot-sourcing)
+* Supports PowerShell for Windows (5.1) and PowerShell Core
 
-```powershell
+The Join-Object cmdlet reveals the following proxy commands with their own (`-JoinType` and `-Property`) defaults:
+* `InnerJoin-Object` (Alias `InnerJoin` or `Join`), combines the related objects
+* `LeftJoin-Object` (Alias `LeftJoin`), combines the related objects and adds the rest of the left objects
+* `RightJoin-Object` (Alias `RightJoin`), combines the related objects and adds the rest of the right objects
+* `FullJoin-Object` (Alias `FullJoin`), combines the related objects and adds the rest of the left and right objects
+* `CrossJoin-Object` (Alias `CrossJoin`), combines each left object with each right object
+* `Update-Object` (Alias `Update`), updates the left object with the related right object
+* `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the
+  new (unrelated) right objects
+
+**Example 1**
+```PowerShell
 PS C:\> $Employee
 
 Id Name    Country Department  Age ReportsTo
@@ -60,22 +61,22 @@ Id Name                   Country Department  Age ReportsTo
  6 {Fischer, Engineering} Germany Engineering  29         4
 ```
 
-Renaming unrelated columns
-```powershell
+**Example 2**
+```PowerShell
 PS C:\> $Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
 
-Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
--- ------------ --------------- ----------  --- --------- -------------- -----------------
- 1 Aerts        Belgium         Sales        40         5 Sales          France
- 2 Bauer        Germany         Engineering  31         4 Engineering    Germany
- 3 Cook         England         Sales        69         1 Sales          France
- 4 Duval        France          Engineering  21         5 Engineering    Germany
- 5 Evans        England         Marketing    35           Marketing      England
- 6 Fischer      Germany         Engineering  29         4 Engineering    Germany
+Id Name    EmployeeCountry Department  Age ReportsTo DepartmentCountry
+-- ----    --------------- ----------  --- --------- -----------------
+ 1 Aerts   Belgium         Sales        40         5 France
+ 2 Bauer   Germany         Engineering  31         4 Germany
+ 3 Cook    England         Sales        69         1 France
+ 4 Duval   France          Engineering  21         5 Germany
+ 5 Evans   England         Marketing    35           England
+ 6 Fischer Germany         Engineering  29         4 Germany
 ```
 
-Merging (update and insert) a new list
-```powershell
+**Example 3**
+```PowerShell
 PS C:\> $Changes
 
 Id Name    Country Department  Age ReportsTo
@@ -85,7 +86,7 @@ Id Name    Country Department  Age ReportsTo
  7 Geralds Belgium Sales        71         1
 
 
-PS C:\> $Employee | Merge $Changes -On Id
+PS C:\> $Employee | Merge $Changes -On Id | Format-Table
 
 Id Name    Country Department  Age ReportsTo
 -- ----    ------- ----------  --- ---------
@@ -98,9 +99,9 @@ Id Name    Country Department  Age ReportsTo
  7 Geralds Belgium Sales        71         1
 ```
 
-Self join on Id:
-```powershell
-PS C:\> LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = {$Left.Name}; Manager = {$Right.Name}}
+**Example 4**
+```PowerShell
+PS C:\> LeftJoin $Employee -On ReportsTo -Equals Id -Property @{ Name = 'Left.Name' }, @{ Manager = 'Right.Name' }
 
 Name    Manager
 ----    -------
@@ -112,130 +113,101 @@ Evans
 Fischer Duval
 ```
 
-## Parameters
+**Parameters**
 
-`-LeftObject`  
-The LeftObject, usually provided through the pipeline, defines the
-left object (or datatable) to be joined.
+**`-LeftObject <object list, data table or list of hash tables>`**
+The left object list, usually provided through the pipeline, to be joined.
 
-`-RightObject`  
-The RightObject, provided by the first argument, defines the right
-object (or datatable) to be joined.
+**`-RightObject <object list, data table or list of hash tables>`**
+The right object list, provided by the first argument, to be joined.
 
-`-On`  
-The `-On` parameter (alias `-Using`) defines which objects should be joined.
-If the `-Equals` parameter is omitted, the value(s) of the properties
-listed by the `-On` parameter should be equal at both sides in order to
-join the left object with the right object.
+**`-On <String[]>`**
+The `-On` parameter (alias `-Using`) defines which objects should be joined together.
+If the `-Equals` parameter is omitted, the value(s) of the properties listed by the `-On` parameter should be equal at both sides in order to join the left object with the right object.
 
-_Note 1:_ The list of properties defined by the `-On` parameter will be
-complemented with the list of properties defined by the `-Equals`
-parameter and vice versa.
+*Note 1:* The list of properties defined by the `-On` parameter will be complemented with the list of
+properties defined by the `-Equals` parameter and vice versa.
 
-_Note 2:_ Related joined properties will be merged to a single (left)
-property by default (see also the -Property parameter).
+*Note 2:* Related properties will be merged to a single property by default (see also the -Property
+parameter).
 
-_Note 3:_ If the `-On` and the `-OnExpression` parameter are omitted, a
-join by row index is returned.
+*Note 3:* If the -On and the `-OnExpression` parameter are omitted, a join by row index is returned.
 
-`-Equals`  
-If the `-Equals` parameter is supplied, the value(s) of the left object
-properties listed by the `-On` parameter should be equal to the value(s)
-of the right object listed by the `-Equals` parameter in order to join
-the left object with the right object.
+**`-Equals <String[]>`**
+If the `-Equals` parameter is supplied, the value(s) of the left object properties listed by the `-On`
+parameter should be equal to the value(s)of the right object listed by the `-Equals` parameter in order to join the left object with the right object.
 
-_Note 1:_ The list of properties defined by the `-Equal` parameter will be
-complemented with the list of properties defined by the `-On` parameter
-and vice versa.
+*Note 1:* The list of properties defined by the `-Equal` parameter will be complemented with the list of properties defined by the `-On` parameter and vice versa.
 
-_Note 2:_ The `-Equals` parameter can only be used with the `-On` parameter.
+*Note 2:* A property will be omitted if it exists on both sides and if the property at the other side is
+related to another property.
 
-`-Strict`  
-If the `-Strict` switch is set, the comparison between the related
-properties defined by the `-On` Parameter (and the `-Equals` parameter) is
-based on a strict equality (both type and value need to be equal).
+*Note 3:* The `-Equals` parameter can only be used with the `-On` parameter.
 
-`-MatchCase`  
-If the `-MatchCase` (alias `-CaseSensitive`) switch is set, the comparison
-between the related properties defined by the `-On` Parameter (and the
--`Equals` parameter) will case sensitive.
+**`-Strict`**
+If the `-Strict` switch is set, the comparison between the related properties defined by the `-On` Parameter (and the `-Equals` parameter) is based on a strict equality (both type and value need to be equal).
 
-`-OnExpression`
-Any conditional expression (where `$Left` refers to each left object and
-`$Right` refers to each right object) that requires to evaluate to true
-in order to join the left object with the right object.
+**`-MatchCase`**
+If the `-MatchCase` (alias `-CaseSensitive`) switch is set, the comparison between the related properties defined by the `-On` Parameter (and the `-Equals` parameter) will case sensitive.
 
-Note 1: The `-OnExpression` parameter has the most complex comparison
-possibilities but is considerable slower than the other types.
+**`-OnExpression <ScriptBlock>`**
+Any conditional expression (where `$Left` refers to each left object and `$Right` refers to each right object) that requires to evaluate to true in order to join the left object with the right object.
 
-Note 2: The `-OnExpression parameter` cannot be used with the `-On`
-parameter.
+*Note 1:* The `-OnExpression` parameter has the most complex comparison possibilities but is considerable slower than the other types.
 
-`-Where`  
-An expression that defines the condition to be met for the objects to
-be returned. There is no limit to the number of predicates that can be
-included in the condition.
+*Note 2:* The `-OnExpression` parameter cannot be used with the `-On` parameter.
 
-`-Discern`  
-The `-Discern` parameter defines how to discern the left and right object
-with respect to the common properties that aren't joined.
+**`-Where <ScriptBlock>`**
+An expression that defines the condition to be met for the objects to be returned. There is no limit to the number of predicates that can be included in the condition.
 
-The first string defines how to rename the left property, the second
-string (if defined) defines how to rename the right property.
-If the string contains an asterisks (`*`), the asterisks will be replaced
-with the original property name, otherwise, the property name will be
-prefixed with the given string.
+**`-Discern <String, String>`**
+The `-Discern` parameter defines how to discern the left and right object properties with respect to the common properties that aren't related.
+
+The first string defines how to rename the left property, the second string (if defined) defines how to
+rename the right property. If the string contains an asterisks (`*`), the asterisks will be replaced with
+the original property name, otherwise, the property name will be prefixed with the given string.
 
 Properties that don't exist on both sides will not be renamed.
 
-Joined properties (defined by the `-On` parameter) will be merged.
+Joined (equal) properties (defined by the -On parameter) will be merged.
 
-_Note_: The `-Discern` parameter cannot be used with the `-Property` parameter.
+*Note:* The -Discern parameter cannot be used with the -Property parameter.
 
-`-Property`  
-A hash table or list of property names (strings) and/or hash tables that
-define a new selection of property names and values
+**`-Property <(HashTable or String)[]>`**
+A hash table or list of property names (strings) and/or hash tables that define a new selection of
+property names and values
 
-Hash tables should be in the format `@{<PropertyName> = <Expression>}`
-where the `<Expression>` defines how the specific left and right
-properties should be merged. Where the following variables are
-available for each joined object:
-- `$_`: iterates each property name
-- `$Left`: the current left object (each self-contained `-LeftObject`)
-- `$LeftIndex`: the index of the left object
-- `$Right`: the current right object (each self-contained `-RightObject`)
-- `$RightIndex`: the index of the right object
-If the `$LeftObject` isn't joined in a Right- or FullJoin then `$LeftIndex`
-will be `$Null` and the `$Left` object will represent an object with each
-property set to `$Null`.
-If the `$RightObject` isn't joined in a Left- or FullJoin then `$RightIndex`
-will be `$Null` and the `$Right` object will represent an object with each
-property set to `$Null`.
+Hash tables should be in the format `@{<PropertyName> = <Expression>}` where the <Expression> is a `ScriptBlock` or a *smart property* (string) and defines how the specific left and right properties should be merged.
 
-An asterisks (`*`) represents all known left - and right properties.
+The following variables are exposed for a (`ScriptBlock`) expression:
+* **`$_`**: iterates each property name
+* **`$Left`**: a hash table representing the current left object (each self-contained `-LeftObject`).
+  The hash table will be empty (`@{}`) in the outer part of a left join or full join.
+* **`$LeftIndex`**: the index of the left object (`$Null` in the outer part of a right- or full join)
+* **`$Right`**: a hash table representing the current right object (each self-contained `-RightObject`)
+  The hash table will be empty (`@{}`) in the outer part of a right join or full join.
+* **`$RightIndex`**: the index of the right object (`$Null` in the outer part of a left- or full join)
 
-If the `-Property` and the `-Discern` parameters are ommited or in case a
-property name (or an asterisks) is supplied without expression, the
-expression will be automatically added using the following rules:
-- If the property only exists on the left side, the expression is:  
-  `{$Left.$_}`
-- If the property only exists on the right side, the expression is:  
-  `{$Right.$_}`
-- If the left - and right properties aren't joined, the expression is:  
-  `{$Left.$_, $Right.$_}`
-- If the left - and right property are joined, the expression is:  
-  `{If ($Null -ne $LeftIndex) {$Left.$_} Else {$Right.$_}}}`
+The following smart properties are available:
+* A **general property**: `'<Property Name>'`, where `<Property Name>` represents the property name of the left and/or right property, e.g. `@{ MyProperty = 'Name' }`. If the property exists on both sides, an array holding both values will be returned. In the outer join, the value of the property will be `$Null`.  This smart property is similar to the expression: `@{ MyProperty = { @($Left['Name'], $Right['Name']) } }`
+* A **general wildcard property**: `'*'`, where `*` represents the property name of the current property, e.g. ` 'MyProperty' in @{ MyProperty = '*' }`. If the property exists on both sides:
+  - and the properties are unrelated, an array holding both values will be returned
+  - and the properties are related to each other, the (equal) values will be merged in one property value
+  - and the property at the other side is related to an different property, the property is omitted
+  
+  The argument: `-Property *`, will apply a general wildcard on all left and right properties.
+* A **left property**: `Left.<Property Name>'`, or **right property**: `Right.'<Property Name>'`, where `<Property Name>` represents the property name of the either the left or right property. If the property doesn't exist, the value of the property will be `$Null`.
+* A **left wildcard property**: `Left.'*'`, or **right wildcard property**: `Right.'*'`, where `*` represents the property name of the current the left or right property, e.g. `'MyProperty' in @{ MyProperty = 'Left.*' }`. If the property doesn't exist (in an outer join), the property with the same name at the other side will be taken. If the property doesn't exist on either side, the value of the property will be `$Null`.
+  
+  The argument: `-Property 'Left.*'`, will apply a left wildcard property on all the left object properties.
 
-If an expression without a property name assignment is supplied, it will
-be assigned to all known properties in the `$LeftObject` and `$RightObject`.
+If the `-Property` parameter and the `-Discern` parameter are omitted, a general wildcard property is applied on all the left and right properties.
 
-The last defined expression will overrule any previous defined expressions
+The last defined expression or smart property will overrule any previous defined properties.
 
-_Note_: The `-Property` parameter cannot be used with the `-Discern` parameter.
+*Note:* The `-Property` parameter cannot be used with the `-Discern` parameter.
 
-`-JoinType`  
-Defines which unrelated objects should be included (see: **Descripton**).
-Valid values are: `Inner`, `Left`, `Right`, `Full` or `Cross`.
-The default is `Inner`.
+**`-JoinType <'Inner'|'Left'|'Right'|'Full'|'Cross'>`**
+Defines which unrelated objects should be included (see: Description). The default is `'Inner'`.
 
-_Note:_ It is recommended to use the related proxy commands instead.
+Note: It is recommended to use the related proxy commands (`... | <JoinType>-Object ...`) instead.
