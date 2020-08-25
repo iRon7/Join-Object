@@ -115,13 +115,13 @@ Fischer Duval
 
 **Parameters**
 
-**`-LeftObject <object list, data table or list of hash tables>`**
+**`-LeftObject <object list, data table or list of hash tables>`**  
 The left object list, usually provided through the pipeline, to be joined.
 
-**`-RightObject <object list, data table or list of hash tables>`**
+**`-RightObject <object list, data table or list of hash tables>`**  
 The right object list, provided by the first argument, to be joined.
 
-**`-On <String[]>`**
+**`-On <String[]>`**  
 The `-On` parameter (alias `-Using`) defines which objects should be joined together.
 If the `-Equals` parameter is omitted, the value(s) of the properties listed by the `-On` parameter should be equal at both sides in order to join the left object with the right object.
 
@@ -133,7 +133,7 @@ parameter).
 
 *Note 3:* If the -On and the `-OnExpression` parameter are omitted, a join by row index is returned.
 
-**`-Equals <String[]>`**
+**`-Equals <String[]>`**  
 If the `-Equals` parameter is supplied, the value(s) of the left object properties listed by the `-On`
 parameter should be equal to the value(s)of the right object listed by the `-Equals` parameter in order to join the left object with the right object.
 
@@ -144,23 +144,23 @@ related to another property.
 
 *Note 3:* The `-Equals` parameter can only be used with the `-On` parameter.
 
-**`-Strict`**
+**`-Strict`**  
 If the `-Strict` switch is set, the comparison between the related properties defined by the `-On` Parameter (and the `-Equals` parameter) is based on a strict equality (both type and value need to be equal).
 
-**`-MatchCase`**
+**`-MatchCase`**  
 If the `-MatchCase` (alias `-CaseSensitive`) switch is set, the comparison between the related properties defined by the `-On` Parameter (and the `-Equals` parameter) will case sensitive.
 
-**`-OnExpression <ScriptBlock>`**
+**`-OnExpression <ScriptBlock>`**  
 Any conditional expression (where `$Left` refers to each left object and `$Right` refers to each right object) that requires to evaluate to true in order to join the left object with the right object.
 
 *Note 1:* The `-OnExpression` parameter has the most complex comparison possibilities but is considerable slower than the other types.
 
 *Note 2:* The `-OnExpression` parameter cannot be used with the `-On` parameter.
 
-**`-Where <ScriptBlock>`**
+**`-Where <ScriptBlock>`**  
 An expression that defines the condition to be met for the objects to be returned. There is no limit to the number of predicates that can be included in the condition.
 
-**`-Discern <String, String>`**
+**`-Discern <String, String>`**  
 The `-Discern` parameter defines how to discern the left and right object properties with respect to the common properties that aren't related.
 
 The first string defines how to rename the left property, the second string (if defined) defines how to
@@ -173,7 +173,7 @@ Joined (equal) properties (defined by the -On parameter) will be merged.
 
 *Note:* The -Discern parameter cannot be used with the -Property parameter.
 
-**`-Property <(HashTable or String)[]>`**
+**`-Property <(HashTable or String)[]>`**  
 A hash table or list of property names (strings) and/or hash tables that define a new selection of
 property names and values
 
@@ -207,7 +207,7 @@ The last defined expression or smart property will overrule any previous defined
 
 *Note:* The `-Property` parameter cannot be used with the `-Discern` parameter.
 
-**`-JoinType <'Inner'|'Left'|'Right'|'Full'|'Cross'>`**
+**`-JoinType <'Inner'|'Left'|'Right'|'Full'|'Cross'>`**  
 Defines which unrelated objects should be included (see: Description). The default is `'Inner'`.
 
 Note: It is recommended to use the related proxy commands (`... | <JoinType>-Object ...`) instead.
