@@ -196,8 +196,8 @@ The following smart properties are available:
   - and the property at the other side is related to an different property, the property is omitted
   
   The argument: `-Property *`, will apply a general wildcard on all left and right properties.
-* A **left property**: `Left.<Property Name>'`, or **right property**: `Right.'<Property Name>'`, where `<Property Name>` represents the property name of the either the left or right property. If the property doesn't exist, the value of the property will be `$Null`.
-* A **left wildcard property**: `Left.'*'`, or **right wildcard property**: `Right.'*'`, where `*` represents the property name of the current the left or right property, e.g. `'MyProperty' in @{ MyProperty = 'Left.*' }`. If the property doesn't exist (in an outer join), the property with the same name at the other side will be taken. If the property doesn't exist on either side, the value of the property will be `$Null`.
+* A **left property**: `'Left.<Property Name>'`, or **right property**: `'Right.<Property Name>'`, where `<Property Name>` represents the property name of the either the left or right property. If the property doesn't exist, the value of the property will be `$Null`.
+* A **left wildcard property**: `'Left.*'`, or **right wildcard property**: `'Right.*'`, where `*` represents the property name of the current the left or right property, e.g. `'MyProperty' in @{ MyProperty = 'Left.*' }`. If the property doesn't exist (in an outer join), the property with the same name at the other side will be taken. If the property doesn't exist on either side, the value of the property will be `$Null`.
   
   The argument: `-Property 'Left.*'`, will apply a left wildcard property on all the left object properties.
 
