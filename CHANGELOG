@@ -50,3 +50,6 @@
                                  Prevent against code injection: https://devblogs.microsoft.com/powershell/powershell-injection-hunter-security-auditing-for-powershell-scripts/
                                  Support wildcard * (all properties) for the -On parameter
                                  Convert each object to a hash table for strict expressions
+3.4.0     2021-03-01 Ronald Bode Implemented issue #14 "Support non-object arrays"
+3.4.1     2021-03-08 Ronald Bode Implemented issue #16 "Discern merged properties for multiple joins "
+3.4.2     2021-03-11 Ronald Bode Code and Help clearance
