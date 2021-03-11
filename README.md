@@ -11,6 +11,7 @@ Combines properties from one or more objects. It creates a set that can be saved
 * Well defined pipeline for the (left) input objects and output objects (preserves memory when correctly used)
 * Performs about 40% faster than Compare-Object on large object lists
 * Supports (custom) objects, data tables and dictionaries (e.g. hash tables) for input
+* Supports side-by-side joins and plain object (as strings and primitives) arrays
 * Smart properties and calculated property expressions
 * Custom relation expressions
 * Easy installation (dot-sourcing)
@@ -160,8 +161,8 @@ Any conditional expression (where `$Left` refers to each left object and `$Right
 **`-Where <ScriptBlock>`**  
 An expression that defines the condition to be met for the objects to be returned. There is no limit to the number of predicates that can be included in the condition.
 
-**`-Discern <String, String>`**  
-The `-Discern` parameter defines how to discern the left and right object properties with respect to the common properties that aren't related.
+**`-Discern <String[]>`**  
+The `-Discern` parameter (alias -NameItems) defines how to discern the left and right object properties with respect to the common properties that aren't related.
 
 The first string defines how to rename the left property, the second string (if defined) defines how to
 rename the right property. If the string contains an asterisks (`*`), the asterisks will be replaced with
@@ -170,8 +171,6 @@ the original property name, otherwise, the property name will be prefixed with t
 Properties that don't exist on both sides will not be renamed.
 
 Joined (equal) properties (defined by the -On parameter) will be merged.
-
-*Note:* The -Discern parameter cannot be used with the -Property parameter.
 
 **`-Property <(HashTable or String)[]>`**  
 A hash table or list of property names (strings) and/or hash tables that define a new selection of
@@ -205,7 +204,8 @@ If the `-Property` parameter and the `-Discern` parameter are omitted, a general
 
 The last defined expression or smart property will overrule any previous defined properties.
 
-*Note:* The `-Property` parameter cannot be used with the `-Discern` parameter.
+**`-ValueName <String>`**  
+Defines the default name for the property name in case a scalar array is joined with an object array.
 
 **`-JoinType <'Inner'|'Left'|'Right'|'Full'|'Cross'>`**  
 Defines which unrelated objects should be included (see: Description). The default is `'Inner'`.
