@@ -1,5 +1,5 @@
 Write-Host 'Preparing...'
-. .\Join.ps1
+. .\Join-Object.ps1
 $Null = Random -SetSeed 0
 $Max = 1000
 $NumberFormat = '{0:' + '0' * ($Max - 1).ToString().Length + '}'
