@@ -51,5 +51,8 @@
                                  Support wildcard * (all properties) for the -On parameter
                                  Convert each object to a hash table for strict expressions
 3.4.0     2021-03-01 Ronald Bode Implemented issue #14 "Support non-object arrays"
-3.4.1     2021-03-08 Ronald Bode Implemented issue #16 "Discern merged properties for multiple joins "
+3.4.1     2021-03-08 Ronald Bode Implemented issue #16 "Discern merged properties for multiple joins"
 3.4.2     2021-03-11 Ronald Bode Code and Help clearance
+3.4.2     2021-03-20 Ronald Bode Issue #18 Support self-join on the left (piped) object
+3.4.4     2021-03-24 Ronald Bode Using $PSCmdlet.ThrowTerminatingError for argument exceptions
+3.4.5     2021-03-11 Ronald Bode Issue #19 Updated help
