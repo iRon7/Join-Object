@@ -10,8 +10,7 @@ Combines properties from one or more objects. It creates a set that can be saved
 * Predefined join commands for updating, merging and specific join types
 * Well defined pipeline for the (left) input objects and output objects (preserves memory when correctly used)
 * Performs about 40% faster than Compare-Object on large object lists
-* Supports (custom) objects, data tables and dictionaries (e.g. hash tables) for input
-* Supports side-by-side joins and plain object (as strings and primitives) arrays
+* Supports a list of (custom) objects, strings or primitives and dictionaries (e.g. hash tables) and data tables for input
 * Smart properties and calculated property expressions
 * Custom relation expressions
 * Easy installation (dot-sourcing)
@@ -50,6 +49,7 @@ Sales       France
 Purchase    France
 
 
+PS C:\> # Join the employees with the departments based on the country
 PS C:\> $Employee | InnerJoin $Department -On Country | Format-Table
 
 Id Name                   Country Department  Age ReportsTo
@@ -64,16 +64,18 @@ Id Name                   Country Department  Age ReportsTo
 
 **Example 2**
 ```PowerShell
+PS C:\> # Full join the employees with the departments based on the department name
+PS C:\> # and Split the names over differend properties
 PS C:\> $Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
 
-Id Name    EmployeeCountry Department  Age ReportsTo DepartmentCountry
--- ----    --------------- ----------  --- --------- -----------------
- 1 Aerts   Belgium         Sales        40         5 France
- 2 Bauer   Germany         Engineering  31         4 Germany
- 3 Cook    England         Sales        69         1 France
- 4 Duval   France          Engineering  21         5 Germany
- 5 Evans   England         Marketing    35           England
- 6 Fischer Germany         Engineering  29         4 Germany
+Id Name    EmployeeCountry DepartmentCountry Department  Age ReportsTo
+-- ----    --------------- ----------------- ----------  --- ---------
+ 1 Aerts   Belgium         France            Sales        40         5
+ 2 Bauer   Germany         Germany           Engineering  31         4
+ 3 Cook    England         France            Sales        69         1
+ 4 Duval   France          Germany           Engineering  21         5
+ 5 Evans   England         England           Marketing    35
+ 6 Fischer Germany         Germany           Engineering  29         4
 ```
 
 **Example 3**
@@ -87,6 +89,7 @@ Id Name    Country Department  Age ReportsTo
  7 Geralds Belgium Sales        71         1
 
 
+PS C:\> # Apply the changes to the employees
 PS C:\> $Employee | Merge $Changes -On Id | Format-Table
 
 Id Name    Country Department  Age ReportsTo
@@ -102,6 +105,7 @@ Id Name    Country Department  Age ReportsTo
 
 **Example 4**
 ```PowerShell
+PS C:\> # (Self) join each employee with its each manager
 PS C:\> LeftJoin $Employee -On ReportsTo -Equals Id -Property @{ Name = 'Left.Name' }, @{ Manager = 'Right.Name' }
 
 Name    Manager
@@ -114,13 +118,59 @@ Evans
 Fischer Duval
 ```
 
+**Example 5**
+```PowerShell
+PS C:\> # Add an Id to the department list
+PS C:\> 1..9 |Join $Department -ValueName Id
+
+Id Name        Country
+-- ----        -------
+ 1 Engineering Germany
+ 2 Marketing   England
+ 3 Sales       France
+ 4 Purchase    France
+```
+
+**Example 6**
+```PowerShell
+PS C:\> $a = 'a1', 'a2', 'a3', 'a4'
+PS C:\> $b = 'b1', 'b2', 'b3', 'b4'
+PS C:\> $c = 'c1', 'c2', 'c3', 'c4'
+PS C:\> $d = 'd1', 'd2', 'd3', 'd4'
+
+PS C:\> # Join (transpose) multiple arrays to a collection array
+PS C:\> $a |Join $b |Join $c |Join $d |% { "$_" }
+
+a1 b1 c1 d1
+a2 b2 c2 d2
+a3 b3 c3 d3
+a4 b4 c4 d4
+```
+
+**Example 7**
+```PowerShell
+PS C:\> # Create objects with named properties from multiple arrays
+PS C:\> $a |Join $b |Join $c |Join $d -Name a, b, c, d
+
+a  b  c  d
+-  -  -  -
+a1 b1 c1 d1
+a2 b2 c2 d2
+a3 b3 c3 d3
+a4 b4 c4 d4
+```
+
 **Parameters**
 
 **`-LeftObject <object list, data table or list of hash tables>`**  
 The left object list, usually provided through the pipeline, to be joined.
 
+*Note:* a self-join on the LeftObject list will be performed if the RightObject is omitted.
+
 **`-RightObject <object list, data table or list of hash tables>`**  
 The right object list, provided by the first argument, to be joined.
+
+*Note:* a self-join on the RightObject list will be performed if the LeftObject is omitted.
 
 **`-On <String[]>`**  
 The `-On` parameter (alias `-Using`) defines which objects should be joined together.
@@ -132,7 +182,7 @@ properties defined by the `-Equals` parameter and vice versa.
 *Note 2:* Related properties will be merged to a single property by default (see also the -Property
 parameter).
 
-*Note 3:* If the -On and the `-OnExpression` parameter are omitted, a join by row index is returned.
+*Note 3:* If the -On and the `-OnExpression` parameter are omitted, a side-by-side join is returned.
 
 **`-Equals <String[]>`**  
 If the `-Equals` parameter is supplied, the value(s) of the left object properties listed by the `-On`
@@ -162,15 +212,15 @@ Any conditional expression (where `$Left` refers to each left object and `$Right
 An expression that defines the condition to be met for the objects to be returned. There is no limit to the number of predicates that can be included in the condition.
 
 **`-Discern <String[]>`**  
-The `-Discern` parameter (alias -NameItems) defines how to discern the left and right object properties with respect to the common properties that aren't related.
+By default unrelated properties with the same name will be collected in a single object property.
+The `-Discern` parameter (alias `-NameItems`)  defines how to rename the object properties and divide them over multiple properties. If a given name pattern contains an asterisks (`*`), the asterisks will be replaced with the original property name. Otherwise, the property name for each property item will be prefixed with the given name pattern.
 
-The first string defines how to rename the left property, the second string (if defined) defines how to
-rename the right property. If the string contains an asterisks (`*`), the asterisks will be replaced with
-the original property name, otherwise, the property name will be prefixed with the given string.
+The property collection of multiple (chained) join commands can be divided in once from the last join command in the change. The rename patterns are right aligned, meaning that the last renamed pattern will be applied to the last object joined. If there are less rename patterns than property items, the rest of the (left most) property items will be put in a fixed array under the original property name.
 
-Properties that don't exist on both sides will not be renamed.
+*Note 1:* Only properties with the same name on both sides will not be renamed.
 
-Joined (equal) properties (defined by the -On parameter) will be merged.
+*Note 2:* Related properties (with an equal value defined by the -On parameter) will be merged to a signle
+item.
 
 **`-Property <(HashTable or String)[]>`**  
 A hash table or list of property names (strings) and/or hash tables that define a new selection of
@@ -211,3 +261,5 @@ Defines the default name for the property name in case a scalar array is joined 
 Defines which unrelated objects should be included (see: Description). The default is `'Inner'`.
 
 Note: It is recommended to use the related proxy commands (`... | <JoinType>-Object ...`) instead.
+
+<sub>Please give a 👍 if you support the proposal to [Add a Join-Object cmdlet to the standard PowerShell equipment (`#14994`)](https://github.com/PowerShell/PowerShell/issues/14994)</sub>
