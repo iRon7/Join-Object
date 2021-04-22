@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.4.5
+.VERSION 3.4.6
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two objects lists based on a related property between them.
@@ -374,17 +374,19 @@ function Join-Object {
         }
         function GetKeys($Object) {
             if ($Null -eq $Object) {}
-            if ($Object -is [string] -or $Object -is [ValueType] -or $Object -is [Array]) { $ValueName }
+            elseif ($Object -is [string] -or $Object -is [ValueType] -or $Object -is [Array]) { $ValueName }
             elseif ($Object -is [Collections.ObjectModel.Collection[psobject]]) { $ValueName }
             elseif ($Object -is [Data.DataRow]) { $Object.Table.Columns.ColumnName }
             elseif ($Object -is [System.Collections.IDictionary]) { $Object.Get_Keys() }
-            else { $Object.PSObject.Properties.Name }
+            elseif ($Object) { $Object.PSObject.Properties.Name }
         }
         function GetProperties($Object, $Keys) {
             if (@($Keys).Count -eq 1 -and $Keys.Contains($ValueName) ) { [ordered]@{ $ValueName = $Object } }
             else {
                 $Properties = [ordered]@{}
-                foreach ($Key in $Keys) { $Properties.Add($Key, $Object.psobject.properties[$Key].Value) }
+                if ($Null -ne $Object) {
+                    foreach ($Key in $Keys) { $Properties.Add($Key, $Object.psobject.properties[$Key].Value) }
+                }
                 $Properties
             }
         }
@@ -410,7 +412,7 @@ function Join-Object {
             if ($Null -ne $Wildcard) {
                 if ($Null -eq $Expression) { $Expression = $Key }
                 foreach ($Key in $Wildcard) {
-                    if (!$Expressions.Contains($Key)) {
+                    if ($Null -ne $Key -and !$Expressions.Contains($Key)) {
                         $Expressions[$Key] = $Expression
                     }
                 }
@@ -493,7 +495,7 @@ function Join-Object {
                     else { $LeftNull[$Key] = [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
                 }
                 $Right = $RightObject[0]                                        # There should always be a right object here
-                ([ref]$RightKeys).Value = $Right.get_Keys()
+                ([ref]$RightKeys).Value = if ($Null -ne $Right) { $Right.get_Keys() } else { @() }
                 foreach ($Key in $RightKeys) {
                     $RightLeft[$Key] = $Null                                    # Right to Left relation
                     if ($Right[$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $RightNull[$Key] = $Null }
@@ -560,26 +562,27 @@ function Join-Object {
         $Esc = [char]27; $EscSeparator = $Esc + ', '
         $Expressions = [Ordered]@{}
         $StringComparer = if ($MatchCase) { [StringComparer]::Ordinal } Else { [StringComparer]::OrdinalIgnoreCase }
-        $LeftKeys, $InnerLeft, $RightKeys, $InnerRight = $Null
+        $LeftKeys, $InnerLeft, $RightKeys, $InnerRight, $LeftList = $Null
         $RightList = [Collections.Generic.Dictionary[string, [Collections.Generic.List[Int]]]]::new($StringComparer)
         $LeftRight = @{}; $RightLeft = @{}; $LeftNull = [ordered]@{}; $RightNull = [ordered]@{}
         if ($PSBoundParameters.ContainsKey('RightObject')) { $RightObject = AsDictionary $RightObject }
-        $LeftSelf = [Collections.Generic.List[Collections.IDictionary]]::New()
         $LeftIndex = 0
     }
     process {
+        # The Process block is also invoked (once) if the LeftObject (pipeline) is completely omitted
+        if ($Null -eq $LeftList) { $LeftList = [Collections.Generic.List[Collections.IDictionary]]::New() }
         if ($Null -ne $LeftObject) {
-            if ($Null -eq $LeftKeys) { ([ref]$LeftKeys).Value = GetKeys $LeftObject }
+            if ($Null -eq $LeftKeys) { $LeftKeys = GetKeys $LeftObject }
             if ($LeftObject -isnot [Collections.IDictionary]) { $LeftObject = GetProperties $LeftObject $LeftKeys }
-            if ($Null -ne $RightObject) { ProcessObject $LeftObject; $LeftIndex++ } else { $LeftSelf.Add($LeftObject) }
+            if ($Null -ne $RightObject) { ProcessObject $LeftObject; $LeftIndex++ } else { $LeftList.Add($LeftObject) }
         }
     }
     end {
         if ($Null -eq $LeftKeys -and $Null -eq $RightObject) { StopError 'A value for either the LeftObject or the RightObject is required.' 'MissingObject' }
-        if ($Null -eq $LeftKeys -or $Null -eq $RightObject) {
-            if ($LeftSelf.Count -gt 0) { $LeftObject = $LeftSelf } else { $LeftObject = AsDictionary $RightObject }
-            $RightObject = $LeftObject
-            ForEach ($Left in $LeftObject) { ProcessObject $Left; $LeftIndex++ }
+        if ($Null -ne $LeftList -and ($Null -eq $LeftKeys -or $Null -eq $RightObject)) { #Self Join
+            if ($LeftList.Count -gt 0) { $RightObject = $LeftObject = $LeftList }
+            else { $LeftObject = AsDictionary $RightObject }
+            foreach ($Left in $LeftObject) { ProcessObject $Left; $LeftIndex++ }
         }
         if ($JoinType -eq 'Right' -or $JoinType -eq 'Full') {
             $LeftIndex = $Null; $Left = $LeftNull
