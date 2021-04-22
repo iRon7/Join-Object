@@ -384,7 +384,11 @@ function Join-Object {
             if (@($Keys).Count -eq 1 -and $Keys.Contains($ValueName) ) { [ordered]@{ $ValueName = $Object } }
             else {
                 $Properties = [ordered]@{}
-                foreach ($Key in $Keys) { $Properties.Add($Key, $Object.psobject.properties[$Key].Value) }
+                foreach ($Key in $Keys) { 
+                    if ($null -ne $Key) {
+                        $Properties.Add($Key, $Object.psobject.properties[$Key].Value)
+                    }
+                 }
                 $Properties
             }
         }
