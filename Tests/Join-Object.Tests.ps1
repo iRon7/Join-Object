@@ -2090,6 +2090,29 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             $Result[1] | Should -be 'bar | 1 2 | so on'
 
         }
+        
+        It '#19 Deal with empty (and $Null) inputs' { # https://github.com/iRon7/Join-Object/issues/19
+        
+            @() |Join $Employee | Should -benull
+            
+            $Actual = $Employee |Join $Null 
+            $Expected = [PSCustomObject]@{Id = 1; Name = 'Aerts'; Country = 'Belgium'; Department = 'Sales'; Age = 40; ReportsTo = 5}
+            Compare-PSObject $Actual $Expected | Should -BeNull
+            
+            $Employee |Join @() | Should -benull
+            
+            @{id = 1; name = 'one'} |Join @{id = 2; name = 'Two'} -On id | Should -benull
+            
+            @{id = 1; name = 'one'} |Join @{id = 2; name = 'Two'} -On id |Join @{id = 3; name = 'Three'} -On id | Should -benull
+            
+            @() |Join @{id = 3; name = 'Three'} -On id | Should -benull
+            
+            $Actual = Join @{id = 3; name = 'Three'} -On id
+            $Expected = [PSCustomObject]@{name = [array]('Three', 'Three'); id = 3}
+            Compare-PSObject $Actual $Expected | Should -BeNull
+            
+        }
+
     }
 
 }
