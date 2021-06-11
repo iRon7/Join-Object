@@ -26,6 +26,25 @@ The Join-Object cmdlet reveals the following proxy commands with their own (`-Jo
 * `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the
   new (unrelated) right objects
 
+## Installation
+There are two versions of this `Join-Object` cmdlet (both versions supply the same functionality):
+
+* [**Join Module**](https://www.powershellgallery.com/packages/JoinModule)
+
+<span></span>
+
+    Install-Module -Name JoinModule
+
+* [**Join Script**](https://www.powershellgallery.com/packages/Join)
+
+<span></span>
+
+    Install-Script -Name Join
+
+<sup>(Or rename the `Join.psm1` module to a script `Join.ps1` file and invoked the script by [**dot sourcing**](https://docs.microsoft.com/powershell/module/microsoft.powershell.core/about/about_scripts?view=powershell-6#script-scope-and-dot-sourcing): `. .\Join.ps1`.)</sup>
+
+## Examples
+
 **Example 1**
 ```PowerShell
 PS C:\> $Employee
@@ -160,7 +179,7 @@ a3 b3 c3 d3
 a4 b4 c4 d4
 ```
 
-**Parameters**
+## Parameters
 
 **`-LeftObject <object list, data table or list of hash tables>`**  
 The left object list, usually provided through the pipeline, to be joined.
