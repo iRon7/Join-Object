@@ -56,4 +56,7 @@
 3.4.2     2021-03-20 Ronald Bode Issue #18 Support self-join on the left (piped) object
 3.4.4     2021-03-24 Ronald Bode Using $PSCmdlet.ThrowTerminatingError for argument exceptions
 3.4.5     2021-03-11 Ronald Bode Issue #17 Updated help
-3.4.6     2021-04-08 Ronald Bode Fixed issue #19 (& #23): Deal with empty (and $Null) inputs
+3.4.6     2021-04-08 Ronald Bode Fixed issue #19: Deal with empty (and $Null) inputs
+3.4.7     2021-04-08 Ronald Bode Improved proxy command defaults
+3.5.0     2021-06-08 Ronald Bode Prepared for module version
+3.5.1     2021-06-10 Ronald Bode Fixed ScriptBlock module scope issue: https://stackoverflow.com/q/2193410/1701026
