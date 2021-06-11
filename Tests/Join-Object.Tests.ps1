@@ -4,9 +4,12 @@ Describe 'Join-Object' {
     
     BeforeAll {
     
-        Set-StrictMode -Version 2
+        Set-StrictMode -Version Latest
 
-        . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
+        Get-Module -Name JoinModule | Remove-Module
+        Import-Module JoinModule
+        # . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
+        
         . .\ConvertFrom-SourceTable.ps1                             # https://www.powershellgallery.com/packages/ConvertFrom-SourceTable
 
         Function Compare-PSObject([Object[]]$ReferenceObject, [Object[]]$DifferenceObject) {
@@ -2109,6 +2112,18 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             
             $Actual = Join @{id = 3; name = 'Three'} -On id
             $Expected = [PSCustomObject]@{name = [array]('Three', 'Three'); id = 3}
+            Compare-PSObject $Actual $Expected | Should -BeNull
+            
+        }
+
+        It '#21 merge repeating names' { # https://github.com/iRon7/Join-Object/issues/21
+        
+            $Actual = 0..9 |Join 3, 5, 6 |Join 1, 2, 4 |Join 7, 8, 9 -Name Index, Sum, Sum, Sum
+            $Expected = @(
+                [PSCustomObject]@{Index = 0; Sum = 3, 1, 7}
+                [PSCustomObject]@{Index = 1; Sum = 5, 2, 8}
+                [PSCustomObject]@{Index = 2; Sum = 6, 4, 9}
+            )
             Compare-PSObject $Actual $Expected | Should -BeNull
             
         }
