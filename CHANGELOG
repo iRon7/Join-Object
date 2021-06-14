@@ -60,3 +60,4 @@
 3.4.7     2021-04-08 Ronald Bode Improved proxy command defaults
 3.5.0     2021-06-08 Ronald Bode Prepared for module version
 3.5.1     2021-06-10 Ronald Bode Fixed ScriptBlock module scope issue: https://stackoverflow.com/q/2193410/1701026
+3.5.2     2021-06-14 Ronald Bode Minor Help update and advertisement for the Module version.
