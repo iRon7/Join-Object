@@ -1,8 +1,8 @@
-﻿<#PSScriptInfo
-.VERSION 3.5.1
+<#PSScriptInfo
+.VERSION 3.5.2
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
-.DESCRIPTION Join-Object combines two objects lists based on a related property between them.
+.DESCRIPTION Join-Object combines two object lists based on a related property between them.
 .COMPANYNAME
 .COPYRIGHT
 .TAGS Join-Object Join InnerJoin LeftJoin RightJoin FullJoin CrossJoin Update Merge Combine Table
@@ -12,7 +12,7 @@
 .EXTERNALMODULEDEPENDENCIES
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
-.RELEASENOTES
+.RELEASENOTES To install the new Join module equivalent: Install-Module -Name JoinModule
 .PRIVATEDATA
 #>
 
@@ -34,7 +34,7 @@
     * Supports a list of (custom) objects, strings or primitives and dictionaries (e.g. hash tables) and data tables for input
     * Smart properties and calculated property expressions
     * Custom relation expressions
-    * Easy installation (dot-sourcing)
+    * Module (Install-Module -Name JoinModule) or (dot-sourcing) Script version (Install-Script -Name Join)
     * Supports PowerShell for Windows (5.1) and PowerShell Core
 
     The Join-Object cmdlet reveals the following proxy commands with their own (-JoinType and -Property) defaults:
@@ -46,12 +46,6 @@
     * Update-Object (Alias Update), updates the left object with the related right object
     * Merge-Object (Alias Merge), updates the left object with the related right object and adds the rest of the
       new (unrelated) right objects
-
-    .INPUTS
-    PSObject[], DataTable[] or HashTable[]
-
-    .OUTPUTS
-    PSCustomObject[]
 
     .PARAMETER LeftObject
         The left object list, usually provided through the pipeline, to be joined.
@@ -149,7 +143,7 @@
           and/or right property, e.g. @{ MyProperty = 'Name' }. If the property exists on both sides, an array
           holding both values will be returned. In the outer join, the value of the property will be $Null.
           This smart property is similar to the expression: @{ MyProperty = { @($Left['Name'], $Right['Name']) } }
-        * A generalwildcard property: '*', where * represents the property name of the current property, e.g.
+        * A general wildcard property: '*', where * represents the property name of the current property, e.g.
           'MyProperty' in @{ MyProperty = '*' }. If the property exists on both sides:
           - and the properties are unrelated, an array holding both values will be returned
           - and the pr operties are related to each other, the (equal) values will be merged in one property value
