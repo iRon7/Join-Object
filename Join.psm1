@@ -1,5 +1,5 @@
-<#PSScriptInfo
-.VERSION 3.5.2
+﻿<#PSScriptInfo
+.VERSION 3.5.3
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
@@ -388,7 +388,7 @@ function Join-Object {
             }
         }
         function AsDictionary($Object) {
-            if ($Object -isnot [array] -and $Object -isnot [Data.DataTable]) { $Object = @($RightObject) }
+            if ($Object -isnot [array] -and $Object -isnot [Data.DataTable]) { $Object = @($Object) }
             $Keys = @(GetKeys ($Object |Select-Object -First 1))
             ,@(foreach ($Item in $Object) {
                 if ($Item -is [Collections.IDictionary]) { $Object; Break } else { GetProperties $Item $Keys }
@@ -485,13 +485,13 @@ function Join-Object {
             if ($Null -eq $LeftKeys) { ([ref]$LeftKeys).Value = GetKeys $Left }
             if ($Left -isnot [Collections.IDictionary]) { $Left = GetProperties $Left $LeftKeys }
             if (!$LeftIndex) {
-                ([ref]$InnerRight).Value = [Boolean[]](@($False) * $RightObject.Count)
+                ([ref]$InnerRight).Value = [Boolean[]](@($False) * $RightList.Count)
                 foreach ($Key in $LeftKeys) {
                     $LeftRight[$Key] = $Null                                    # Left to Right relation
                     if ($Left[$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $LeftNull[$Key] = $Null }
                     else { $LeftNull[$Key] = [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
                 }
-                $Right = if ($RightObject) { $RightObject[0] }
+                $Right = if ($RightList) { $RightList[0] }
                 ([ref]$RightKeys).Value = if ($Null -ne $Right) { $Right.get_Keys() } else { @() }
                 foreach ($Key in $RightKeys) {
                     $RightLeft[$Key] = $Null                                    # Right to Left relation
@@ -513,11 +513,11 @@ function Join-Object {
                         $LeftRight[$On[$i]] = $Equals[$i]
                         $RightLeft[$Equals[$i]] = $On[$i]
                     }
-                    $RightIndex = 0; foreach ($Right in $RightObject) {
+                    $RightIndex = 0; foreach ($Right in $RightList) {
                         $JoinKeys = foreach ($Name in $Equals) { $Right[$Name] }
                         $HashKey = if (!$Strict) { [string]::Join($EscSeparator, @($JoinKeys)) }
                                    else { [System.Management.Automation.PSSerializer]::Serialize($JoinKeys) }
-                        if ($RightList.ContainsKey($HashKey)) { $RightList[$HashKey].Add($RightIndex++) } else { $RightList.Add($HashKey, $RightIndex++) }
+                        if ($RightIndices.ContainsKey($HashKey)) { $RightIndices[$HashKey].Add($RightIndex++) } else { $RightIndices.Add($HashKey, $RightIndex++) }
                     }
                 }
                 if ($Property) {
@@ -527,23 +527,24 @@ function Join-Object {
                     }
                 } else { SetExpression }
             }
-            $RightIndices = if ($On.Count) {
-                if ($JoinType -eq 'Cross') { StopError 'The On parameter cannot be used on a cross join.' 'CrossOn' }
-                $JoinKeys = foreach ($Name in $On) { $Left[$Name] }
-                $HashKey = if (!$Strict) { [string]::Join($EscSeparator, @($JoinKeys)) }
-                           else { [System.Management.Automation.PSSerializer]::Serialize($JoinKeys) }
-                $RightList[$HashKey]
-            }
-            elseif ($OnExpression) {
-                if ($JoinType -eq 'Cross') { StopError 'The OnExpression parameter cannot be used on a cross join.' 'CrossExpression' }
-                for ($RightIndex = 0; $RightIndex -lt $RightObject.Count; $RightIndex++) {
-                    $Right = $RightObject[$RightIndex]; if (&([scriptblock]::Create($OnExpression))) { $RightIndex }
+            $Indices =
+                if ($On.Count) {
+                    if ($JoinType -eq 'Cross') { StopError 'The On parameter cannot be used on a cross join.' 'CrossOn' }
+                    $JoinKeys = foreach ($Name in $On) { $Left[$Name] }
+                    $HashKey = if (!$Strict) { [string]::Join($EscSeparator, @($JoinKeys)) }
+                               else { [System.Management.Automation.PSSerializer]::Serialize($JoinKeys) }
+                    $RightIndices[$HashKey]
                 }
-            }
-            elseif ($JoinType -eq 'Cross') { 0..($RightObject.Length - 1) }
-            elseif ($LeftIndex -lt $RightObject.Count) { $LeftIndex } else { $Null }
-            foreach ($RightIndex in $RightIndices) {
-                $Right = $RightObject[$RightIndex]
+                elseif ($OnExpression) {
+                    if ($JoinType -eq 'Cross') { StopError 'The OnExpression parameter cannot be used on a cross join.' 'CrossExpression' }
+                    for ($RightIndex = 0; $RightIndex -lt $RightList.Count; $RightIndex++) {
+                        $Right = $RightList[$RightIndex]; if (&([scriptblock]::Create($OnExpression))) { $RightIndex }
+                    }
+                }
+                elseif ($JoinType -eq 'Cross') { 0..($RightList.Length - 1) }
+                elseif ($LeftIndex -lt $RightList.Count) { $LeftIndex } else { $Null }
+            foreach ($RightIndex in $Indices) {
+                $Right = $RightList[$RightIndex]
                 if (&([scriptblock]::Create($Where))) {
                     OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right
                     $InnerLeft = $True
@@ -559,31 +560,37 @@ function Join-Object {
         $Esc = [char]27; $EscSeparator = $Esc + ', '
         $Expressions = [Ordered]@{}
         $StringComparer = if ($MatchCase) { [StringComparer]::Ordinal } Else { [StringComparer]::OrdinalIgnoreCase }
-        $LeftKeys, $InnerLeft, $RightKeys, $InnerRight, $LeftList = $Null
-        $RightList = [Collections.Generic.Dictionary[string, [Collections.Generic.List[Int]]]]::new($StringComparer)
+        $Processed, $LeftKeys, $InnerLeft, $RightKeys, $InnerRight, $Pipeline, $LeftList = $Null
+        $RightIndices = [Collections.Generic.Dictionary[string, [Collections.Generic.List[Int]]]]::new($StringComparer)
         $LeftRight = @{}; $RightLeft = @{}; $LeftNull = [ordered]@{}; $RightNull = [ordered]@{}
-        if ($PSBoundParameters.ContainsKey('RightObject')) { $RightObject = AsDictionary $RightObject }
+        $LeftParameter = $PSBoundParameters.ContainsKey('LeftObject')
+        $RightParameter = $PSBoundParameters.ContainsKey('RightObject')
+        $RightList = if ($RightParameter) { AsDictionary $RightObject }
         $LeftIndex = 0
     }
     process {
-        # The Process block is also invoked (once) if the LeftObject (pipeline) is completely omitted
-        if ($Null -eq $LeftList) { $LeftList = [Collections.Generic.List[Collections.IDictionary]]::New() }
-        if ($Null -ne $LeftObject) {
-            if ($Null -eq $LeftKeys) { $LeftKeys = GetKeys $LeftObject }
-            if ($LeftObject -isnot [Collections.IDictionary]) { $LeftObject = GetProperties $LeftObject $LeftKeys }
-            if ($Null -ne $RightObject) { ProcessObject $LeftObject; $LeftIndex++ } else { $LeftList.Add($LeftObject) }
+        $Processed = $True # The Process block is invoked (once) if the pipeline is omitted but not if it is empty: @()
+        if ($LeftParameter) { $LeftList = AsDictionary $LeftObject }
+        else {
+            if ($Null -eq $Pipeline) { $Pipeline = [Collections.Generic.List[Collections.IDictionary]]::New() }
+            if ($Null -ne $LeftObject) {
+                if ($Null -eq $LeftKeys) { $LeftKeys = GetKeys $LeftObject }
+                if ($LeftObject -isnot [Collections.IDictionary]) { $LeftObject = GetProperties $LeftObject $LeftKeys }
+                if ($RightParameter) { ProcessObject $LeftObject; $LeftIndex++ } else { $Pipeline.Add($LeftObject) }
+            }
         }
     }
     end {
-        if ($Null -eq $LeftKeys -and $Null -eq $RightObject) { StopError 'A value for either the LeftObject or the RightObject is required.' 'MissingObject' }
-        if ($Null -ne $LeftList -and ($Null -eq $LeftKeys -or $Null -eq $RightObject)) { #Self Join
-            if ($LeftList.Count -gt 0) { $RightObject = $LeftObject = $LeftList }
-            else { $LeftObject = AsDictionary $RightObject }
-            foreach ($Left in $LeftObject) { ProcessObject $Left; $LeftIndex++ }
+        if (!($LeftParameter -or $Pipeline) -and !$RightParameter) { StopError 'A value for either the LeftObject, pipeline or the RightObject is required.' 'MissingObject' }
+        if ($Pipeline) { $LeftList = $Pipeline } elseif (!$Processed) { $LeftList = @() }
+        if (!$LeftIndex) { # Not yet streamed/processed
+            if ($Null -eq $LeftList)  { $LeftList = $RightList } # Right Self Join
+            if ($Null -eq $RightList) { $RightList = $LeftList } # Left Self Join
+            foreach ($Left in $LeftList) { ProcessObject $Left; $LeftIndex++ }
         }
         if ($JoinType -eq 'Right' -or $JoinType -eq 'Full') {
             $LeftIndex = $Null; $Left = $LeftNull
-            $RightIndex = 0; foreach ($Right in $RightObject) {
+            $RightIndex = 0; foreach ($Right in $RightList) {
                 if (!$InnerRight[$RightIndex]) {
                     if (&([scriptblock]::Create($Where))) { OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right }
                 }
