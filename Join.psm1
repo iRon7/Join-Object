@@ -1,5 +1,5 @@
 ﻿<#PSScriptInfo
-.VERSION 3.5.3
+.VERSION 3.5.4
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
@@ -370,15 +370,21 @@ function Join-Object {
             $PSCmdlet.ThrowTerminatingError([System.Management.Automation.ErrorRecord]::new($Exception, $Id, $Group, $Object))
         }
         function GetKeys($Object) {
-            if ($Null -eq $Object) {}
-            elseif ($Object -is [string] -or $Object -is [ValueType] -or $Object -is [Array]) { $ValueName }
-            elseif ($Object -is [Collections.ObjectModel.Collection[psobject]]) { $ValueName }
-            elseif ($Object -is [Data.DataRow]) { $Object.Table.Columns.ColumnName }
-            elseif ($Object -is [System.Collections.IDictionary]) { $Object.Get_Keys() }
-            elseif ($Object) { $Object.PSObject.Properties.Name }
+            ,@(
+                if ($Null -eq $Object) {}
+                elseif ($Object.GetType().GetElementType() -and $Object.get_Count() -eq 0) { $ValueName }
+                else {
+                    $1 = $Object |Select-Object -First 1
+                    if ($1 -is [string] -or $1 -is [ValueType] -or $1 -is [Array]) { $ValueName }
+                    elseif ($1 -is [Collections.ObjectModel.Collection[psobject]]) { $ValueName }
+                    elseif ($1 -is [Data.DataRow]) { $1.Table.Columns.ColumnName }
+                    elseif ($1 -is [System.Collections.IDictionary]) { $1.Get_Keys() }
+                    elseif ($1) { $1.PSObject.Properties.Name }
+                }
+            )
         }
         function GetProperties($Object, $Keys) {
-            if (@($Keys).Count -eq 1 -and $Keys.Contains($ValueName) ) { [ordered]@{ $ValueName = $Object } }
+            if ($Null -ne $Keys -and @($Keys).Count -eq 1 -and $Keys.Contains($ValueName) ) { [ordered]@{ $ValueName = $Object } }
             else {
                 $Properties = [ordered]@{}
                 if ($Null -ne $Object) {
@@ -387,9 +393,8 @@ function Join-Object {
                 $Properties
             }
         }
-        function AsDictionary($Object) {
+        function AsDictionary($Object, $Keys) {
             if ($Object -isnot [array] -and $Object -isnot [Data.DataTable]) { $Object = @($Object) }
-            $Keys = @(GetKeys ($Object |Select-Object -First 1))
             ,@(foreach ($Item in $Object) {
                 if ($Item -is [Collections.IDictionary]) { $Object; Break } else { GetProperties $Item $Keys }
             })
@@ -416,59 +421,60 @@ function Join-Object {
             }
             else { $Expressions[$Key] = if ($Expression) { $Expression } else { ' * ' } }
         }
-        function OutObject ($LeftIndex, $RightIndex, $Left, $Right) {
+        function OutObject ($LeftIndex, $RightIndex) {
             $Nodes = [Ordered]@{}
-            foreach ($_ in $Expressions.Get_Keys()) {
-                $Value0 = [System.Management.Automation.Internal.AutomationNull]::Value
-                $Value1 = [System.Management.Automation.Internal.AutomationNull]::Value
-                if ($Expressions[$_] -is [scriptblock]) { $Value0 = &([scriptblock]::Create($Expressions[$_])) } else {
-                    $Key = $Expressions[$_]
-                    if ($LeftRight.Contains($Key) -or $RightLeft.Contains($Key)) {
-                        if ($LeftRight.Contains($Key) -and $RightLeft.Contains($Key)) { $Value0 = $Left[$Key]; $Value1 = $Right[$Key] }
-                        elseif ($LeftRight.Contains($Key)) { $Value0 = $Left[$Key] }
-                        else { $Value0 = $Right[$Key] } # if($RightLeft.Contains($_))
-                    }
-                    elseif ($Key.Trim() -eq '*') {
-                        if ($LeftRight.Contains($_) -and $RightLeft.Contains($_)) {
-                            if ($LeftRight[$_] -eq $_) { if ($Null -ne $LeftIndex -and $Left.Contains($_)) { $Value0 = $Left[$_] } else { $Value0 = $Right[$_] } }
-                            elseif ($Null -eq $LeftRight[$_] -and $Null -ne $RightLeft[$_]) { $Value0 = $Left[$_] }
-                            elseif ($Null -ne $LeftRight[$_] -and $Null -eq $RightLeft[$_]) { $Value0 = $Right[$_] }
-                            else { $Value0 = $Left[$_]; $Value1 = $Right[$_] }
+                foreach ($_ in $Expressions.Get_Keys()) {
+                $Tuple =
+                    if ($Expressions[$_] -is [scriptblock]) { @{ 0 = &([scriptblock]::Create($Expressions[$_])) } } else {
+                        $Key = $Expressions[$_]
+                        if ($LeftRight.Contains($Key) -or $RightLeft.Contains($Key)) {
+                            if ($LeftRight.Contains($Key) -and $RightLeft.Contains($Key)) { @{ 0 = $Left[$Key]; 1 = $Right[$Key] } }
+                            elseif ($LeftRight.Contains($Key)) { @{ 0 = $Left[$Key] } }
+                            else { @{ 0 = $Right[$Key] } } # if($RightLeft.Contains($_))
                         }
-                        elseif ($LeftRight.Contains($_))  {
-                            if ($Null -ne $LeftIndex -and $Left.Contains($_)) { $Value0 = $Left[$_] }
-                            elseif ($Null -ne $LeftRight[$_]) { $Value0 = $Right[$LeftRight[$_]] }
-                        }
-                        elseif ($RightLeft.Contains($_)) {
-                            if ($Null -ne $RightIndex -and $Right.Contains($_)) { $Value0 = $Right[$_] }
-                            elseif ($Null -ne $RightLeft[$_]) { $Value0 = $Left[$RightLeft[$_]] }
-                        }
-                    }
-                    else {
-                        $Side, $Key = $Key.Split('.', 2)
-                        if ($Null -ne $Key) {
-                            if ($Side[0] -eq 'L') {
-                                if ($LeftRight.Contains($Key)) { $Value0 = $Left[$Key] }
-                                elseif ($Key -eq '*') {
-                                    if ($Null -ne $LeftIndex -and $Left.Contains($_)) { $Value0 = $Left[$_] }
-                                    elseif ($Null -ne $RightIndex -and $Right.Contains($_)) { $Value0 = $Right[$_] }
-                                }
+                        elseif ($Key.Trim() -eq '*') {
+                            if ($LeftRight.Contains($_) -and $RightLeft.Contains($_)) {
+                                if ($LeftRight[$_] -eq $_) { if ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } } else { @{ 0 = $Right[$_] } } }
+                                elseif ($Null -eq $LeftRight[$_] -and $Null -ne $RightLeft[$_]) { @{ 0 = $Left[$_] } }
+                                elseif ($Null -ne $LeftRight[$_] -and $Null -eq $RightLeft[$_]) { @{ 0 = $Right[$_] } }
+                                else { @{ 0 = $Left[$_]; 1 = $Right[$_] } }
                             }
-                            if ($Side[0] -eq 'R') {
-                                if ($RightLeft.Contains($Key)) { $Value0 = $Right[$Key] }
-                                elseif ($Key -eq '*') {
-                                    if ($Null -ne $RightIndex -and $Right.Contains($_)) { $Value0 = $Right[$_] }
-                                    elseif ($Null -ne $LeftIndex -and $Left.Contains($_)) { $Value0 = $Left[$_] }
-                                }
+                            elseif ($LeftRight.Contains($_))  {
+                                if ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } }
+                                elseif ($Null -ne $LeftRight[$_]) { @{ 0 = $Right[$LeftRight[$_]] } }
                             }
-                        } else { StopError "The property '$Key' doesn't exists" 'MissingProperty' }
+                            elseif ($RightLeft.Contains($_)) {
+                                if ($Null -ne $RightIndex -and $Right.Contains($_)) { @{ 0 = $Right[$_] } }
+                                elseif ($Null -ne $RightLeft[$_]) { @{ 0 = $Left[$RightLeft[$_]] } }
+                            }
+                        }
+                        else {
+                            $Side, $Key = $Key.Split('.', 2)
+                            if ($Null -ne $Key) {
+                                if ($Side[0] -eq 'L') {
+                                    if ($LeftRight.Contains($Key)) { @{ 0 = $Left[$Key] } }
+                                    elseif ($Key -eq '*') {
+                                        if ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } }
+                                        elseif ($Null -ne $RightIndex -and $Right.Contains($_)) { @{ 0 = $Right[$_] } }
+                                    }
+                                }
+                                if ($Side[0] -eq 'R') {
+                                    if ($RightLeft.Contains($Key)) { @{ 0 = $Right[$Key] } }
+                                    elseif ($Key -eq '*') {
+                                        if ($Null -ne $RightIndex -and $Right.Contains($_)) { @{ 0 = $Right[$_] } }
+                                        elseif ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } }
+                                    }
+                                }
+                            } else { StopError "The property '$Key' doesn't exists" 'MissingProperty' }
+                        }
                     }
-                }
-                if (@($Value1).Count) {
+                if ($Tuple -isnot [System.Collections.IDictionary] ) { $Node = $Null }
+                elseif ($Tuple.Count -eq 1) { $Node = $Tuple[0] }
+                else {
                     $Node = [Collections.ObjectModel.Collection[psobject]]::new()
-                    if ($Value0 -is [Collections.ObjectModel.Collection[psobject]]) { foreach ($Value in $Value0) { $Node.Add($Value) } } else { $Node.Add($Value0) }
-                    if ($Value1 -is [Collections.ObjectModel.Collection[psobject]]) { foreach ($Value in $Value1) { $Node.Add($Value) } } else { $Node.Add($Value1) }
-                } else { $Node = $Value0 }
+                    if ($Tuple[0] -is [Collections.ObjectModel.Collection[psobject]]) { foreach ($Value in $Tuple[0]) { $Node.Add($Value) } } else { $Node.Add($Tuple[0]) }
+                    if ($Tuple[1] -is [Collections.ObjectModel.Collection[psobject]]) { foreach ($Value in $Tuple[1]) { $Node.Add($Value) } } else { $Node.Add($Tuple[1]) }
+                }
                 if ($Node -is [Collections.ObjectModel.Collection[psobject]] -and $Null -ne $Discern) {
                     if ($Node.Count -eq $Discern.Count + 1) { $Nodes[$_] = $Node[$Node.Count - $Discern.Count - 1] }
                     if ($Node.Count -gt $Discern.Count + 1) { $Nodes[$_] = $Node[0..($Node.Count - $Discern.Count - 1)] }
@@ -482,7 +488,6 @@ function Join-Object {
             if ($Nodes.Count -eq 1 -and $Nodes.Contains($ValueName)) { ,$Nodes[0] } else { New-Object PSCustomObject -Property $Nodes }
         }
         function ProcessObject ($Left) {
-            if ($Null -eq $LeftKeys) { ([ref]$LeftKeys).Value = GetKeys $Left }
             if ($Left -isnot [Collections.IDictionary]) { $Left = GetProperties $Left $LeftKeys }
             if (!$LeftIndex) {
                 ([ref]$InnerRight).Value = [Boolean[]](@($False) * $RightList.Count)
@@ -491,12 +496,12 @@ function Join-Object {
                     if ($Left[$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $LeftNull[$Key] = $Null }
                     else { $LeftNull[$Key] = [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
                 }
-                $Right = if ($RightList) { $RightList[0] }
-                ([ref]$RightKeys).Value = if ($Null -ne $Right) { $Right.get_Keys() } else { @() }
                 foreach ($Key in $RightKeys) {
                     $RightLeft[$Key] = $Null                                    # Right to Left relation
-                    if ($Right[$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $RightNull[$Key] = $Null }
-                    else { $RightNull[$Key] = [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
+                    $RightNull[$Key] = if ($RightList) {
+                        if ($RightList[0][$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $Null }
+                        else { [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
+                    }
                 }
                 $BothKeys = New-Object System.Collections.Generic.HashSet[Object]
                 foreach ($Key in (@($LeftKeys) + $RightKeys)) { $Null = $BothKeys.Add($Key) }
@@ -546,35 +551,36 @@ function Join-Object {
             foreach ($RightIndex in $Indices) {
                 $Right = $RightList[$RightIndex]
                 if (&([scriptblock]::Create($Where))) {
-                    OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right
+                    OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex
                     $InnerLeft = $True
                     $InnerRight[$RightIndex] = $True
                 }
             }
             $RightIndex = $Null; $Right = $RightNull
             if (!$InnerLeft -and ($JoinType -eq 'Left' -or $JoinType -eq 'Full')) {
-                if (&([scriptblock]::Create($Where))) { OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right }
+                if (&([scriptblock]::Create($Where))) { OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex }
             }
         }
         if ($PSBoundParameters.ContainsKey('Discern') -and !$Discern) { $Discern = @() }
         $Esc = [char]27; $EscSeparator = $Esc + ', '
         $Expressions = [Ordered]@{}
         $StringComparer = if ($MatchCase) { [StringComparer]::Ordinal } Else { [StringComparer]::OrdinalIgnoreCase }
-        $Processed, $LeftKeys, $InnerLeft, $RightKeys, $InnerRight, $Pipeline, $LeftList = $Null
+        $LeftKeys, $InnerLeft, $RightKeys, $InnerRight, $Pipeline, $LeftList = $Null
         $RightIndices = [Collections.Generic.Dictionary[string, [Collections.Generic.List[Int]]]]::new($StringComparer)
         $LeftRight = @{}; $RightLeft = @{}; $LeftNull = [ordered]@{}; $RightNull = [ordered]@{}
         $LeftParameter = $PSBoundParameters.ContainsKey('LeftObject')
         $RightParameter = $PSBoundParameters.ContainsKey('RightObject')
-        $RightList = if ($RightParameter) { AsDictionary $RightObject }
+        $RightKeys = GetKeys $RightObject
+        $RightList = if ($RightParameter) { AsDictionary $RightObject $RightKeys }
         $LeftIndex = 0
     }
     process {
-        $Processed = $True # The Process block is invoked (once) if the pipeline is omitted but not if it is empty: @()
-        if ($LeftParameter) { $LeftList = AsDictionary $LeftObject }
+        # The Process block is invoked (once) if the pipeline is omitted but not if it is empty: @()
+        if ($Null -eq $LeftKeys) { $LeftKeys = GetKeys $LeftObject }
+        if ($LeftParameter) { $LeftList = AsDictionary $LeftObject $LeftKeys }
         else {
             if ($Null -eq $Pipeline) { $Pipeline = [Collections.Generic.List[Collections.IDictionary]]::New() }
             if ($Null -ne $LeftObject) {
-                if ($Null -eq $LeftKeys) { $LeftKeys = GetKeys $LeftObject }
                 if ($LeftObject -isnot [Collections.IDictionary]) { $LeftObject = GetProperties $LeftObject $LeftKeys }
                 if ($RightParameter) { ProcessObject $LeftObject; $LeftIndex++ } else { $Pipeline.Add($LeftObject) }
             }
@@ -582,17 +588,24 @@ function Join-Object {
     }
     end {
         if (!($LeftParameter -or $Pipeline) -and !$RightParameter) { StopError 'A value for either the LeftObject, pipeline or the RightObject is required.' 'MissingObject' }
-        if ($Pipeline) { $LeftList = $Pipeline } elseif (!$Processed) { $LeftList = @() }
+        if ($Pipeline) { $LeftList = $Pipeline } elseif ($Null -eq $LeftKeys) { $LeftList = @() }
         if (!$LeftIndex) { # Not yet streamed/processed
-            if ($Null -eq $LeftList)  { $LeftList = $RightList } # Right Self Join
-            if ($Null -eq $RightList) { $RightList = $LeftList } # Left Self Join
+            if ($Null -eq $LeftList) { # Right Self Join
+                $LeftKeys = $RightKeys
+                $LeftList = $RightList
+            }
+            if ($Null -eq $RightList) { # Left Self Join
+                $RightKeys = $LeftKeys
+                $RightList = $LeftList
+            }
             foreach ($Left in $LeftList) { ProcessObject $Left; $LeftIndex++ }
         }
         if ($JoinType -eq 'Right' -or $JoinType -eq 'Full') {
+            if (!$LeftIndex) { ProcessObject $LeftObject $Null }
             $LeftIndex = $Null; $Left = $LeftNull
             $RightIndex = 0; foreach ($Right in $RightList) {
-                if (!$InnerRight[$RightIndex]) {
-                    if (&([scriptblock]::Create($Where))) { OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex -Left $Left -Right $Right }
+                if (!$InnerRight -or !$InnerRight[$RightIndex]) {
+                    if (&([scriptblock]::Create($Where))) { OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex }
                 }
                 $RightIndex++
             }
