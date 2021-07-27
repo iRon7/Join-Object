@@ -2147,6 +2147,33 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             $Actual = LeftJoin -LeftObject $Employee -RightObject $Department -On Country -Discern Employee, Department
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
+        
+        It "#28 FullJoin doesn't work properly when joining multiple array when one of the array is empty" { # https://github.com/iRon7/Join-Object/issues/28
+        
+            $arrayList1 = [Object[]]@('james', 'henry')
+            $arrayList2 = [Object[]]@()
+
+            $Actual = $arrayList1 |FullJoin $arrayList2 -Name arrayList1, arrayList2
+            $Expected =
+                [pscustomobject]@{arrayList1 = 'james'; arrayList2 = $Null},
+                [pscustomobject]@{arrayList1 = 'henry'; arrayList2 = $Null}
+                
+            Compare-PSObject $Actual $Expected | Should -BeNull
+
+            $Actual = FullJoin -Left $arrayList1 -Right $arrayList2 -Name arrayList1, arrayList2
+            $Expected =
+                [pscustomobject]@{arrayList1 = 'james'; arrayList2 = $Null},
+                [pscustomobject]@{arrayList1 = 'henry'; arrayList2 = $Null}
+                
+            Compare-PSObject $Actual $Expected | Should -BeNull
+
+            $Actual = FullJoin -Left $arrayList2 -Right $arrayList1 -Name arrayList1, arrayList2
+            $Expected =
+                [pscustomobject]@{arrayList1 = $Null; arrayList2 = 'james'},
+                [pscustomobject]@{arrayList1 = $Null; arrayList2 = 'henry'}
+                
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
 
     }
 
