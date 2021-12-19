@@ -1,5 +1,5 @@
-﻿<#PSScriptInfo
-.VERSION 3.5.4
+<#PSScriptInfo
+.VERSION 3.6.0
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
@@ -61,6 +61,9 @@
         The -On parameter (alias -Using) defines which objects should be joined together.
         If the -Equals parameter is omitted, the value(s) of the properties listed by the -On parameter should be
         equal at both sides in order to join the left object with the right object.
+        If the -On parameter contains an expression, the expression will be evaluted where $_, $PSItem and
+        $Left contains the currect object. The result of the expression will be compared to right object property
+        defined by the -Equals parameter.
 
         Note 1: The list of properties defined by the -On parameter will be complemented with the list of
         properties defined by the -Equals parameter and vice versa.
@@ -68,18 +71,22 @@
         Note 2: Related properties will be merged to a single property by default (see also the -Property
         parameter).
 
-        Note 3: If the -On and the -OnExpression parameter are omitted, a side-by-side join is returned.
+        Note 3: If the -On and the -Using parameter are omitted, a side-by-side join is returned.
 
     .PARAMETER Equals
         If the -Equals parameter is supplied, the value(s) of the left object properties listed by the -On
         parameter should be equal to the value(s)of the right object listed by the -Equals parameter in order to
         join the left object with the right object.
+        If the -Equals parameter contains an expression, the expression will be evaluted where $_, $PSItem and
+        $Right contains the currect object. The result of the expression will be compared to left object property
+        defined by the -On parameter.
 
         Note 1: The list of properties defined by the -Equal parameter will be complemented with the list of
-        properties defined by the -On parameter and vice versa.
+        properties defined by the -On parameter and vice versa. This means that by default value of the -Equals
+        parameter is equal to the value supplied to the -On parameter
 
-        Note 2: A property will be omitted if it exists on both sides and if the property at the other side is
-        related to another property.
+        Note 2: A property will be omitted in the results if it exists on both sides and if the property at the
+        other side is related to another property.
 
         Note 3: The -Equals parameter can only be used with the -On parameter.
 
@@ -91,14 +98,14 @@
         If the -MatchCase (alias -CaseSensitive) switch is set, the comparison between the related properties
         defined by the -On Parameter (and the -Equals parameter) will case sensitive.
 
-    .PARAMETER OnExpression
+    .PARAMETER Using
         Any conditional expression (where $Left refers to each left object and $Right refers to each right object)
         that requires to evaluate to true in order to join the left object with the right object.
 
-        Note 1: The -OnExpression parameter has the most complex comparison possibilities but is considerable
-        slower than the other types.
+        Note 1: The -Using parameter has the most complex comparison possibilities but is considerable slower
+        than the other types.
 
-        Note 2: The -OnExpression parameter cannot be used with the -On parameter.
+        Note 2: The -Using parameter cannot be used with the -On parameter.
 
     .PARAMETER Where
         An expression that defines the condition to be met for the objects to be returned. There is no limit to
@@ -311,51 +318,52 @@
 
 function Join-Object {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('InjectionRisk.Create', '', Scope = 'Function')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('InjectionRisk.ForeachObjectInjection', '', Scope = 'Function')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseLiteralInitializerForHashtable', '', Scope = 'Function')]
     [CmdletBinding(DefaultParameterSetName = 'Default')][OutputType([Object[]])] param(
 
         [Parameter(ValueFromPipeLine = $True, ParameterSetName = 'Default')]
         [Parameter(ValueFromPipeLine = $True, ParameterSetName = 'On')]
-        [Parameter(ValueFromPipeLine = $True, ParameterSetName = 'Expression')]
+        [Parameter(ValueFromPipeLine = $True, ParameterSetName = 'Using')]
         $LeftObject,
 
         [Parameter(Position = 0, ParameterSetName = 'Default')]
         [Parameter(Position = 0, ParameterSetName = 'On')]
-        [Parameter(Position = 0, ParameterSetName = 'Expression')]
+        [Parameter(Position = 0, ParameterSetName = 'Using')]
         $RightObject,
 
         [Parameter(Position = 1, ParameterSetName = 'On')]
-        [Alias('Using')][Collections.Generic.List[string]]$On = [Collections.Generic.List[string]]::new(),
+        [array]$On = @(),
 
-        [Parameter(Position = 1, ParameterSetName = 'Expression')]
-        [Alias('UsingExpression')][scriptblock]$OnExpression,
+        [Parameter(Position = 1, ParameterSetName = 'Using')]
+        [scriptblock]$Using,
 
         [Parameter(ParameterSetName = 'On')]
-        [Collections.Generic.List[string]]$Equals = [Collections.Generic.List[string]]::new(),
+        [Alias('Eq')][array]$Equals = @(),
 
         [Parameter(Position = 2, ParameterSetName = 'Default')]
         [Parameter(Position = 2, ParameterSetName = 'On')]
-        [Parameter(Position = 2, ParameterSetName = 'Expression')]
+        [Parameter(Position = 2, ParameterSetName = 'Using')]
         [Alias('NameItems')][AllowEmptyString()][String[]]$Discern,
 
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'On')]
-        [Parameter(ParameterSetName = 'Expression')]
+        [Parameter(ParameterSetName = 'Using')]
         $Property,
 
         [Parameter(Position = 3, ParameterSetName = 'Default')]
         [Parameter(Position = 3, ParameterSetName = 'On')]
-        [Parameter(Position = 3, ParameterSetName = 'Expression')]
+        [Parameter(Position = 3, ParameterSetName = 'Using')]
         [scriptblock]$Where = { $True },
 
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'On')]
-        [Parameter(ParameterSetName = 'Expression')]
+        [Parameter(ParameterSetName = 'Using')]
         [ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')][String]$JoinType = 'Inner',
 
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'On')]
-        [Parameter(ParameterSetName = 'Expression')]
+        [Parameter(ParameterSetName = 'Using')]
         [string]$ValueName = 'Value',
 
         [Parameter(ParameterSetName = 'On')]
@@ -427,39 +435,41 @@ function Join-Object {
                 $Tuple =
                     if ($Expressions[$_] -is [scriptblock]) { @{ 0 = &([scriptblock]::Create($Expressions[$_])) } } else {
                         $Key = $Expressions[$_]
-                        if ($LeftRight.Contains($Key) -or $RightLeft.Contains($Key)) {
-                            if ($LeftRight.Contains($Key) -and $RightLeft.Contains($Key)) { @{ 0 = $Left[$Key]; 1 = $Right[$Key] } }
-                            elseif ($LeftRight.Contains($Key)) { @{ 0 = $Left[$Key] } }
-                            else { @{ 0 = $Right[$Key] } } # if($RightLeft.Contains($_))
+                        if ($Left.Contains($Key) -or $Right.Contains($Key)) {
+                            if ($Left.Contains($Key) -and $Right.Contains($Key)) { @{ 0 = $Left[$Key]; 1 = $Right[$Key] } }
+                            elseif ($Left.Contains($Key)) { @{ 0 = $Left[$Key] } }
+                            else { @{ 0 = $Right[$Key] } } # if($Right.Contains($_))
                         }
                         elseif ($Key.Trim() -eq '*') {
-                            if ($LeftRight.Contains($_) -and $RightLeft.Contains($_)) {
-                                if ($LeftRight[$_] -eq $_) { if ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } } else { @{ 0 = $Right[$_] } } }
-                                elseif ($Null -eq $LeftRight[$_] -and $Null -ne $RightLeft[$_]) { @{ 0 = $Left[$_] } }
-                                elseif ($Null -ne $LeftRight[$_] -and $Null -eq $RightLeft[$_]) { @{ 0 = $Right[$_] } }
+                            if ($Left.Contains($_) -and $Right.Contains($_)) {
+                                if ($LeftRight.Contains($_) -and $LeftRight[$_] -eq $_) {
+                                    if ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } } else { @{ 0 = $Right[$_] } }
+                                }
+                                elseif (!$LeftRight.Contains($_) -and $RightLeft.Contains($_)) { @{ 0 = $Left[$_] } }
+                                elseif ($LeftRight.Contains($_) -and !$RightLeft.Contains($_)) { @{ 0 = $Right[$_] } }
                                 else { @{ 0 = $Left[$_]; 1 = $Right[$_] } }
                             }
-                            elseif ($LeftRight.Contains($_))  {
+                            elseif ($Left.Contains($_))  {
                                 if ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } }
-                                elseif ($Null -ne $LeftRight[$_]) { @{ 0 = $Right[$LeftRight[$_]] } }
+                                elseif ($LeftRight.Contains($_)) { @{ 0 = $Right[$LeftRight[$_]] } }
                             }
-                            elseif ($RightLeft.Contains($_)) {
+                            elseif ($Right.Contains($_)) {
                                 if ($Null -ne $RightIndex -and $Right.Contains($_)) { @{ 0 = $Right[$_] } }
-                                elseif ($Null -ne $RightLeft[$_]) { @{ 0 = $Left[$RightLeft[$_]] } }
+                                elseif ($RightLeft.Contains($_)) { @{ 0 = $Left[$RightLeft[$_]] } }
                             }
                         }
                         else {
                             $Side, $Key = $Key.Split('.', 2)
                             if ($Null -ne $Key) {
                                 if ($Side[0] -eq 'L') {
-                                    if ($LeftRight.Contains($Key)) { @{ 0 = $Left[$Key] } }
+                                    if ($Left.Contains($Key)) { @{ 0 = $Left[$Key] } }
                                     elseif ($Key -eq '*') {
                                         if ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } }
                                         elseif ($Null -ne $RightIndex -and $Right.Contains($_)) { @{ 0 = $Right[$_] } }
                                     }
                                 }
                                 if ($Side[0] -eq 'R') {
-                                    if ($RightLeft.Contains($Key)) { @{ 0 = $Right[$Key] } }
+                                    if ($Right.Contains($Key)) { @{ 0 = $Right[$Key] } }
                                     elseif ($Key -eq '*') {
                                         if ($Null -ne $RightIndex -and $Right.Contains($_)) { @{ 0 = $Right[$_] } }
                                         elseif ($Null -ne $LeftIndex -and $Left.Contains($_)) { @{ 0 = $Left[$_] } }
@@ -492,34 +502,37 @@ function Join-Object {
             if (!$LeftIndex) {
                 ([ref]$InnerRight).Value = [Boolean[]](@($False) * $RightList.Count)
                 foreach ($Key in $LeftKeys) {
-                    $LeftRight[$Key] = $Null                                    # Left to Right relation
                     if ($Left[$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $LeftNull[$Key] = $Null }
                     else { $LeftNull[$Key] = [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
                 }
                 foreach ($Key in $RightKeys) {
-                    $RightLeft[$Key] = $Null                                    # Right to Left relation
                     $RightNull[$Key] = if ($RightList) {
                         if ($RightList[0][$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $Null }
                         else { [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
                     }
                 }
-                $BothKeys = New-Object System.Collections.Generic.HashSet[Object]
-                foreach ($Key in (@($LeftKeys) + $RightKeys)) { $Null = $BothKeys.Add($Key) }
+                $BothKeys = [System.Collections.Generic.HashSet[string]](@($LeftKeys) + @($RightKeys))
                 if ($On.Count) {
-                    if ($On.Count -eq 1 -and $On[0].Trim() -eq '*' -and !$BothKeys.Contains('*')) { # Use e.g. -On ' * ' if there exists an '*' property
-                        $On.Clear()
-                        $LeftRight.Get_Keys().Where{ $RightLeft.Contains($_) }.ForEach{ $On.Add($_) }
+                    if ($On.Count -eq 1 -and $On[0] -is [string] -and $On[0].Trim() -eq '*' -and !$BothKeys.Contains('*')) { # Use e.g. -On ' * ' if there exists an '*' property
+                        ([Ref]$On).Value = $LeftKeys.Where{ $RightKeys.Contains($_) }
                     }
-                    for ($i = 0; $i -lt [math]::Max($On.Count, $Equals.Count); $i++) {
-                        if ($i -ge $On.Count) { $On.Add($Equals[$i]) }
-                        if (!$LeftRight.ContainsKey($On[$i])) { StopError "The property '$($On[$i])' cannot be found on the left object." 'MissingLeftProperty' }
-                        if ($i -ge $Equals.Count) { $Equals.Add($On[$i]) }
-                        if (!$RightLeft.ContainsKey($Equals[$i])) { StopError "The property '$($Equals[$i])' cannot be found on the right object." 'MissingRightProperty' }
-                        $LeftRight[$On[$i]] = $Equals[$i]
-                        $RightLeft[$Equals[$i]] = $On[$i]
+                        if ($On.Count -gt $Equals.Count) { ([Ref]$Equals).Value += $On[($Equals.Count)..($On.Count - 1)] }
+                    elseif ($On.Count -lt $Equals.Count) { ([Ref]$On).Value     += $Equals[($On.Count)..($Equals.Count - 1)] }
+                    for ($i = 0; $i -lt $On.Count; $i++) {
+                        if ( $On[$i] -is [ScriptBlock] ) { if ( $On[$i] -Like '*$Right*' ) { Write-Warning 'Use the -Using parameter for comparison expressions' } }
+                        else {
+                            if ($On[$i] -notin $LeftKeys) { StopError "The property $($On[$i]) cannot be found on the left object."  'MissingLeftProperty' }
+                            $LeftRight[$On[$i]] = $Equals[$i]
+                        }
+                        if ( $Equals[$i] -is [ScriptBlock] ) { if ( $On[$i] -Like '*$Left*' ) { Write-Warning 'Use the -Using parameter for comparison expressions' } }
+                        else {
+                            if ($Equals[$i] -notin $RightKeys) { StopError "The property $($Equals[$i]) cannot be found on the right object." 'MissingRightProperty' }
+                            $RightLeft[$Equals[$i]] = $On[$i]
+                        }
                     }
-                    $RightIndex = 0; foreach ($Right in $RightList) {
-                        $JoinKeys = foreach ($Name in $Equals) { $Right[$Name] }
+                    $RightIndex = 0
+                    foreach ($Right in $RightList) {
+                        $JoinKeys = foreach ($Key in $Equals) { if ($Key -is [ScriptBlock]) { $Right |ForEach-Object $Key } else { $Right[$Key] } }
                         $HashKey = if (!$Strict) { [string]::Join($EscSeparator, @($JoinKeys)) }
                                    else { [System.Management.Automation.PSSerializer]::Serialize($JoinKeys) }
                         if ($RightIndices.ContainsKey($HashKey)) { $RightIndices[$HashKey].Add($RightIndex++) } else { $RightIndices.Add($HashKey, $RightIndex++) }
@@ -535,15 +548,15 @@ function Join-Object {
             $Indices =
                 if ($On.Count) {
                     if ($JoinType -eq 'Cross') { StopError 'The On parameter cannot be used on a cross join.' 'CrossOn' }
-                    $JoinKeys = foreach ($Name in $On) { $Left[$Name] }
+                    $JoinKeys = foreach ($Key in $On) { if ($Key -is [ScriptBlock]) { $Left |ForEach-Object $Key } else { $Left[$Key] } }
                     $HashKey = if (!$Strict) { [string]::Join($EscSeparator, @($JoinKeys)) }
                                else { [System.Management.Automation.PSSerializer]::Serialize($JoinKeys) }
                     $RightIndices[$HashKey]
                 }
-                elseif ($OnExpression) {
-                    if ($JoinType -eq 'Cross') { StopError 'The OnExpression parameter cannot be used on a cross join.' 'CrossExpression' }
+                elseif ($Using) {
+                    if ($JoinType -eq 'Cross') { StopError 'The Using parameter cannot be used on a cross join.' 'CrossUsing' }
                     for ($RightIndex = 0; $RightIndex -lt $RightList.Count; $RightIndex++) {
-                        $Right = $RightList[$RightIndex]; if (&([scriptblock]::Create($OnExpression))) { $RightIndex }
+                        $Right = $RightList[$RightIndex]; if (&([scriptblock]::Create($Using))) { $RightIndex }
                     }
                 }
                 elseif ($JoinType -eq 'Cross') { 0..($RightList.Length - 1) }
