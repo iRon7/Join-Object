@@ -128,7 +128,7 @@
     - Changed $LeftOrNull and $RightOrNull to $LeftOrVoid and $RightOrVoid
 ## 2019-02-08 2.4.2 (mcclimont)
   - Updated
-    - Compliant with StrictMode `-Version` 2 (https://github.com/iRon7/`Join-Object`/pull/3)
+    - Compliant with StrictMode `-Version` 2 (https://github.com/iRon7/Join-Object/pull/3)
 ## 2019-02-06 2.4.1 (iRon)
   - New feature
     - Added $LeftOrRight and $RightOrLeft references
@@ -146,7 +146,7 @@
     - Replaced `InnerJoin-`, `LeftJoin-`, `RightJoin-`, `FullJoin-Object` aliases by proxy commands
 ## 2018-11-28 2.2.6 (iRon)
   - Updated
-    - Support for mixed [string]Key/[hashtable]@{Key={Expression}} `-Property` parameter
+    - Support for mixed `[string]Key/[hashtable]@{Key={Expression}} -Property` parameter
 ## 2018-11-27 2.2.5 (iRon)
   - Fixes
     - Fixed empty output bug (including test)
