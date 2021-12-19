@@ -21,13 +21,13 @@
     - Improved proxy command defaults
 ## 2021-04-08 3.4.6 (iRon)
   - Fixes
-    - Fixed issue [#19](https://github.com/iRon7/Join-Object/issues/19): Deal with empty (and $Null) inputs
+    - Fixed issue [#19](https://github.com/iRon7/Join-Object/issues/19): Deal with empty (and `$Null`) inputs
 ## 2021-03-11 3.4.5 (iRon)
   - Help
     - Issue [#17](https://github.com/iRon7/Join-Object/issues/17) Updated help
 ## 2021-03-24 3.4.4 (iRon)
   - Updated
-    - Using $PSCmdlet.ThrowTerminatingError for argument exceptions
+    - Using `$PSCmdlet`.ThrowTerminatingError for argument exceptions
 ## 2021-03-20 3.4.2 (iRon)
   - Updated
     - Issue [#18](https://github.com/iRon7/Join-Object/issues/18) Support self-join on the left (piped) object
@@ -45,7 +45,7 @@
     - Convert each object to a hash table for strict expressions
     - Support wildcard * (all properties) for the `-On` parameter
     - Prevent against code injection: https://devblogs.microsoft.com/powershell/powershell-injection-hunter-security-auditing-for-powershell-scripts/
-    - Implemented smarter properties merge: https://github.com/iRon7/`Join-Object`/issues/12
+    - Implemented smarter properties merge: [#12](https://github.com/iRon7/Join-Object/issues/12)
     - Reformatted script with https://github.com/DTW-DanWard/PowerShell-Beautifier
 ## 2020-04-05 3.2.2 (iRon)
   - Updated
@@ -67,7 +67,7 @@
     - Throw "The `-On` parameter cannot be used on a cross join."
 ## 2019-11-15 3.1.3 (iRon)
   - Updated
-    - Also apply `-Where` argument to outer join part (expression to evaluate $Null values)
+    - Also apply `-Where` argument to outer join part (expression to evaluate `$Null` values)
 ## 2019-11-11 3.1.2 (iRon)
   - Fixes
     - Resolved bug with single right object
@@ -79,7 +79,7 @@
     - Adjusted help
 ## 2019-11-07 3.0.8 (iRon)
   - Updated
-    - All properties of the $Left and $Right object are set to $Null in the outer join part.
+    - All properties of the `$Left` and `$Right` object are set to `$Null` in the outer join part.
     - Better support chaining multiple joins and simplified available expression objects:
 ## 2019-11-01 3.0.7 (iRon)
   - Updated
@@ -125,13 +125,13 @@
     - Resolved scope bug when invoked multiple times in the same stream
 ## 2019-02-06 2.4.3 (iRon)
   - Updated
-    - Changed $LeftOrNull and $RightOrNull to $LeftOrVoid and $RightOrVoid
+    - Changed `$LeftOrNull` and `$RightOrNull` to `$LeftOrVoid` and `$RightOrVoid`
 ## 2019-02-08 2.4.2 (mcclimont)
   - Updated
     - Compliant with StrictMode `-Version` 2 (https://github.com/iRon7/Join-Object/pull/3)
 ## 2019-02-06 2.4.1 (iRon)
   - New feature
-    - Added $LeftOrRight and $RightOrLeft references
+    - Added `$LeftOrRight` and `$RightOrLeft` references
 ## 2019-02-02 2.4.0 (iRon)
   - New feature
     - Added Update-Object and Merge-Object proxy commands
@@ -146,7 +146,7 @@
     - Replaced `InnerJoin-`, `LeftJoin-`, `RightJoin-`, `FullJoin-Object` aliases by proxy commands
 ## 2018-11-28 2.2.6 (iRon)
   - Updated
-    - Support for mixed `[string]Key/[hashtable]@{Key={Expression}} -Property` parameter
+    - Support for mixed `[string]Key`/`[hashtable]@{Key={Expression}}` `-Property` parameter
 ## 2018-11-27 2.2.5 (iRon)
   - Fixes
     - Fixed empty output bug (including test)
