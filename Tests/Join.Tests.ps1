@@ -685,7 +685,7 @@ Describe 'Join-Object' {
     Context "Join using expression" {
 
         It '$Employee | Join $Department {$Left.Department -ne $Right.Name}' {
-            $Actual = $Employee | Join $Department {$Left.Department -ne $Right.Name}
+            $Actual = $Employee | Join $Department -Using {$Left.Department -ne $Right.Name}
             $Expected = ConvertFrom-SourceTable '
                 Id Name                 Country            Department  Age ReportsTo
                 -- ----                 -------            ----------  --- ---------
@@ -713,7 +713,7 @@ Describe 'Join-Object' {
         }
 
         It '$Employee | Join $Department {$Left.Department -eq $Right.Name -and $Left.Country -ne $Right.Country}' {	# Recommended: $Employee | Join $Department -On Department -Eq Name -Where {$Left.Country -ne $Right.Country}
-            $Actual = $Employee | Join $Department {$Left.Department -eq $Right.Name -and $Left.Country -ne $Right.Country}
+            $Actual = $Employee | Join $Department -Using {$Left.Department -eq $Right.Name -and $Left.Country -ne $Right.Country}
             $Expected = ConvertFrom-SourceTable '
                 Id Name                 Country           Department  Age ReportsTo
                 -- ----                 -------           ----------  --- ---------
@@ -2173,6 +2173,46 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 [pscustomobject]@{arrayList1 = $Null; arrayList2 = 'henry'}
                 
             Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+        
+        it 'On expression' { # https://stackoverflow.com/q/70120859/1701026
+        
+            $Domain1 = ConvertFrom-SourceTable '
+                DN                                          FirstName LastName
+                --                                          --------- --------
+                CN=E466097,OU=Sales,DC=Domain1,DC=COM       Karen     Berge
+                CN=E000001,OU=HR,DC=Domain1,DC=COM          John      Doe
+                CN=E475721,OU=Engineering,DC=Domain1,DC=COM Maria     Garcia
+                CN=E890223,OU=Engineering,DC=Domain1,DC=COM James     Johnson
+                CN=E235479,OU=HR,DC=Domain1,DC=COM          Mary      Smith
+                CN=E964267,OU=Sales,DC=Domain1,DC=COM       Jeff      Smith'
+
+            $Domain2 = ConvertFrom-SourceTable '
+                DN                                    Name
+                --                                    ----
+                CN=E000001,OU=Users,DC=Domain2,DC=COM John Doe
+                CN=E235479,OU=Users,DC=Domain2,DC=COM Mary Smith
+                CN=E466097,OU=Users,DC=Domain2,DC=COM Karen Berge
+                CN=E475721,OU=Users,DC=Domain2,DC=COM Maria Garcia
+                CN=E890223,OU=Users,DC=Domain2,DC=COM James Johnson
+                CN=E964267,OU=Users,DC=Domain2,DC=COM Jeff Smith'
+            
+            $Expected = ConvertFrom-SourceTable '
+                Domain1DN                                   Domain2DN                             FirstName LastName Name
+                ---------                                   ---------                             --------- -------- ----
+                CN=E466097,OU=Sales,DC=Domain1,DC=COM       CN=E466097,OU=Users,DC=Domain2,DC=COM Karen     Berge    Karen Berge
+                CN=E000001,OU=HR,DC=Domain1,DC=COM          CN=E000001,OU=Users,DC=Domain2,DC=COM John      Doe      John Doe
+                CN=E475721,OU=Engineering,DC=Domain1,DC=COM CN=E475721,OU=Users,DC=Domain2,DC=COM Maria     Garcia   Maria Garcia
+                CN=E890223,OU=Engineering,DC=Domain1,DC=COM CN=E890223,OU=Users,DC=Domain2,DC=COM James     Johnson  James Johnson
+                CN=E235479,OU=HR,DC=Domain1,DC=COM          CN=E235479,OU=Users,DC=Domain2,DC=COM Mary      Smith    Mary Smith
+                CN=E964267,OU=Sales,DC=Domain1,DC=COM       CN=E964267,OU=Users,DC=Domain2,DC=COM Jeff      Smith    Jeff Smith'
+
+            $Actual = $Domain1 |Join $Domain2 -On { [RegEx]::Match($_.DN, '(?<=CN=)E\d{6}(?=,OU=)') } -Name Domain1,Domain2
+            Compare-PSObject $Actual $Expected | Should -BeNull
+            
+            $Actual = $Domain1 |Join $Domain2 -On { $_.FirstName, $_.LastName -Join ' ' } -Eq Name -Name Domain1,Domain2
+            Compare-PSObject $Actual $Expected | Should -BeNull
+
         }
 
     }
