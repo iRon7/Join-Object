@@ -196,6 +196,7 @@ The right object list, provided by the first argument, to be joined.
 **`-On <String[]>`**  
 The `-On` parameter (alias `-Using`) defines which objects should be joined together.
 If the `-Equals` parameter is omitted, the value(s) of the properties listed by the `-On` parameter should be equal at both sides in order to join the left object with the right object.
+If the `-On` parameter contains an expression, the expression will be evaluted where `$_`, `$PSItem` and `$Left` contains the currect object. The result of the expression will be compared to right object property defined by the `-Equals` parameter.
 
 *Note 1:* The list of properties defined by the `-On` parameter will be complemented with the list of
 properties defined by the `-Equals` parameter and vice versa.
@@ -203,11 +204,12 @@ properties defined by the `-Equals` parameter and vice versa.
 *Note 2:* Related properties will be merged to a single property by default (see also the -Property
 parameter).
 
-*Note 3:* If the -On and the `-OnExpression` parameter are omitted, a side-by-side join is returned.
+*Note 3:* If the -On and the `-Using` parameter are omitted, a side-by-side join is returned.
 
 **`-Equals <String[]>`**  
 If the `-Equals` parameter is supplied, the value(s) of the left object properties listed by the `-On`
 parameter should be equal to the value(s)of the right object listed by the `-Equals` parameter in order to join the left object with the right object.
+If the `-Equals` parameter contains an expression, the expression will be evaluted where `$_`, `$PSItem` and `$Right` contains the currect object. The result of the expression will be compared to left object property defined by the `-On` parameter.
 
 *Note 1:* The list of properties defined by the `-Equal` parameter will be complemented with the list of properties defined by the `-On` parameter and vice versa.
 
@@ -222,12 +224,12 @@ If the `-Strict` switch is set, the comparison between the related properties de
 **`-MatchCase`**  
 If the `-MatchCase` (alias `-CaseSensitive`) switch is set, the comparison between the related properties defined by the `-On` Parameter (and the `-Equals` parameter) will case sensitive.
 
-**`-OnExpression <ScriptBlock>`**  
+**`-Using <ScriptBlock>`**  
 Any conditional expression (where `$Left` refers to each left object and `$Right` refers to each right object) that requires to evaluate to true in order to join the left object with the right object.
 
-*Note 1:* The `-OnExpression` parameter has the most complex comparison possibilities but is considerable slower than the other types.
+*Note 1:* The `-Using` parameter has the most complex comparison possibilities but is considerable slower than the other types.
 
-*Note 2:* The `-OnExpression` parameter cannot be used with the `-On` parameter.
+*Note 2:* The `-Using` parameter cannot be used with the `-On` parameter.
 
 **`-Where <ScriptBlock>`**  
 An expression that defines the condition to be met for the objects to be returned. There is no limit to the number of predicates that can be included in the condition.
