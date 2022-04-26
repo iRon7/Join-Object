@@ -21,10 +21,12 @@ The Join-Object cmdlet reveals the following proxy commands with their own (`-Jo
 * `LeftJoin-Object` (Alias `LeftJoin`), combines the related objects and adds the rest of the left objects
 * `RightJoin-Object` (Alias `RightJoin`), combines the related objects and adds the rest of the right objects
 * `FullJoin-Object` (Alias `FullJoin`), combines the related objects and adds the rest of the left and right objects
+* `OuterJoin-Object` (Alias `OuterJoin`), combines the unrelated objects
 * `CrossJoin-Object` (Alias `CrossJoin`), combines each left object with each right object
 * `Update-Object` (Alias `Update`), updates the left object with the related right object
 * `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the
   new (unrelated) right objects
+* `Get-Difference` (Alias `Differs`), gets the symmetric difference between the object and merges the properties
 
 ## Installation
 There are two versions of this `Join-Object` cmdlet (both versions supply the same functionality):
@@ -225,15 +227,24 @@ If the `-Strict` switch is set, the comparison between the related properties de
 If the `-MatchCase` (alias `-CaseSensitive`) switch is set, the comparison between the related properties defined by the `-On` Parameter (and the `-Equals` parameter) will case sensitive.
 
 **`-Using <ScriptBlock>`**  
-Any conditional expression (where `$Left` refers to each left object and `$Right` refers to each right object) that requires to evaluate to true in order to join the left object with the right object.
+Any conditional expression that requires to evaluate to true in order to join the left object with the right object.
 
-*Note 1:* The `-Using` parameter has the most complex comparison possibilities but is considerable slower than the other types.
+The following variables are exposed for a (`ScriptBlock`) expression:
+* **`$_`**: iterates each property name
+* **`$Left`**: a hash table representing the current left object (each self-contained `-LeftObject`).
+  The hash table will be empty (`@{}`) in the outer part of a left join or full join.
+* **`$LeftIndex`**: the index of the left object (`$Null` in the outer part of a right- or full join)
+* **`$Right`**: a hash table representing the current right object (each self-contained `-RightObject`)
+  The hash table will be empty (`@{}`) in the outer part of a right join or full join.
+* **`$RightIndex`**: the index of the right object (`$Null` in the outer part of a left- or full join)
+
+*Note 1:* The `-Using` parameter has the most complex comparison possibilities but is considerable slower than the -On parameter.
 
 *Note 2:* The `-Using` parameter cannot be used with the `-On` parameter.
 
 **`-Where <ScriptBlock>`**  
-An expression that defines the condition to be met for the objects to be returned. There is no limit to the number of predicates that can be included in the condition.
-
+An expression that defines the condition to be met for the objects to be returned. See the Using parameter for available expression variables.
+        
 **`-Discern <String[]>`**  
 By default unrelated properties with the same name will be collected in a single object property.
 The `-Discern` parameter (alias `-NameItems`)  defines how to rename the object properties and divide them over multiple properties. If a given name pattern contains an asterisks (`*`), the asterisks will be replaced with the original property name. Otherwise, the property name for each property item will be prefixed with the given name pattern.
@@ -250,15 +261,6 @@ A hash table or list of property names (strings) and/or hash tables that define 
 property names and values
 
 Hash tables should be in the format `@{<PropertyName> = <Expression>}` where the <Expression> is a `ScriptBlock` or a *smart property* (string) and defines how the specific left and right properties should be merged.
-
-The following variables are exposed for a (`ScriptBlock`) expression:
-* **`$_`**: iterates each property name
-* **`$Left`**: a hash table representing the current left object (each self-contained `-LeftObject`).
-  The hash table will be empty (`@{}`) in the outer part of a left join or full join.
-* **`$LeftIndex`**: the index of the left object (`$Null` in the outer part of a right- or full join)
-* **`$Right`**: a hash table representing the current right object (each self-contained `-RightObject`)
-  The hash table will be empty (`@{}`) in the outer part of a right join or full join.
-* **`$RightIndex`**: the index of the right object (`$Null` in the outer part of a left- or full join)
 
 The following smart properties are available:
 * A **general property**: `'<Property Name>'`, where `<Property Name>` represents the property name of the left and/or right property, e.g. `@{ MyProperty = 'Name' }`. If the property exists on both sides, an array holding both values will be returned. In the outer join, the value of the property will be `$Null`.  This smart property is similar to the expression: `@{ MyProperty = { @($Left['Name'], $Right['Name']) } }`
