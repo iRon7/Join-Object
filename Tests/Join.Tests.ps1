@@ -1,19 +1,19 @@
 #Requires -Modules @{ModuleName="Pester"; ModuleVersion="5.0.0"}
 
 Describe 'Join-Object' {
-    
+
     BeforeAll {
-    
+
         Set-StrictMode -Version Latest
 
         Get-Module -Name JoinModule | Remove-Module
         Import-Module JoinModule
         # . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
-        
+
         . .\ConvertFrom-SourceTable.ps1                             # https://www.powershellgallery.com/packages/ConvertFrom-SourceTable
 
         Function Compare-PSObject([Object[]]$ReferenceObject, [Object[]]$DifferenceObject) {
-            $Property = ($ReferenceObject  | Select-Object -First 1).PSObject.Properties.Name + 
+            $Property = ($ReferenceObject  | Select-Object -First 1).PSObject.Properties.Name +
                         ($DifferenceObject | Select-Object -First 1).PSObject.Properties.Name | Select-Object -Unique
                         Compare-Object $ReferenceObject $DifferenceObject -Property $Property
         }
@@ -96,7 +96,7 @@ Describe 'Join-Object' {
                  4 Duval   France          Engineering  21         5 Germany
                  5 Evans   England         Marketing    35           England
                  6 Fischer Germany         Engineering  29         4 Germany'
- 
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -228,7 +228,7 @@ Describe 'Join-Object' {
                    Id Name    Country Department    Age ReportsTo
                    -- ----    ------- ----------    --- ---------
                     2 Bauer   Germany Engineering    31         4
-                    5 Evans   England Marketing      35          
+                    5 Evans   England Marketing      35
                     6 Fischer Germany Engineering    29         4
                 $Null   $Null France  Sales       $Null     $Null
                 $Null   $Null France  Purchase    $Null     $Null'
@@ -318,6 +318,51 @@ Describe 'Join-Object' {
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
+        It '$Employee | OuterJoin $Department -On Country -Discern Employee, Department' {
+            $Actual = $Employee | OuterJoin $Department -On Country -Discern Employee, Department
+            $Expected = ConvertFrom-SourceTable '
+                Id EmployeeName DepartmentName Country Department  Age ReportsTo
+                -- ------------ -------------- ------- ----------  --- ---------
+                 1 Aerts                 $Null Belgium Sales        40         5'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It '$Employee | OuterJoin $Department -On Department -Equals Name -Discern Employee, Department' {
+            $Actual = $Employee | OuterJoin $Department -On Department -Equals Name -Discern Employee, Department
+            $Expected = ConvertFrom-SourceTable '
+                   Id Name    EmployeeCountry DepartmentCountry Department    Age ReportsTo
+                   -- ----    --------------- ----------------- ----------    --- ---------
+                $Null   $Null           $Null France            Purchase    $Null     $Null'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It '$Employee | OuterJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
+            $Actual = $Employee | OuterJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
+            $Expected = ConvertFrom-SourceTable '
+                   Id Name    Country Department    Age ReportsTo
+                   -- ----    ------- ----------    --- ---------
+                    1 Aerts   Belgium Sales          40         5
+                    3 Cook    England Sales          69         1
+                    4 Duval   France  Engineering    21         5
+                $Null   $Null France  Sales       $Null     $Null
+                $Null   $Null France  Purchase    $Null     $Null'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It '$Employee | OuterJoin $Department -On Country' {
+            $Actual = $Employee | OuterJoin $Department -On Country
+            $Expected = ConvertFrom-SourceTable '
+                Id Name           Country  Department  Age ReportsTo
+                -- ----           -------  ----------  --- ---------
+                 1 {Aerts, $null} Belgium  Sales        40         5
+            ' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, Country, Department, Age, ReportsTo
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
         It '$Employee | CrossJoin $Department -Discern Employee, Department' {
             $Actual = $Employee | CrossJoin $Department -Discern Employee, Department
             $Expected = ConvertFrom-SourceTable '
@@ -352,7 +397,7 @@ Describe 'Join-Object' {
         }
 
         Context 'Update' {
-    
+
             BeforeAll {
                 $Expected = ConvertFrom-SourceTable '
                     Id Name    Country Department  Age ReportsTo
@@ -364,12 +409,12 @@ Describe 'Join-Object' {
                      5 Evans   England Marketing    35
                      6 Fischer France  Engineering  29         4'
             }
-            
+
             It '$Employee | Update $Changes -On Id' {
                 $Actual = $Employee | Update $Changes -On Id
                 Compare-PSObject $Actual $Expected | Should -BeNull
             }
-        
+
             It '$Employee | LeftJoin $Changes -On Id -Property "Right.*"' {
                 $Actual = $Employee | LeftJoin $Changes -On Id -Property 'Right.*'
                 Compare-PSObject $Actual $Expected | Should -BeNull
@@ -392,7 +437,7 @@ Describe 'Join-Object' {
         }
 
         Context 'Merge' {
-    
+
             BeforeAll {
                 $Expected = ConvertFrom-SourceTable '
                     Id Name    Country Department  Age ReportsTo
@@ -405,7 +450,7 @@ Describe 'Join-Object' {
                      6 Fischer France  Engineering  29         4
                      7 Geralds Belgium Sales        71         1'
             }
-            
+
             It '$Employee | Merge $Changes -On Id' {
                 $Actual = $Employee | Merge $Changes -On Id
                 Compare-PSObject $Actual $Expected | Should -BeNull
@@ -431,10 +476,56 @@ Describe 'Join-Object' {
                 Compare-PSObject $Actual $Expected | Should -BeNull
             }
         }
+
+        It '$Employee | Differs $Department -On Country' {
+            $Actual = $Employee | Differs $Department -On Country
+            $Expected = ConvertFrom-SourceTable '
+                Id Name    Country Department  Age ReportsTo
+                -- ----    ------- ----------  --- ---------
+                 1 Aerts   Belgium Sales        40         5'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It '$Employee | Differs $Department -On Department -Equals Name' {
+            $Actual = $Employee | Differs $Department -On Department -Equals Name
+            $Expected = ConvertFrom-SourceTable '
+                   Id Name     Country Department   Age ReportsTo
+                   -- ----     ------- ----------   --- ---------
+                $Null Purchase France       $Null $Null     $Null'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It '$Employee | Differs $Department -On Department, Country -Equals Name' {
+            $Actual = $Employee | Differs $Department -On Department, Country -Equals Name
+            $Expected = ConvertFrom-SourceTable '
+                   Id Name     Country Department    Age ReportsTo
+                   -- ----     ------- ----------    --- ---------
+                    1 Aerts    Belgium Sales          40         5
+                    3 Cook     England Sales          69         1
+                    4 Duval    France  Engineering    21         5
+                $Null Sales    France        $Null $Null     $Null
+                $Null Purchase France        $Null $Null     $Null'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It '$Employee | Differs $Department -On Country' {
+            $Actual = $Employee | Differs $Department -On Country
+            $Expected = ConvertFrom-SourceTable '
+                Id Name    Country Department  Age ReportsTo
+                -- ----    ------- ----------  --- ---------
+                 1 Aerts   Belgium Sales        40         5'
+
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
     }
-    
+
     Context 'Self join on LeftObject' {
-    
+
         It '$Employee | LeftJoin -On ReportsTo -Equals Id -Discern *1,*2' {
             $Actual = $Employee | LeftJoin -On ReportsTo -Equals Id -Discern *1,*2
             $Expected = ConvertFrom-SourceTable '
@@ -446,7 +537,7 @@ Describe 'Join-Object' {
              4 Duval   France   Engineering   21 Evans  England  Marketing       35
              5 Evans   England  Marketing     35  $Null    $Null       $Null  $Null     $Null
              6 Fischer Germany  Engineering   29 Duval  France   Engineering     21         5'
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -477,9 +568,9 @@ Describe 'Join-Object' {
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
     }
-    
+
     Context 'Self join on RightObject' {
-    
+
         It 'LeftJoin $Employee -On ReportsTo -Equals Id -Discern *1,*2' {
             $Actual = LeftJoin $Employee -On ReportsTo -Equals Id -Discern *1,*2
             $Expected = ConvertFrom-SourceTable '
@@ -491,7 +582,7 @@ Describe 'Join-Object' {
              4 Duval   France   Engineering   21 Evans  England  Marketing       35
              5 Evans   England  Marketing     35  $Null    $Null       $Null  $Null     $Null
              6 Fischer Germany  Engineering   29 Duval  France   Engineering     21         5'
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -538,7 +629,7 @@ Describe 'Join-Object' {
         }
 
     }
-    
+
     Context 'Join by index' {
 
         It '$Employee | InnerJoin $Department -Discern Employee, Department' {
@@ -550,10 +641,10 @@ Describe 'Join-Object' {
                  2 Bauer        Germany         Engineering  31         4 Marketing      England
                  3 Cook         England         Sales        69         1 Sales          France
                  4 Duval        France          Engineering  21         5 Purchase       France'
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
+
         It '$Employee | LeftJoin $Department -Discern Employee, Department' {
             $Actual = $Employee | LeftJoin $Department -Discern Employee, Department
             $Expected = ConvertFrom-SourceTable '
@@ -568,7 +659,7 @@ Describe 'Join-Object' {
 
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
+
         It '$Department | RightJoin $Employee -Discern Employee, Department' {				# Swapped $Department and $Employee
             $Actual = $Department | RightJoin $Employee -Discern Employee, Department
             $Expected = ConvertFrom-SourceTable '
@@ -583,7 +674,7 @@ Describe 'Join-Object' {
 
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
+
         It '$Employee | FullJoin $Department -Discern Employee, Department' {
             $Actual = $Employee | FullJoin $Department -Discern Employee, Department
             $Expected = ConvertFrom-SourceTable '
@@ -617,20 +708,20 @@ Describe 'Join-Object' {
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        # It 'Use the left object property if exists otherwise use right object property (using smart property)' {
-            # $Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property 'Left.*'
-            # $Expected = ConvertFrom-SourceTable '
-                # Id Name    Country Department  Age ReportsTo
-                # -- ----    ------- ----------  --- ---------
-                 # 1 Aerts   Belgium Sales        40         5
-                 # 2 Bauer   Germany Engineering  31         4
-                 # 3 Cook    England Sales        69         1
-                 # 4 Duval   France  Engineering  21         5
-                 # 5 Evans   England Marketing    35
-                 # 6 Fischer Germany Engineering  29         4'
+        It 'Use the left object property if exists otherwise use right object property (using smart property)' {
+            $Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property Left.*
+            $Expected = ConvertFrom-SourceTable '
+                Id Name    Country Department  Age ReportsTo
+                -- ----    ------- ----------  --- ---------
+                 1 Aerts   Belgium Sales        40         5
+                 2 Bauer   Germany Engineering  31         4
+                 3 Cook    England Sales        69         1
+                 4 Duval   France  Engineering  21         5
+                 5 Evans   England Marketing    35
+                 6 Fischer Germany Engineering  29         4'
 
-            # Compare-PSObject $Actual $Expected | Should -BeNull
-        # }
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
 
     }
 
@@ -708,7 +799,7 @@ Describe 'Join-Object' {
                  6 {Fischer, Sales}     {Germany, France}  Engineering  29         4
                  6 {Fischer, Purchase}  {Germany, France}  Engineering  29         4
             ' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -721,7 +812,7 @@ Describe 'Join-Object' {
                  3 {Cook, Sales}        {England, France} Sales        69         1
                  4 {Duval, Engineering} {France, Germany} Engineering  21         5
             ' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -738,7 +829,7 @@ Describe 'Join-Object' {
                  3 Cook  {England, France} Sales        69         1
                  4 Duval {France, Germany} Engineering  21         5
             ' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -749,14 +840,14 @@ Describe 'Join-Object' {
                 -- ----              -------          ----------  --- ---------
                  4 {Duval, Purchase} {France, France} Engineering  21         5
             ' | Select-Object Id, @{N='Name'; E={ConvertTo-Array $_.Name}}, @{N='Country'; E={ConvertTo-Array $_.Country}}, Department, Age, ReportsTo
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
     }
-    
+
     Context "DataTables" {
-    
+
         BeforeAll {
             $DataTable1 = New-Object Data.DataTable
             $Null = $DataTable1.Columns.Add((New-Object Data.DataColumn 'Column1'), [String])
@@ -790,7 +881,7 @@ Describe 'Join-Object' {
             $DataRow.Item('Column3') = 5
             $DataTable2.Rows.Add($DataRow)
         }
-        
+
         It '(inner)join DataTables' {
             $Actual = $DataTable1 | Join $DataTable2 -On Column1
             $Expected = ConvertFrom-SourceTable '
@@ -799,7 +890,7 @@ Describe 'Join-Object' {
                 B             2       3
                 C             3       4
             '
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -812,7 +903,7 @@ Describe 'Join-Object' {
                 B             2       3
                 C             3       4
             '
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -825,7 +916,7 @@ Describe 'Join-Object' {
                 C             3       4
                 D         $Null       5
             '
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -839,7 +930,7 @@ Describe 'Join-Object' {
                 C             3       4
                 D         $Null       5
             '
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
@@ -852,7 +943,7 @@ Describe 'Join-Object' {
                 B             2
                 C             3
             '
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
     }
@@ -948,7 +1039,7 @@ Describe 'Join-Object' {
         It 'Default Join with null, zero, empty, etc.' {
 
             $Actual = InnerJoin $Object -On Value Left,Right -Where {$LeftIndex -ne $RightIndex} | Select-Object LeftName, RightName
-            $Expected = 
+            $Expected =
                 [pscustomobject]@{'LeftName' = 'Null';   'RightName' = 'String'},
                 [pscustomobject]@{'LeftName' = 'Null';   'RightName' = 'Empty'},
                 [pscustomobject]@{'LeftName' = 'String'; 'RightName' = 'Null'},
@@ -962,7 +1053,7 @@ Describe 'Join-Object' {
         It 'Strict Join with null, zero, empty, etc.' {
 
             $Actual = InnerJoin $Object -Strict -On Value Left,Right -Where {$LeftIndex -ne $RightIndex}
-            $Expected = 
+            $Expected =
                 [pscustomobject]@{'LeftName' = 'Null'; 'Value' = $Null; 'RightName' = 'Empty'},
                 [pscustomobject]@{'LeftName' = 'Empty'; 'Value' = [Object[]]@(); 'RightName' = 'Null'}
 
@@ -972,7 +1063,7 @@ Describe 'Join-Object' {
 
     Context "Stackoverflow answers" {
 
-        It "In Powershell, what's the best way to join two tables into one?" { # https://stackoverflow.com/a/45483110/1701026
+        It "In Powershell, what's the best way to join two tables into one?" { # https://stackoverflow.com/a/45483110
 
             $leases = ConvertFrom-SourceTable '
                 IP                    Name
@@ -1002,8 +1093,8 @@ Describe 'Join-Object' {
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'How can i merge multiple CSV files in which two columns have same data using Powershell' { # https://stackoverflow.com/a/63281452/1701026
-        
+        It 'How can i merge multiple CSV files in which two columns have same data using Powershell' { # https://stackoverflow.com/a/63281452
+
 $csv1 = @'
 Appli,Folder,FileName,Config,VM1
 ABC,Folder1,FN1,Con1,VM11
@@ -1011,7 +1102,7 @@ ABC,Folder1,FN1,Con1,VM11
 ,Folder3,FN3,Con3,VM13
 SID,Folder4,FN4,Con4,VM14
 ,Folder5,FN5,Con5,VM15
-'@ | ConvertFrom-Csv 
+'@ | ConvertFrom-Csv
 
 $csv2 = @'
 Appli,Folder,FileName,Config,VM2
@@ -1020,7 +1111,7 @@ ABC,Folder1,FN1,Con1,VM11
 ,Folder3,FN3,Con3,VM13
 SID,Folder4,FN4,Con4,VM14
 ,Folder5,FN5,Con5,VM15
-'@ | ConvertFrom-Csv 
+'@ | ConvertFrom-Csv
 
 $csv3 = @'
 Appli,Folder,FileName,Config,VM3
@@ -1029,7 +1120,7 @@ ABC,Folder1,FN1,Con1,VM11
 ,Folder3,FN3,Con3,VM13
 SID,Folder4,FN4,Con4,VM14
 ,Folder5,FN5,Con5,VM15
-'@ | ConvertFrom-Csv 
+'@ | ConvertFrom-Csv
 
             $Actual = $csv1 | Merge-Object $csv2 -on Folder,FileName | Merge-object $csv3 -on Folder,FileName
             $Expected = ConvertFrom-SourceTable '
@@ -1045,7 +1136,7 @@ SID,Folder4,FN4,Con4,VM14
 
         }
 
-        It 'Combining Multiple CSV Files' { # https://stackoverflow.com/a/54855458/1701026 
+        It 'Combining Multiple CSV Files' { # https://stackoverflow.com/a/54855458
             $CSV1 = ConvertFrom-Csv @'
 Name,Attrib1,Attrib2
 VM1,111,True
@@ -1071,11 +1162,11 @@ VM3,True,ZZZ
             VM1  111     True    AAA       $Null
             VM2  222     False     $Null YYY
             VM3  333     True    CCC     ZZZ'
-            
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
-        It 'Combine two CSVs - Add CSV as another Column' { # https://stackoverflow.com/a/55431240/1701026
+
+        It 'Combine two CSVs - Add CSV as another Column' { # https://stackoverflow.com/a/55431240
             $csv1 = ConvertFrom-Csv @'
 VLAN
 1
@@ -1100,9 +1191,9 @@ CLIENT
                 3    CLIENT'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
-        }		
-        
-        It 'CMD or Powershell command to combine (merge) corresponding lines from two files' { # https://stackoverflow.com/a/54607741/1701026
+        }
+
+        It 'CMD or Powershell command to combine (merge) corresponding lines from two files' { # https://stackoverflow.com/a/54607741
 
             $A = ConvertFrom-Csv @'
 ID,Name
@@ -1124,13 +1215,13 @@ Physic
                 2  Dalas Physic'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
-        }	
-        
-        It 'Can I use SQL commands (such as join) on objects in powershell, without any SQL server/database involved?' { # https://stackoverflow.com/a/55431393/1701026
+        }
 
-        }	
-        
-        It 'CMD or Powershell command to combine (merge) corresponding lines from two files' { # https://stackoverflow.com/a/54855647/1701026
+        It 'Can I use SQL commands (such as join) on objects in powershell, without any SQL server/database involved?' { # https://stackoverflow.com/a/55431393
+
+        }
+
+        It 'CMD or Powershell command to combine (merge) corresponding lines from two files' { # https://stackoverflow.com/a/54855647
 
             $Purchase = ConvertFrom-Csv @'
 Fruit,Farmer,Region,Water
@@ -1161,9 +1252,9 @@ Fig,MarketF,50,0.5
                 Fig        Freda   Florida    5     MarketF 50   0.5'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
-        }	
-        
-        It 'Compare Two CSVs, match the columns on 2 or more Columns, export specific columns from both csvs with powershell' { # https://stackoverflow.com/a/52235645/1701026
+        }
+
+        It 'Compare Two CSVs, match the columns on 2 or more Columns, export specific columns from both csvs with powershell' { # https://stackoverflow.com/a/52235645
 
             $Left = ConvertFrom-Csv @"
 Ref_ID,First_Name,Last_Name,DOB
@@ -1192,9 +1283,9 @@ User4,John,05/23/1960,,Letter,R4IKTHSL.pdf
                 588496260 R4IKTHSL.pdf User4      05/23/1960 John'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
-        }	
-        
-        It 'Merge two CSV files while adding new and overwriting existing entries' { # https://stackoverflow.com/a/54949056/1701026
+        }
+
+        It 'Merge two CSV files while adding new and overwriting existing entries' { # https://stackoverflow.com/a/54949056
 
                 $configuration = ConvertFrom-SourceTable '
                 | path       | item  | value  | type |
@@ -1219,9 +1310,9 @@ User4,John,05/23/1960,,Letter,R4IKTHSL.pdf
                 new/path   item3 value3 SOME'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
-        }	
-    
-        It 'Merging two CSVs and then re-ordering columns on output' { # https://stackoverflow.com/a/54981257/1701026
+        }
+
+        It 'Merging two CSVs and then re-ordering columns on output' { # https://stackoverflow.com/a/54981257
 
             $Csv1 = ConvertFrom-Csv 'Server,Info
 server1,item1
@@ -1239,10 +1330,10 @@ server2,item2'
                 server1 server2 item1 item2'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
-        }	
+        }
 
-        It 'Comparing two CSVs using one property to compare another' { # https://stackoverflow.com/q/55602662/1701026
-        
+        It 'Comparing two CSVs using one property to compare another' { # https://stackoverflow.com/q/55602662
+
 $file1='"FACILITY","FILENAME"
 "16","abc.txt"
 "16","def.txt"
@@ -1271,8 +1362,8 @@ $file2='"FACILITY","FILENAME"
 
         }
 
-        It 'Merge two CSV files while adding new and overwriting existing entries' { # https://stackoverflow.com/a/54949056/1701026
-        
+        It 'Merge two CSV files while adding new and overwriting existing entries' { # https://stackoverflow.com/a/54949056
+
             $configuration = ConvertFrom-SourceTable '
                 | path       | item  | value  | type |
                 |------------|-------|--------|------|
@@ -1304,11 +1395,11 @@ $file2='"FACILITY","FILENAME"
 
         }
 
-        It 'Efficiently merge large object datasets having mulitple matching keys' { # https://stackoverflow.com/a/55543321/1701026
+        It 'Efficiently merge large object datasets having mulitple matching keys' { # https://stackoverflow.com/a/55543321
 
             $dataset1 = ConvertFrom-SourceTable '
-                A B    XY    ZY  
-                - -    --    --  
+                A B    XY    ZY
+                - -    --    --
                 1 val1 foo1  bar1
                 2 val2 foo2  bar2
                 3 val3 foo3  bar3
@@ -1318,8 +1409,8 @@ $file2='"FACILITY","FILENAME"
                 6 val6 foo6  bar6
             '
             $dataset2 = ConvertFrom-SourceTable '
-                A B    ABC   GH  
-                - -    ---   --  
+                A B    ABC   GH
+                - -    ---   --
                 3 val3 foo3  bar3
                 4 val4 foo4  bar4
                 5 val5 foo5  bar5
@@ -1383,12 +1474,12 @@ $file2='"FACILITY","FILENAME"
             $dataset2 = ($dsLength/2)..($dsLength*1.5) | %{
                 New-Object psobject -Property @{ A=$_ ; B="val$_" ; ABC = "foo$_"; GH ="bar$_" }
             }
-            
-            (Measure-Command {$dataset1| FullJoin $dataset2 -On A, B}).TotalSeconds | Should -BeLessThan 10
-        }	
 
-        It 'PowerShell list combinator - optimize please' { # https://stackoverflow.com/a/57832299/1701026
-        
+            (Measure-Command {$dataset1| FullJoin $dataset2 -On A, B}).TotalSeconds | Should -BeLessThan 10
+        }
+
+        It 'PowerShell list combinator - optimize please' { # https://stackoverflow.com/a/57832299
+
 $list1 = ConvertFrom-Csv -Delimiter ';' @'
 server
 hostname1
@@ -1451,7 +1542,7 @@ server    OS                                          Export3OS           Export
 ------    ------------------------------------------- ------------------- ---------
 hostname1                                       $Null               $Null w2k12
 hostname2 Microsoft Windows Server 2012 R2 Datacenter windows server 2012 w2k12
-hostname3 Microsoft Windows Server 2008 R2 Standard   windows server 2008 w2k8 
+hostname3 Microsoft Windows Server 2008 R2 Standard   windows server 2008 w2k8
 hostname4                                       $Null               $Null w2k8
 hostname5                                       $Null               $Null w2k16
 hostname6                                       $Null windows server 2008     $Null
@@ -1460,9 +1551,9 @@ hostname7                                       $Null               $Null     $N
             # Compare-PSObject $Actual $Expected | Should -BeNull
 
         }
-        
-        It 'Which operator provides quicker output -match -contains or Where-Object for large CSV files' { # https://stackoverflow.com/a/58474740/1701026
-        
+
+        It 'Which operator provides quicker output -match -contains or Where-Object for large CSV files' { # https://stackoverflow.com/a/58474740
+
 $AAA = ConvertFrom-Csv @'
 Number,Name,Domain
 Z001,ABC,Domain1
@@ -1542,7 +1633,7 @@ Z001,ABC,Domain3
                 [pscustomobject]@{Number = 'Z005'; Name = $Null, $Null; Name3 = 'PQR'; Name4 = 'VWX'; Domain = $Null, $Null; Domain3 = 'Domain2'; Domain4 = 'Domain4'}
                 [pscustomobject]@{Number = 'Z006'; Name = $Null, $Null; Name3 = $Null; Name4 = 'XYZ'; Domain = $Null, $Null; Domain3 = $Null; Domain4 = 'Domain1'}
             )
-            
+
             # Compare-PSObject $Actual $Expected | Should -BeNull
 
             $Actual = $AAA | FullJoin $BBB -On Number | FullJoin $CCC -On Number | FullJoin $DDD -On Number -Discern *3,*4
@@ -1556,7 +1647,7 @@ Z001,ABC,Domain3
             # Z004   {$null, MNO}               {$null, Domain4}
             # Z005   {$null, $null} PQR   VWX   {$null, $null}     Domain2 Domain4
             # Z006   {$null, $null}       XYZ   {$null, $null}             Domain1
-            
+
             $Expected = @(
                 [pscustomobject]@{Number = 'Z001'; Name = 'ABC', 'ABC'; Name3 = 'ABC'; Name4 = 'ABC'; Domain = 'Domain1', 'Domain1'; Domain3 = 'Domain1'; Domain4 = 'Domain3'}
                 [pscustomobject]@{Number = 'Z001'; Name = 'ABC', 'ABC'; Name3 = 'STU'; Name4 = 'ABC'; Domain = 'Domain1', 'Domain1'; Domain3 = 'Domain2'; Domain4 = 'Domain3'}
@@ -1580,7 +1671,7 @@ Z001,ABC,Domain3
             # Z004   {$null, MNO, $null}         {$null, Domain4, $null}
             # Z005   {$null, $null, PQR}   VWX   {$null, $null, Domain2}     Domain4
             # Z006   {$null, $null, $null} XYZ   {$null, $null, $null}       Domain1
-            
+
             $Expected = @(
                 [pscustomobject]@{Number = 'Z001'; Name = 'ABC', 'ABC', 'ABC'; Name4 = 'ABC'; Domain = 'Domain1', 'Domain1', 'Domain1'; Domain4 = 'Domain3'}
                 [pscustomobject]@{Number = 'Z001'; Name = 'ABC', 'ABC', 'STU'; Name4 = 'ABC'; Domain = 'Domain1', 'Domain1', 'Domain2'; Domain4 = 'Domain3'}
@@ -1604,7 +1695,7 @@ Z001,ABC,Domain3
             # Z004   {$null, MNO, $null, $null} {$null, Domain4, $null, $null}
             # Z005   {$null, $null, PQR, VWX}   {$null, $null, Domain2, Domain4}
             # Z006   {$null, $null, $null, XYZ} {$null, $null, $null, Domain1}
-            
+
             $Expected = @(
                 [pscustomobject]@{Number = 'Z001'; Name = 'ABC', 'ABC', 'ABC', 'ABC'; Domain = 'Domain1', 'Domain1', 'Domain1', 'Domain3'}
                 [pscustomobject]@{Number = 'Z001'; Name = 'ABC', 'ABC', 'STU', 'ABC'; Domain = 'Domain1', 'Domain1', 'Domain2', 'Domain3'}
@@ -1618,19 +1709,19 @@ Z001,ABC,Domain3
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Powershell "join"' { # https://stackoverflow.com/a/58800704/1701026
-            $cpu = Get-CimInstance -Class Win32_Processor 
+        It 'Powershell "join"' { # https://stackoverflow.com/a/58800704
+            $cpu = Get-CimInstance -Class Win32_Processor
             $mb = Get-CimInstance -Class Win32_BaseBoard
-            
+
             $Actual = $cpu | Select-Object Name, Description | Join-Object ($mb | Select-Object Manufacturer, Product)
-            
+
             $Actual.Name         | Should -Be $cpu.Name
             $Actual.Description  | Should -Be $cpu.Description
             $Actual.Manufacturer | Should -Be $mb.Manufacturer
             $Actual.Product      | Should -Be $mb.Product
         }
 
-        It 'Join/merge arrays' { # https://stackoverflow.com/a/58801439/1701026
+        It 'Join/merge arrays' { # https://stackoverflow.com/a/58801439
             $TxtTestcases = ConvertFrom-SourceTable '
                 Messages                                   Name   Error
                 --------                                   ----   -----
@@ -1638,11 +1729,11 @@ Z001,ABC,Domain3
                 {[APPS-EUAUTO1] [prep] Setting agent op... test 2 False'
 
             $RexTestcases = ConvertFrom-SourceTable '
-                TestPlan        Script          TestCase        TestData        ErrorCount      ErrorText       DateTime        Elapsed        
-                --------        ------          --------        --------        ----------      ---------       --------        -------        
-                D:\XHostMach... D:\XHostMach... rt1             1,\a\""         1               [#ERROR#][AP... 2014-03-28 1... 0:00:18        
+                TestPlan        Script          TestCase        TestData        ErrorCount      ErrorText       DateTime        Elapsed
+                --------        ------          --------        --------        ----------      ---------       --------        -------
+                D:\XHostMach... D:\XHostMach... rt1             1,\a\""         1               [#ERROR#][AP... 2014-03-28 1... 0:00:18
                 D:\XHostMach... D:\XHostMach... rt2             1,\a\""         0                               2014-03-28 1... 0:00:08 '
-                
+
             $Actual = $TxtTestcases | Join-Object $RexTestcases
             $Expected = ConvertFrom-SourceTable '
                 Messages                                   Name   Error TestPlan        Script          TestCase TestData ErrorCount ErrorText       DateTime        Elapsed
@@ -1653,8 +1744,8 @@ Z001,ABC,Domain3
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Compare two different csv files using PowerShell' { # https://stackoverflow.com/a/58855413/1701026
-        
+        It 'Compare two different csv files using PowerShell' { # https://stackoverflow.com/a/58855413
+
             $Csv2 = ConvertFrom-Csv @'
 Client Name,Policy Name,KB Size
 hostname1,Company_Policy,487402463
@@ -1689,10 +1780,10 @@ hostname23,Company_Policy,291768854
             $Actual = $CSV2 | FullJoin $CSV1 `
                 -On 'Client Name','Policy Name' `
                 -Property 'Client Name',
-                          'Policy Name', 
+                          'Policy Name',
                           @{'TB Size' = {[math]::Round(($Left['KB Size'] - $Right['KB Size']) / 1GB, 2)}} `
                 -Where {[math]::Abs($Left['KB Size'] - $Right['KB Size']) -gt 100MB}
-                    
+
             $Expected = ConvertFrom-SourceTable '
                     Client Name Policy Name       TB Size
                     ----------- -----------       -------
@@ -1708,9 +1799,9 @@ hostname23,Company_Policy,291768854
 
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
-        It 'multiple lookup powershell array' { # https://stackoverflow.com/a/58880814/1701026
-        
+
+        It 'multiple lookup powershell array' { # https://stackoverflow.com/a/58880814
+
             $List = ConvertFrom-SourceTable '
                 org_id  org_name        parent_id
                 1       Company         NULL
@@ -1734,8 +1825,8 @@ hostname23,Company_Policy,291768854
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Merge two json objects' { # https://stackoverflow.com/a/45563467/1701026
-        
+        It 'Merge two json objects' { # https://stackoverflow.com/a/45563467
+
             $Json1 = ConvertFrom-Json '
                 {
                   a:{
@@ -1750,7 +1841,7 @@ hostname23,Company_Policy,291768854
                    b:"d"
                   }
                 }'
-                
+
             $Actual = $Json1 | Merge $Json2
             $Expected = ConvertFrom-Json '
                 {
@@ -1778,8 +1869,8 @@ hostname23,Company_Policy,291768854
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Combine JSON objects in PowerShell' { # https://stackoverflow.com/q/57724976/1701026
-        
+        It 'Combine JSON objects in PowerShell' { # https://stackoverflow.com/q/57724976
+
             $aVar = '{ "oldEmployees" : [ { "firstName": "Jane", "lastName": "Doe" }, { "firstName": "John", "lastName": "Doe" } ] }'
             $bVar = '{ "newEmployees" : [ { "firstName": "Joe", "lastName": "Doe" } ] }'
 
@@ -1804,14 +1895,14 @@ hostname23,Company_Policy,291768854
 
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
-        It 'How to combine items from one PowerShell Array and one Powershell Object and produce a 3rd PowerShell Object?' { # https://stackoverflow.com/q/63203376/1701026
-        
+
+        It 'How to combine items from one PowerShell Array and one Powershell Object and produce a 3rd PowerShell Object?' { # https://stackoverflow.com/q/63203376
+
             $vmSizelist = ConvertFrom-SourceTable '
-                Name VMSize          ResourceGroup 
+                Name VMSize          ResourceGroup
                 VM1  Standard_D2s_v3 RG1
                 VM2  Standard_D14_v2 RG2'
-            
+
             $AllVMSize = ConvertFrom-SourceTable '
                 Name            NumberOfCores MemoryInMB MaxDataDiskCount OSDiskSizeInMB ResourceDiskSizeInMB
                 Standard_B1ls               1        512                2        1047552                 4096
@@ -1821,7 +1912,7 @@ hostname23,Company_Policy,291768854
                 Standard_B2s                2       4096                4        1047552                 8192
                 Standard_D2s_v3             2       8192                4        1047552                16384
                 Standard_D14_v2            16     114688               64        1047552               819200'
-                
+
             $Actual = $vmSizelist | Join-Object $AllVMSize -on VMSize -Eq Name -Property Name, VMSize, ResourceGroup, NumberOfCores, MemoryInMB
             $Expected = ConvertFrom-SourceTable '
                 Name VMSize          ResourceGroup NumberOfCores MemoryInMB
@@ -1831,8 +1922,8 @@ hostname23,Company_Policy,291768854
 
                 Compare-PSObject $Actual $Expected | Should -BeNull
             }
-        
-        It 'Updating data in .csv without overwriting the existing data / adding new data in powershell' { # https://stackoverflow.com/q/63242408/1701026
+
+        It 'Updating data in .csv without overwriting the existing data / adding new data in powershell' { # https://stackoverflow.com/q/63242408
 
             $Old = ConvertFrom-SourceTable '
                 Date       Filename  Type (BAY) ...
@@ -1840,13 +1931,13 @@ hostname23,Company_Policy,291768854
                 2020-08-01 File1.csv Type 1     Info 1
                 2020-08-02 File2.csv Type 2
                 2020-08-03 File3.csv Type 3'
-                            
+
             $New = ConvertFrom-SourceTable '
                 Date       Filename  Type (BAY) ...
                 ----       --------  ---------- ---
                 2020-08-04 File2.csv Type 2     Info 2
                 2020-08-04 File4.csv Type 4     Info 4'
-        
+
             $Actual = $Old | Merge-Object $New -on Filename
             $Expected = ConvertFrom-SourceTable '
                 Date       Filename  Type (BAY) ...
@@ -1856,12 +1947,12 @@ hostname23,Company_Policy,291768854
                 2020-08-03 File3.csv Type 3
                 2020-08-04 File4.csv Type 4     Info 4'
 
-            Compare-PSObject $Actual $Expected | Should -BeNull        
-        
+            Compare-PSObject $Actual $Expected | Should -BeNull
+
         }
-        
-        It 'Match on two columns in two separate csvs then merge one column' { # https://stackoverflow.com/q/39733868/1701026
-        
+
+        It 'Match on two columns in two separate csvs then merge one column' { # https://stackoverflow.com/q/39733868
+
 $Source = ConvertFrom-Csv @'
 "Employee ID","username","givenname","surname","emailaddress","title","Division","Location"
 "204264","ABDUL.JALIL@domain.com","Abdul Jalil","Bin Hajar","Abdul.jalil@domain.com","Warehouse Associate I","Singapore","Singapore, "
@@ -1878,15 +1969,15 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             $Source | Update-Object $Change givenname,surname
 
         }
-        
-        It 'How to join two object arrays in Powershell' { # https://stackoverflow.com/a/63576946/1701026
-        
+
+        It 'How to join two object arrays in Powershell' { # https://stackoverflow.com/a/63576946
+
             $Array1 = @{Id=1; Count=24},
                       @{Id=2; Count=34}
-                
+
             $Array2 = @{Id=1; Name="Some name"},
                       @{Id=2; Name="Some other name"}
-                  
+
             $Actual = $Array1 | Join $Array2 -On Id
             $Expected = ConvertFrom-SourceTable '
                 Count Id Name
@@ -1894,13 +1985,13 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                    24  1 Some name
                    34  2 Some other name'
 
-            Compare-PSObject $Actual $Expected | Should -BeNull  
+            Compare-PSObject $Actual $Expected | Should -BeNull
         }
     }
-        
+
     Context "Github issues" {
         It 'HashTables for input' { # https://github.com/iRon7/Join-Object/issues/10
-        
+
             $hostNumaInfo = @{
                 TypeId            = 0
                 CpuID             = 11, 10, 9, 8
@@ -1923,7 +2014,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 ParentBridge = ''
                 DeviceName   = 'Xeon E7 v3/Xeon E5 v3/Core i7 DMI2'
             }
-            
+
             $Actual = $hostNumaInfo | InnerJoin-Object $hostPciInfo -On PciId -Equals Id
             $Actual | Should -BeNullOrEmpty
             $Actual = $hostNumaInfo | InnerJoin-Object $hostPciInfo -On TypeId -Equals Bus
@@ -1949,9 +2040,9 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             Compare-PSObject $Actual $Expected | Should -BeNull
 
         }
-        
+
         It 'FullJoin on hashtables' {
-        
+
             $Employee =
                 @{'Id' = 1; 'Name' = 'Aerts'; 'Country' = 'Belgium'; 'Department' = 'Sales'; 'Age' = 40; 'ReportsTo' = 5},
                 @{'Id' = 2; 'Name' = 'Bauer'; 'Country' = 'Germany'; 'Department' = 'Engineering'; 'Age' = 31; 'ReportsTo' = 4},
@@ -1959,7 +2050,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 @{'Id' = 4; 'Name' = 'Duval'; 'Country' = 'France'; 'Department' = 'Engineering'; 'Age' = 21; 'ReportsTo' = 5},
                 @{'Id' = 5; 'Name' = 'Evans'; 'Country' = 'England'; 'Department' = 'Marketing'; 'Age' = 35; 'ReportsTo' = ''},
                 @{'Id' = 6; 'Name' = 'Fischer'; 'Country' = 'Germany'; 'Department' = 'Engineering'; 'Age' = 29; 'ReportsTo' = 4}
-                
+
             $Department =
                 @{'Name' = 'Engineering'; 'Country' = 'Germany'},
                 @{'Name' = 'Marketing'; 'Country' = 'England'},
@@ -1980,9 +2071,9 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
 
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
+
         It 'Ordered for input' { # https://github.com/iRon7/Join-Object/issues/10
-        
+
             $hostNumaInfo = [Ordered]@{
                 TypeId            = 0
                 CpuID             = 11, 10, 9, 8
@@ -2005,7 +2096,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 ParentBridge = ''
                 DeviceName   = 'Xeon E7 v3/Xeon E5 v3/Core i7 DMI2'
             }
-            
+
             $Actual = $hostNumaInfo | InnerJoin-Object $hostPciInfo -On PciId -Equals Id
             $Actual | Should -BeNullOrEmpty
             $Actual = $hostNumaInfo | InnerJoin-Object $hostPciInfo -On TypeId -Equals Bus
@@ -2030,21 +2121,21 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             }
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
+
         It '#14 Support scalar arrays' { # https://github.com/iRon7/Join-Object/issues/14
 
             $a = 'a1', 'a2', 'a3', 'a4'
             $b = 'b1', 'b2', 'b3', 'b4'
             $c = 'c1', 'c2', 'c3', 'c4'
             $d = 'd1', 'd2', 'd3', 'd4'
-            
+
             $Actual = $a |Join $b |Join $c |Join $d |% { "$_" }
-            $Expected = 
+            $Expected =
                 'a1 b1 c1 d1',
                 'a2 b2 c2 d2',
                 'a3 b3 c3 d3',
                 'a4 b4 c4 d4'
-                
+
             $Actual | Should -Be $Expected
 
             $Actual = $a |Join $b |Join $c |Join $d -Name a, b, c, d
@@ -2055,9 +2146,9 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 a2 b2 c2 d2
                 a3 b3 c3 d3
                 a4 b4 c4 d4'
-                
+
             Compare-PSObject $Actual $Expected | Should -BeNull
-            
+
             $Actual = $Department |Join $a
             $Expected = ConvertFrom-SourceTable '
                 Name        Country Value
@@ -2066,9 +2157,9 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 Marketing   England a2
                 Sales       France  a3
                 Purchase    France  a4'
-                
+
             Compare-PSObject $Actual $Expected | Should -BeNull
-            
+
             $Actual = $a |Join $Department
             $Expected = ConvertFrom-SourceTable '
                 Value Name        Country
@@ -2077,8 +2168,12 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 a2    Marketing   England
                 a3    Sales       France
                 a4    Purchase    France'
-                
+
             Compare-PSObject $Actual $Expected | Should -BeNull
+            
+            $a |OuterJoin $b | Should -be 'a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'b4'
+            
+            1..5 |OuterJoin @(3..7) | Should -be 1, 2, 6, 7
 
             $a = 'foo', 'bar'
             $b = 'baz', @(1,2)
@@ -2093,31 +2188,31 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             $Result[1] | Should -be 'bar | 1 2 | so on'
 
         }
-        
+
         It '#19 Deal with empty (and $Null) inputs' { # https://github.com/iRon7/Join-Object/issues/19
-        
+
             @() |Join $Employee | Should -benull # Self join
-            
-            $Actual = $Employee |Join $Null 
+
+            $Actual = $Employee |Join $Null
             $Expected = [PSCustomObject]@{Id = 1; Name = 'Aerts'; Country = 'Belgium'; Department = 'Sales'; Age = 40; ReportsTo = 5}
             Compare-PSObject $Actual $Expected | Should -BeNull
-            
+
             $Employee |Join @() | Should -benull
-            
+
             @{id = 1; name = 'one'} |Join @{id = 2; name = 'Two'} -On id | Should -benull
-            
+
             @{id = 1; name = 'one'} |Join @{id = 2; name = 'Two'} -On id |Join @{id = 3; name = 'Three'} -On id | Should -benull
-            
+
             @() |Join @{id = 3; name = 'Three'} -On id | Should -benull # Self join
-            
+
             $Actual = Join @{id = 3; name = 'Three'} -On id
             $Expected = [PSCustomObject]@{name = [array]('Three', 'Three'); id = 3}
             Compare-PSObject $Actual $Expected | Should -BeNull
-            
+
         }
 
         It '#21 merge repeating names' { # https://github.com/iRon7/Join-Object/issues/21
-        
+
             $Actual = 0..9 |Join 3, 5, 6 |Join 1, 2, 4 |Join 7, 8, 9 -Name Index, Sum, Sum, Sum
             $Expected = @(
                 [PSCustomObject]@{Index = 0; Sum = 3, 1, 7}
@@ -2125,11 +2220,11 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 [PSCustomObject]@{Index = 2; Sum = 6, 4, 9}
             )
             Compare-PSObject $Actual $Expected | Should -BeNull
-            
+
         }
-        
+
         It '#27 MissingLeftProperty: Join-Object : The property xxx cannot be found on the left object' { # https://github.com/iRon7/Join-Object/issues/27
-        
+
             $Expected = ConvertFrom-SourceTable '
                 Id EmployeeName Country Department  Age ReportsTo DepartmentName
                 -- ------------ ------- ----------  --- --------- --------------
@@ -2143,13 +2238,13 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
 
             $Actual = Join -JoinType Left -LeftObject $Employee -RightObject $Department -On Country -Discern Employee, Department
             Compare-PSObject $Actual $Expected | Should -BeNull
-        
+
             $Actual = LeftJoin -LeftObject $Employee -RightObject $Department -On Country -Discern Employee, Department
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
+
         It "#28 FullJoin doesn't work properly when joining multiple array when one of the array is empty" { # https://github.com/iRon7/Join-Object/issues/28
-        
+
             $arrayList1 = [Object[]]@('james', 'henry')
             $arrayList2 = [Object[]]@()
 
@@ -2157,26 +2252,26 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             $Expected =
                 [pscustomobject]@{arrayList1 = 'james'; arrayList2 = $Null},
                 [pscustomobject]@{arrayList1 = 'henry'; arrayList2 = $Null}
-                
+
             Compare-PSObject $Actual $Expected | Should -BeNull
 
             $Actual = FullJoin -Left $arrayList1 -Right $arrayList2 -Name arrayList1, arrayList2
             $Expected =
                 [pscustomobject]@{arrayList1 = 'james'; arrayList2 = $Null},
                 [pscustomobject]@{arrayList1 = 'henry'; arrayList2 = $Null}
-                
+
             Compare-PSObject $Actual $Expected | Should -BeNull
 
             $Actual = FullJoin -Left $arrayList2 -Right $arrayList1 -Name arrayList1, arrayList2
             $Expected =
                 [pscustomobject]@{arrayList1 = $Null; arrayList2 = 'james'},
                 [pscustomobject]@{arrayList1 = $Null; arrayList2 = 'henry'}
-                
+
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
-        
-        it 'On expression' { # https://stackoverflow.com/q/70120859/1701026
-        
+
+        it 'On expression' { # https://stackoverflow.com/q/70120859
+
             $Domain1 = ConvertFrom-SourceTable '
                 DN                                          FirstName LastName
                 --                                          --------- --------
@@ -2196,7 +2291,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 CN=E475721,OU=Users,DC=Domain2,DC=COM Maria Garcia
                 CN=E890223,OU=Users,DC=Domain2,DC=COM James Johnson
                 CN=E964267,OU=Users,DC=Domain2,DC=COM Jeff Smith'
-            
+
             $Expected = ConvertFrom-SourceTable '
                 Domain1DN                                   Domain2DN                             FirstName LastName Name
                 ---------                                   ---------                             --------- -------- ----
@@ -2209,10 +2304,76 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
 
             $Actual = $Domain1 |Join $Domain2 -On { [RegEx]::Match($_.DN, '(?<=CN=)E\d{6}(?=,OU=)') } -Name Domain1,Domain2
             Compare-PSObject $Actual $Expected | Should -BeNull
-            
+
             $Actual = $Domain1 |Join $Domain2 -On { $_.FirstName, $_.LastName -Join ' ' } -Eq Name -Name Domain1,Domain2
             Compare-PSObject $Actual $Expected | Should -BeNull
 
+        }
+
+        it 'Compare two different csv files using PowerShell' { # https://stackoverflow.com/q/58850132
+        $Csv1 = ConvertFrom-Csv @'
+name,surname,height,city,county,state,zipCode
+John,Doe,120,jefferson,Riverside,NJ,8075
+Jack,Yan,220,Phila,Riverside,PA,9119
+Jill,Fan,120,jefferson,Riverside,NJ,8075
+Steve,Tan,220,Phila,Riverside,PA,9119
+Alpha,Fan,120,jefferson,Riverside,NJ,8075
+'@
+
+        $Csv2 = ConvertFrom-Csv @'
+name,surname,height,city,county,state,zipCode
+John,Doe,120,jefferson,Riverside,NJ,8075
+Jack,Yan,220,Phila,Riverside,PA,9119
+Jill,Fan,120,jefferson,Riverside,NJ,8075
+Steve,Tan,220,Phila,Riverside,PA,9119
+Bravo,Tan,220,Phila,Riverside,PA,9119
+'@
+
+            $Expected = ConvertFrom-Csv @'
+name,surname,height,city,county,state,zipCode
+Alpha,Fan,120,jefferson,Riverside,NJ,8075
+Bravo,Tan,220,Phila,Riverside,PA,9119
+'@
+            
+            $Actual = $Csv1 |OuterJoin $Csv2
+            Compare-PSObject $Actual $Expected | Should -BeNull
+            
+            $dataset1 = ConvertFrom-SourceTable '
+                A B    XY    ZY
+                - -    --    --
+                1 val1 foo1  bar1
+                2 val2 foo2  bar2
+                3 val3 foo3  bar3
+                4 val4 foo4  bar4
+                4 val4 foo4a bar4a
+                5 val5 foo5  bar5
+                6 val6 foo6  bar6
+            '
+            $dataset2 = ConvertFrom-SourceTable '
+                A B    ABC   GH
+                - -    ---   --
+                3 val3 foo3  bar3
+                4 val4 foo4  bar4
+                5 val5 foo5  bar5
+                5 val5 foo5a bar5a
+                6 val6 foo6  bar6
+                7 val7 foo7  bar7
+                8 val8 foo8  bar8
+            '
+            
+            $Expected = ConvertFrom-SourceTable '
+                A B    XY     ZY     ABC    GH
+                - -    --     --     ---    --
+                1 val1 foo1   bar1    $Null  $Null
+                2 val2 foo2   bar2    $Null  $Null
+                7 val7  $Null  $Null foo7   bar7
+                8 val8  $Null  $Null foo8   bar8'
+
+            $Actual = $Dataset1 |OuterJoin $Dataset2 -on a,b
+            Compare-PSObject $Actual $Expected | Should -BeNull
+
+            $Actual = $Dataset1 |Get-Difference $Dataset2 -on b
+            Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
     }
