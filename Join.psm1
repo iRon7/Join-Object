@@ -1,5 +1,5 @@
-<#PSScriptInfo
-.VERSION 3.6.0
+﻿<#PSScriptInfo
+.VERSION 3.7.0
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
@@ -71,7 +71,8 @@
         Note 2: Related properties will be merged to a single property by default (see also the -Property
         parameter).
 
-        Note 3: If the -On and the -Using parameter are omitted, a side-by-side join is returned.
+        Note 3: If the -On and the -Using parameter are omitted, a side-by-side join is returned unless OuterJoin
+        is performed where the default -On parameter value is * (all properties).
 
     .PARAMETER Equals
         If the -Equals parameter is supplied, the value(s) of the left object properties listed by the -On
@@ -99,17 +100,27 @@
         defined by the -On Parameter (and the -Equals parameter) will case sensitive.
 
     .PARAMETER Using
-        Any conditional expression (where $Left refers to each left object and $Right refers to each right object)
-        that requires to evaluate to true in order to join the left object with the right object.
+        Any conditional expression that requires to evaluate to true in order to join the left object with the
+        right object.
+
+        The following variables are exposed for a (ScriptBlock) expression:
+        * $_: iterates each property name
+        * $Left: a hash table representing the current left object (each self-contained -LeftObject).
+          The hash table will be empty (@{}) in the outer part of a left join or full join.
+        * $LeftIndex: the index of the left object ($Null in the outer part of a right- or full join)
+        * $Right: a hash table representing the current right object (each self-contained -RightObject)
+          The hash table will be empty (@{}) in the outer part of a right join or full join.
+        * $RightIndex: the index of the right object ($Null in the outer part of a left- or full join)
+
 
         Note 1: The -Using parameter has the most complex comparison possibilities but is considerable slower
-        than the other types.
+        than the -On parameter.
 
         Note 2: The -Using parameter cannot be used with the -On parameter.
 
     .PARAMETER Where
-        An expression that defines the condition to be met for the objects to be returned. There is no limit to
-        the number of predicates that can be included in the condition.
+        An expression that defines the condition to be met for the objects to be returned. See the Using
+        parameter for available expression variables.
 
     .PARAMETER Discern
         By default unrelated properties with the same name will be collected in a single object property.
@@ -134,16 +145,7 @@
 
         Hash tables should be in the format @{<PropertyName> = <Expression>} where the <Expression> is a
         ScriptBlock or a smart property (string) and defines how the specific left and right properties should be
-        merged.
-
-        The following variables are exposed for a (ScriptBlock) expression:
-        * $_: iterates each property name
-        * $Left: a hash table representing the current left object (each self-contained -LeftObject).
-          The hash table will be empty (@{}) in the outer part of a left join or full join.
-        * $LeftIndex: the index of the left object ($Null in the outer part of a right- or full join)
-        * $Right: a hash table representing the current right object (each self-contained -RightObject)
-          The hash table will be empty (@{}) in the outer part of a right join or full join.
-        * $RightIndex: the index of the right object ($Null in the outer part of a left- or full join)
+        merged. See the Using parameter for available expression variables.
 
         The following smart properties are available:
         * A general property: '<Property Name>', where <Property Name> represents the property name of the left
@@ -153,7 +155,7 @@
         * A general wildcard property: '*', where * represents the property name of the current property, e.g.
           'MyProperty' in @{ MyProperty = '*' }. If the property exists on both sides:
           - and the properties are unrelated, an array holding both values will be returned
-          - and the pr operties are related to each other, the (equal) values will be merged in one property value
+          - and the properties are related to each other, the (equal) values will be merged in one property value
           - and the property at the other side is related to an different property, the property is omitted
           The argument: -Property *, will apply a general wildcard on all left and right properties.
         * A left property: 'Left.<Property Name>', or right property: 'Right.<Property Name>', where
@@ -359,12 +361,12 @@ function Join-Object {
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'On')]
         [Parameter(ParameterSetName = 'Using')]
-        [ValidateSet('Inner', 'Left', 'Right', 'Full', 'Cross')][String]$JoinType = 'Inner',
+        [ValidateSet('Inner', 'Left', 'Right', 'Full', 'Outer', 'Cross')][String]$JoinType = 'Inner',
 
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'On')]
         [Parameter(ParameterSetName = 'Using')]
-        [string]$ValueName = 'Value',
+        [string]$ValueName = 'VALUE',
 
         [Parameter(ParameterSetName = 'On')]
         [switch]$Strict,
@@ -378,21 +380,19 @@ function Join-Object {
             $PSCmdlet.ThrowTerminatingError([System.Management.Automation.ErrorRecord]::new($Exception, $Id, $Group, $Object))
         }
         function GetKeys($Object) {
-            ,@(
-                if ($Null -eq $Object) {}
-                elseif ($Object.GetType().GetElementType() -and $Object.get_Count() -eq 0) { $ValueName }
-                else {
-                    $1 = $Object |Select-Object -First 1
-                    if ($1 -is [string] -or $1 -is [ValueType] -or $1 -is [Array]) { $ValueName }
-                    elseif ($1 -is [Collections.ObjectModel.Collection[psobject]]) { $ValueName }
-                    elseif ($1 -is [Data.DataRow]) { $1.Table.Columns.ColumnName }
-                    elseif ($1 -is [System.Collections.IDictionary]) { $1.Get_Keys() }
-                    elseif ($1) { $1.PSObject.Properties.Name }
-                }
-            )
+            if ($Null -eq $Object) { ,@() }
+            elseif ($Object.GetType().GetElementType() -and $Object.get_Count() -eq 0) { ,[string[]]$ValueName } # ,[string[]] is used to easy recognise a value arrey
+            else {
+                $1 = $Object |Select-Object -First 1
+                if ($1 -is [string] -or $1 -is [ValueType] -or $1 -is [Array]) { ,[string[]]$ValueName }
+                elseif ($1 -is [Collections.ObjectModel.Collection[psobject]]) { ,[string[]]$ValueName }
+                elseif ($1 -is [Data.DataRow]) { ,@($1.Table.Columns.ColumnName) }
+                elseif ($1 -is [System.Collections.IDictionary]) { ,@($1.Get_Keys()) }
+                elseif ($1) { ,@($1.PSObject.Properties.Name) }
+            }
         }
         function GetProperties($Object, $Keys) {
-            if ($Null -ne $Keys -and @($Keys).Count -eq 1 -and $Keys.Contains($ValueName) ) { [ordered]@{ $ValueName = $Object } }
+            if ($Keys -is [string[]]) { [ordered]@{ $ValueName = $Object } }
             else {
                 $Properties = [ordered]@{}
                 if ($Null -ne $Object) {
@@ -433,7 +433,8 @@ function Join-Object {
             $Nodes = [Ordered]@{}
                 foreach ($_ in $Expressions.Get_Keys()) {
                 $Tuple =
-                    if ($Expressions[$_] -is [scriptblock]) { @{ 0 = &([scriptblock]::Create($Expressions[$_])) } } else {
+                    if ($Expressions[$_] -is [scriptblock]) { @{ 0 = &([scriptblock]::Create($Expressions[$_])) } }
+                    else {
                         $Key = $Expressions[$_]
                         if ($Left.Contains($Key) -or $Right.Contains($Key)) {
                             if ($Left.Contains($Key) -and $Right.Contains($Key)) { @{ 0 = $Left[$Key]; 1 = $Right[$Key] } }
@@ -490,12 +491,12 @@ function Join-Object {
                     if ($Node.Count -gt $Discern.Count + 1) { $Nodes[$_] = $Node[0..($Node.Count - $Discern.Count - 1)] }
                     for ($i = [math]::Min($Node.Count, $Discern.Count); $i -gt 0; $i--) {
                         $Rename = $Discern[$Discern.Count - $i]
-                        $Name = if ($Rename.Contains('*')) { ([regex]"\*").Replace($Rename, $_, 1) } elseif ( $_ -eq $ValueName) { $Rename} else { $Rename + $_ }
+                        $Name = if ($Rename.Contains('*')) { ([regex]"\*").Replace($Rename, $_, 1) } elseif ( $_ -eq $ValueName) { $Rename } else { $Rename + $_ }
                         $Nodes[$Name] = if ($Nodes.Contains($Name)) { @($Nodes[$Name]) + $Node[$Node.Count - $i] } else { $Node[$Node.Count - $i] }
                     }
                 } else { $Nodes[$_] = $Node }
             }
-            if ($Nodes.Count -eq 1 -and $Nodes.Contains($ValueName)) { ,$Nodes[0] } else { New-Object PSCustomObject -Property $Nodes }
+            if ($Nodes.Count -eq 1 -and $Nodes.Contains($ValueName)) { ,$Nodes[0] } else { [PSCustomObject]$Nodes }
         }
         function ProcessObject ($Left) {
             if ($Left -isnot [Collections.IDictionary]) { $Left = GetProperties $Left $LeftKeys }
@@ -564,17 +565,18 @@ function Join-Object {
             foreach ($RightIndex in $Indices) {
                 $Right = $RightList[$RightIndex]
                 if (&([scriptblock]::Create($Where))) {
-                    OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex
+                    if ($JoinType -ne 'Outer') { OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex }
                     $InnerLeft = $True
                     $InnerRight[$RightIndex] = $True
                 }
             }
             $RightIndex = $Null; $Right = $RightNull
-            if (!$InnerLeft -and ($JoinType -eq 'Left' -or $JoinType -eq 'Full')) {
+            if (!$InnerLeft -and ($JoinType -in 'Left', 'Full', 'Outer')) {
                 if (&([scriptblock]::Create($Where))) { OutObject -LeftIndex $LeftIndex -RightIndex $RightIndex }
             }
         }
         if ($PSBoundParameters.ContainsKey('Discern') -and !$Discern) { $Discern = @() }
+        if ($JoinType -eq 'Outer' -and !$PSBoundParameters.ContainsKey('On')) { $On = '*' }
         $Esc = [char]27; $EscSeparator = $Esc + ', '
         $Expressions = [Ordered]@{}
         $StringComparer = if ($MatchCase) { [StringComparer]::Ordinal } Else { [StringComparer]::OrdinalIgnoreCase }
@@ -613,7 +615,7 @@ function Join-Object {
             }
             foreach ($Left in $LeftList) { ProcessObject $Left; $LeftIndex++ }
         }
-        if ($JoinType -eq 'Right' -or $JoinType -eq 'Full') {
+        if ($JoinType -in 'Right', 'Full', 'Outer') {
             if (!$LeftIndex) { ProcessObject $LeftObject $Null }
             $LeftIndex = $Null; $Left = $LeftNull
             $RightIndex = 0; foreach ($Right in $RightList) {
@@ -636,9 +638,11 @@ $Proxies =
     @{ Name = 'LeftJoin-Object';  Alias = 'LeftJoin';  Default = "JoinType = 'Left'" },
     @{ Name = 'RightJoin-Object'; Alias = 'RightJoin'; Default = "JoinType = 'Right'" },
     @{ Name = 'FullJoin-Object';  Alias = 'FullJoin';  Default = "JoinType = 'Full'" },
+    @{ Name = 'OuterJoin-Object'; Alias = 'OuterJoin'; Default = "JoinType = 'Outer'" },
     @{ Name = 'CrossJoin-Object'; Alias = 'CrossJoin'; Default = "JoinType = 'Cross'" },
-    @{ Name = 'Update-Object';    Alias = 'Update';    Default = "JoinType = 'Left'", "Property = @{ '*' = 'Right.*' }" },
-    @{ Name = 'Merge-Object';     Alias = 'Merge';     Default = "JoinType = 'Full'", "Property = @{ '*' = 'Right.*' }" }
+    @{ Name = 'Update-Object';    Alias = 'Update';    Default = "JoinType = 'Left'",  "Property = @{ '*' = 'Right.*' }" },
+    @{ Name = 'Merge-Object';     Alias = 'Merge';     Default = "JoinType = 'Full'",  "Property = @{ '*' = 'Right.*' }" },
+    @{ Name = 'Get-Difference';   Alias = 'Differs';   Default = "JoinType = 'Outer'", "Property = @{ '*' = 'Right.*' }" }
 
 foreach ($Proxy in $Proxies) {
     $ProxyCommand = @(
