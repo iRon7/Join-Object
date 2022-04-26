@@ -1,3 +1,6 @@
+## 2022-04-26 3.7.0 (iRon)
+  - New feature
+    - Added [#30](https://github.com/iRon7/Join-Object/issues/30): Asymmetric difference (OuterJoin)
 ## 2021-12-17 3.6.0 (iRon)
   - Updated
     - Implemented [#29](https://github.com/iRon7/Join-Object/issues/29): key expressions (requires explicit `-Using` parameter for compare expressions)
