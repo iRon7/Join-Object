@@ -26,7 +26,7 @@ The Join-Object cmdlet reveals the following proxy commands with their own (`-Jo
 * `Update-Object` (Alias `Update`), updates the left object with the related right object
 * `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the
   new (unrelated) right objects
-* `Get-Difference` (Alias `Differs`), gets the symmetric difference between the object and merges the properties
+* `Get-Difference` (Alias `Differs`), gets the symmetric difference between the objects and merges the properties
 
 ## Installation
 There are two versions of this `Join-Object` cmdlet (both versions supply the same functionality):
