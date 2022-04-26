@@ -21,12 +21,12 @@ The Join-Object cmdlet reveals the following proxy commands with their own (`-Jo
 * `LeftJoin-Object` (Alias `LeftJoin`), combines the related objects and adds the rest of the left objects
 * `RightJoin-Object` (Alias `RightJoin`), combines the related objects and adds the rest of the right objects
 * `FullJoin-Object` (Alias `FullJoin`), combines the related objects and adds the rest of the left and right objects
-* `OuterJoin-Object` (Alias `OuterJoin`), lists the unrelated objects
+* `OuterJoin-Object` (Alias `OuterJoin`), returns the symmetric difference of the unrelated objects
 * `CrossJoin-Object` (Alias `CrossJoin`), combines each left object with each right object
 * `Update-Object` (Alias `Update`), updates the left object with the related right object
 * `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the
   new (unrelated) right objects
-* `Get-Difference` (Alias `Differs`), gets the symmetric difference between the objects and merges the properties
+* `Get-Difference` (Alias `Differs`), returns the symmetric different objects and their properties
 
 ## Installation
 There are two versions of this `Join-Object` cmdlet (both versions supply the same functionality):
