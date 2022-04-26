@@ -1,5 +1,5 @@
 ﻿<#PSScriptInfo
-.VERSION 3.7.0
+.VERSION 3.7.1
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR iRon
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
@@ -41,11 +41,13 @@
     * InnerJoin-Object (Alias InnerJoin or Join), combines the related objects
     * LeftJoin-Object (Alias LeftJoin), combines the related objects and adds the rest of the left objects
     * RightJoin-Object (Alias RightJoin), combines the related objects and adds the rest of the right objects
+    * OuterJoin-Object (Alias OuterJoin), returns the symmetric difference of the unrelated objects
     * FullJoin-Object (Alias FullJoin), combines the related objects and adds the rest of the left and right objects
     * CrossJoin-Object (Alias CrossJoin), combines each left object with each right object
     * Update-Object (Alias Update), updates the left object with the related right object
     * Merge-Object (Alias Merge), updates the left object with the related right object and adds the rest of the
       new (unrelated) right objects
+    * Get-Difference (Alias Differs), returns the symmetric different objects and their properties
 
     .PARAMETER LeftObject
         The left object list, usually provided through the pipeline, to be joined.
