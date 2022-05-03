@@ -1,14 +1,14 @@
 ﻿<#PSScriptInfo
-.VERSION 3.7.1
+.VERSION 3.7.2
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
-.AUTHOR iRon
+.AUTHOR Ronald Bode (iRon)
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
-.COMPANYNAME
-.COPYRIGHT
-.TAGS Join-Object Join InnerJoin LeftJoin RightJoin FullJoin CrossJoin Update Merge Combine Table
-.LICENSE https://github.com/iRon7/Join-Object/LICENSE
+.COMPANYNAME PowerSnippets.com
+.COPYRIGHT Ronald Bode (iRon)
+.TAGS Join-Object Join InnerJoin LeftJoin RightJoin FullJoin OuterJoin CrossJoin Update Merge Difference Combine Table
+.LICENSEURI https://github.com/iRon7/Join-Object/LICENSE
 .PROJECTURI https://github.com/iRon7/Join-Object
-.ICON https://raw.githubusercontent.com/iRon7/Join-Object/master/Join-Object.png
+.ICONURI https://raw.githubusercontent.com/iRon7/Join-Object/master/Join-Object.png
 .EXTERNALMODULEDEPENDENCIES
 .REQUIREDSCRIPTS
 .EXTERNALSCRIPTDEPENDENCIES
