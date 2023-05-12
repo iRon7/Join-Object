@@ -5,7 +5,7 @@ Combines two object lists based on a related property between them.
 
 ## Syntax
 
-```JavaScript
+```PowerShell
 Join-Object
     [[-RightObject] <Object>]
     [[-Discern] <string[]>]
