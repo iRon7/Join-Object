@@ -1,6 +1,14 @@
+## 2023-05-12 3.8.0 (iRon)
+  - Updated
+    - [#39](https://github.com/iRon7/Join-Object/issues/39): Improved performance (by more than a factor 2)
+    - [#38](https://github.com/iRon7/Join-Object/issues/38): Change default `-ValueName` ([bucket 2](https://github.com/PowerShell/PowerShell/blob/master/docs/dev-process/breaking-change-contract.md#bucket-2-unlikely-grey-area) break-change)
+    - [#37](https://github.com/iRon7/Join-Object/issues/37): Exclude identical objects on a self join where the `-equal` parameter is omitted ([bucket 3](https://github.com/PowerShell/PowerShell/blob/master/docs/dev-process/breaking-change-contract.md#bucket-3-unlikely-grey-area) break-change)
+    - [#40](https://github.com/iRon7/Join-Object/issues/40): Improved the way multiple properties are compared  ([bucket 3](https://github.com/PowerShell/PowerShell/blob/master/docs/dev-process/breaking-change-contract.md#bucket-3-unlikely-grey-area) break-change)
+    - [#41](https://github.com/iRon7/Join-Object/issues/41): Improved comparison with collection values ( `@{a=1} -ne @{a=2}` ) ([bucket 3](https://github.com/PowerShell/PowerShell/blob/master/docs/dev-process/breaking-change-contract.md#bucket-3-unlikely-grey-area) break-change)
+    - Changed comment based help to make use of the [Get-MarkdownHelp](https://github.com/iRon7/Get-MarkdownHelp) features 
 ## 2022-04-26 3.7.1 (iRon)
   - New feature
-    - Added [#30](https://github.com/iRon7/Join-Object/issues/30): Asymmetric difference (OuterJoin)
+    - Added [#30](https://github.com/iRon7/Join-Object/issues/30): Symmetric difference (OuterJoin)
 ## 2021-12-17 3.6.0 (iRon)
   - Updated
     - Implemented [#29](https://github.com/iRon7/Join-Object/issues/29): key expressions (requires explicit `-Using` parameter for compare expressions)
