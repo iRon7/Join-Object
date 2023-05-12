@@ -1,4 +1,5 @@
 #Requires -Modules @{ModuleName="Pester"; ModuleVersion="5.0.0"}
+if (!(Get-Command 'ConvertFrom-SourceTable').Parameters.ParseRightAligned) { Update-Script 'ConvertFrom-SourceTable' -Confirm:$False -Force }
 
 Describe 'Join-Object' {
 
@@ -6,11 +7,11 @@ Describe 'Join-Object' {
 
         Set-StrictMode -Version Latest
 
-        Get-Module -Name JoinModule | Remove-Module
-        Import-Module JoinModule
+        # Get-Module -Name JoinModule | Remove-Module
+        # Import-Module JoinModule
         # . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
 
-        . .\ConvertFrom-SourceTable.ps1                             # https://www.powershellgallery.com/packages/ConvertFrom-SourceTable
+        # . .\ConvertFrom-SourceTable -ParseRightAligned.ps1                             # https://www.powershellgallery.com/packages/ConvertFrom-SourceTable
 
         Function Compare-PSObject([Object[]]$ReferenceObject, [Object[]]$DifferenceObject) {
             $Property = ($ReferenceObject  | Select-Object -First 1).PSObject.Properties.Name +
@@ -40,7 +41,7 @@ Describe 'Join-Object' {
             } | ForEach-Object {If ($_ -eq '$null') {$Null} Else {$_}}
         }; Set-Alias cta ConvertTo-Array
 
-        $Employee = ConvertFrom-SourceTable '
+        $Employee = ConvertFrom-SourceTable -ParseRightAligned '
             Id Name    Country Department  Age ReportsTo
             -- ----    ------- ----------  --- ---------
              1 Aerts   Belgium Sales        40         5
@@ -51,7 +52,7 @@ Describe 'Join-Object' {
              6 Fischer Germany Engineering  29         4'
 
 
-        $Department = ConvertFrom-SourceTable '
+        $Department = ConvertFrom-SourceTable -ParseRightAligned '
             Name        Country
             ----        -------
             Engineering Germany
@@ -59,7 +60,7 @@ Describe 'Join-Object' {
             Sales       France
             Purchase    France'
 
-        $Changes = ConvertFrom-SourceTable '
+        $Changes = ConvertFrom-SourceTable -ParseRightAligned '
             Id Name    Country Department  Age ReportsTo
             -- ----    ------- ----------  --- ---------
              3 Cook    England Sales        69         5
@@ -72,7 +73,7 @@ Describe 'Join-Object' {
 
         It '$Employee | InnerJoin $Department -On Country -Discern Employee, Department' {
             $Actual = $Employee | InnerJoin $Department -On Country -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName Country Department  Age ReportsTo DepartmentName
                 -- ------------ ------- ----------  --- --------- --------------
                  2 Bauer        Germany Engineering  31         4 Engineering
@@ -87,7 +88,7 @@ Describe 'Join-Object' {
 
         It '$Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    EmployeeCountry Department  Age ReportsTo DepartmentCountry
                 -- ----    --------------- ----------  --- --------- -----------------
                  1 Aerts   Belgium         Sales        40         5 France
@@ -102,7 +103,7 @@ Describe 'Join-Object' {
 
         It '$Employee | InnerJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | InnerJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    Country Department  Age ReportsTo
                 -- ----    ------- ----------  --- ---------
                  2 Bauer   Germany Engineering  31         4
@@ -114,7 +115,7 @@ Describe 'Join-Object' {
 
         It '$Employee | InnerJoin $Department -On Country' {
             $Actual = $Employee | InnerJoin $Department -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name                   Country Department  Age ReportsTo
                 -- ----                   ------- ----------  --- ---------
                  2 {Bauer, Engineering}   Germany Engineering  31         4
@@ -130,7 +131,7 @@ Describe 'Join-Object' {
 
         It '$Employee | LeftJoin $Department -On Country -Discern Employee, Department' {
             $Actual = $Employee | LeftJoin $Department -On Country -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName Country Department  Age ReportsTo DepartmentName
                 -- ------------ ------- ----------  --- --------- --------------
                  1 Aerts        Belgium Sales        40         5          $Null
@@ -146,7 +147,7 @@ Describe 'Join-Object' {
 
         It '$Employee | LeftJoin $Department -On Department -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | LeftJoin $Department -On Department -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    EmployeeCountry Department  Age ReportsTo DepartmentCountry
                 -- ----    --------------- ----------  --- --------- -----------------
                  1 Aerts   Belgium         Sales        40         5 France
@@ -161,7 +162,7 @@ Describe 'Join-Object' {
 
         It '$Employee | LeftJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | LeftJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    Country Department  Age ReportsTo
                 -- ----    ------- ----------  --- ---------
                  1 Aerts   Belgium Sales        40         5
@@ -176,7 +177,7 @@ Describe 'Join-Object' {
 
         It '$Employee | LeftJoin $Department -On Country' {
             $Actual = $Employee | LeftJoin $Department -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Country Id Name                   Department  Age ReportsTo
                 ------- -- ----                   ----------  --- ---------
                 Belgium  1 {Aerts, $null}         Sales        40         5
@@ -193,7 +194,7 @@ Describe 'Join-Object' {
 
         It '$Employee | RightJoin $Department -On Country -Discern Employee, Department' {
             $Actual = $Employee | RightJoin $Department -On Country -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName Country Department  Age ReportsTo DepartmentName
                 -- ------------ ------- ----------  --- --------- --------------
                  2 Bauer        Germany Engineering  31         4 Engineering
@@ -208,7 +209,7 @@ Describe 'Join-Object' {
 
         It '$Employee | RightJoin $Department -On Department -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | RightJoin $Department -On Department -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                    Id Name    EmployeeCountry Department    Age ReportsTo DepartmentCountry
                    -- ----    --------------- ----------    --- --------- -----------------
                     1 Aerts   Belgium         Sales          40         5 France
@@ -224,7 +225,7 @@ Describe 'Join-Object' {
 
         It '$Employee | RightJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | RightJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                    Id Name    Country Department    Age ReportsTo
                    -- ----    ------- ----------    --- ---------
                     2 Bauer   Germany Engineering    31         4
@@ -238,7 +239,7 @@ Describe 'Join-Object' {
 
         It '$Employee | RightJoin $Department -On Country' {
             $Actual = $Employee | RightJoin $Department -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Country Id Name                   Department  Age ReportsTo
                 ------- -- ----                   ----------  --- ---------
                 Germany  2 {Bauer, Engineering}   Engineering  31         4
@@ -254,7 +255,7 @@ Describe 'Join-Object' {
 
         It '$Employee | FullJoin $Department -On Country -Discern Employee, Department' {
             $Actual = $Employee | FullJoin $Department -On Country -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName Country Department  Age ReportsTo DepartmentName
                 -- ------------ ------- ----------  --- --------- --------------
                  1 Aerts        Belgium Sales        40         5          $Null
@@ -270,7 +271,7 @@ Describe 'Join-Object' {
 
         It '$Employee | FullJoin $Department -On Department -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | FullJoin $Department -On Department -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                    Id Name    EmployeeCountry Department    Age ReportsTo DepartmentCountry
                    -- ----    --------------- ----------    --- --------- -----------------
                     1 Aerts   Belgium         Sales          40         5 France
@@ -286,7 +287,7 @@ Describe 'Join-Object' {
 
         It '$Employee | FullJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | FullJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                    Id Name    Country Department    Age ReportsTo
                    -- ----    ------- ----------    --- ---------
                     1 Aerts   Belgium Sales          40         5
@@ -303,7 +304,7 @@ Describe 'Join-Object' {
 
         It '$Employee | FullJoin $Department -On Country' {
             $Actual = $Employee | FullJoin $Department -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Country Id Name                   Department  Age ReportsTo
                 ------- -- ----                   ----------  --- ---------
                 Belgium  1 {Aerts, $null}         Sales        40         5
@@ -320,7 +321,7 @@ Describe 'Join-Object' {
 
         It '$Employee | OuterJoin $Department -On Country -Discern Employee, Department' {
             $Actual = $Employee | OuterJoin $Department -On Country -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName DepartmentName Country Department  Age ReportsTo
                 -- ------------ -------------- ------- ----------  --- ---------
                  1 Aerts                 $Null Belgium Sales        40         5'
@@ -330,7 +331,7 @@ Describe 'Join-Object' {
 
         It '$Employee | OuterJoin $Department -On Department -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | OuterJoin $Department -On Department -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                    Id Name    EmployeeCountry DepartmentCountry Department    Age ReportsTo
                    -- ----    --------------- ----------------- ----------    --- ---------
                 $Null   $Null           $Null France            Purchase    $Null     $Null'
@@ -340,7 +341,7 @@ Describe 'Join-Object' {
 
         It '$Employee | OuterJoin $Department -On Department, Country -Equals Name -Discern Employee, Department' {
             $Actual = $Employee | OuterJoin $Department -On Department, Country -Equals Name -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                    Id Name    Country Department    Age ReportsTo
                    -- ----    ------- ----------    --- ---------
                     1 Aerts   Belgium Sales          40         5
@@ -354,7 +355,7 @@ Describe 'Join-Object' {
 
         It '$Employee | OuterJoin $Department -On Country' {
             $Actual = $Employee | OuterJoin $Department -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name           Country  Department  Age ReportsTo
                 -- ----           -------  ----------  --- ---------
                  1 {Aerts, $null} Belgium  Sales        40         5
@@ -365,7 +366,7 @@ Describe 'Join-Object' {
 
         It '$Employee | CrossJoin $Department -Discern Employee, Department' {
             $Actual = $Employee | CrossJoin $Department -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
                 -- ------------ --------------- ----------  --- --------- -------------- -----------------
                  1 Aerts        Belgium         Sales        40         5 Engineering    Germany
@@ -399,7 +400,7 @@ Describe 'Join-Object' {
         Context 'Update' {
 
             BeforeAll {
-                $Expected = ConvertFrom-SourceTable '
+                $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                     Id Name    Country Department  Age ReportsTo
                     -- ----    ------- ----------  --- ---------
                      1 Aerts   Belgium Sales        40         5
@@ -439,7 +440,7 @@ Describe 'Join-Object' {
         Context 'Merge' {
 
             BeforeAll {
-                $Expected = ConvertFrom-SourceTable '
+                $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                     Id Name    Country Department  Age ReportsTo
                     -- ----    ------- ----------  --- ---------
                      1 Aerts   Belgium Sales        40         5
@@ -479,7 +480,7 @@ Describe 'Join-Object' {
 
         It '$Employee | Differs $Department -On Country' {
             $Actual = $Employee | Differs $Department -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    Country Department  Age ReportsTo
                 -- ----    ------- ----------  --- ---------
                  1 Aerts   Belgium Sales        40         5'
@@ -489,7 +490,7 @@ Describe 'Join-Object' {
 
         It '$Employee | Differs $Department -On Department -Equals Name' {
             $Actual = $Employee | Differs $Department -On Department -Equals Name
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                    Id Name     Country Department   Age ReportsTo
                    -- ----     ------- ----------   --- ---------
                 $Null Purchase France       $Null $Null     $Null'
@@ -499,7 +500,7 @@ Describe 'Join-Object' {
 
         It '$Employee | Differs $Department -On Department, Country -Equals Name' {
             $Actual = $Employee | Differs $Department -On Department, Country -Equals Name
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                    Id Name     Country Department    Age ReportsTo
                    -- ----     ------- ----------    --- ---------
                     1 Aerts    Belgium Sales          40         5
@@ -513,7 +514,7 @@ Describe 'Join-Object' {
 
         It '$Employee | Differs $Department -On Country' {
             $Actual = $Employee | Differs $Department -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    Country Department  Age ReportsTo
                 -- ----    ------- ----------  --- ---------
                  1 Aerts   Belgium Sales        40         5'
@@ -526,24 +527,37 @@ Describe 'Join-Object' {
 
     Context 'Self join on LeftObject' {
 
+        It '$Employee | Join -On Country -Discern *1,*2' {
+            $Actual = $Employee | Join -On Country -Discern *1,*2
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Id1 Id2 Name1   Name2   Country Department1 Department2 Age1 Age2 ReportsTo1 ReportsTo2
+                --- --- -----   -----   ------- ----------- ----------- ---- ---- ---------- ----------
+                  2   6 Bauer   Fischer Germany Engineering Engineering   31   29          4          4
+                  3   5 Cook    Evans   England Sales       Marketing     69   35          1
+                  5   3 Evans   Cook    England Marketing   Sales         35   69                     1
+                  6   2 Fischer Bauer   Germany Engineering Engineering   29   31          4          4'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
         It '$Employee | LeftJoin -On ReportsTo -Equals Id -Discern *1,*2' {
             $Actual = $Employee | LeftJoin -On ReportsTo -Equals Id -Discern *1,*2
-            $Expected = ConvertFrom-SourceTable '
-            Id Name1   Country1 Department1 Age1 Name2  Country2 Department2 Age2   ReportsTo
-            -- -----   -------- ----------- ---- -----  -------- ----------- ----   ---------
-             1 Aerts   Belgium  Sales         40 Evans  England  Marketing       35
-             2 Bauer   Germany  Engineering   31 Duval  France   Engineering     21         5
-             3 Cook    England  Sales         69 Aerts  Belgium  Sales           40         5
-             4 Duval   France   Engineering   21 Evans  England  Marketing       35
-             5 Evans   England  Marketing     35  $Null    $Null       $Null  $Null     $Null
-             6 Fischer Germany  Engineering   29 Duval  France   Engineering     21         5'
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Id Name1   Country1 Department1 Age1 Name2  Country2 Department2 Age2   ReportsTo
+                -- -----   -------- ----------- ---- -----  -------- ----------- ----   ---------
+                 1 Aerts   Belgium  Sales         40 Evans  England  Marketing       35
+                 2 Bauer   Germany  Engineering   31 Duval  France   Engineering     21         5
+                 3 Cook    England  Sales         69 Aerts  Belgium  Sales           40         5
+                 4 Duval   France   Engineering   21 Evans  England  Marketing       35
+                 5 Evans   England  Marketing     35  $Null    $Null       $Null  $Null     $Null
+                 6 Fischer Germany  Engineering   29 Duval  France   Engineering     21         5'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
         It '$Employee | InnerJoin -On ReportsTo, Department -Equals Id -Discern *1,*2' {
             $Actual = $Employee | InnerJoin -On ReportsTo, Department -Equals Id -Discern *1,*2
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name1   Country1 Department  Age1 Name2 Country2 Age2 ReportsTo
                 -- -----   -------- ----------  ---- ----- -------- ---- ---------
                  2 Bauer   Germany  Engineering   31 Duval France     21         5
@@ -555,7 +569,7 @@ Describe 'Join-Object' {
 
         It '$Employee | LeftJoin -On ReportsTo -Equals Id -Property @{Name = {$Left["Name"]}; Manager = {$Right["Name"]}}' {
             $Actual = $Employee | LeftJoin -On ReportsTo -Equals Id -Property @{Name = {$Left['Name']}; Manager = {$Right['Name']}}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Manager Name
                 ------- ----
                 Evans   Aerts
@@ -571,9 +585,26 @@ Describe 'Join-Object' {
 
     Context 'Self join on RightObject' {
 
+        It 'Join $Employee -On Department -Discern *1,*2' {
+            $Actual = Join $Employee -On Department -Discern *1,*2
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Id1 Id2 Name1   Name2   Country1 Country2 Department  Age1 Age2 ReportsTo1 ReportsTo2
+                --- --- -----   -----   -------- -------- ----------  ---- ---- ---------- ----------
+                  1   3 Aerts   Cook    Belgium  England  Sales         40   69          5          1
+                  2   4 Bauer   Duval   Germany  France   Engineering   31   21          4          5
+                  2   6 Bauer   Fischer Germany  Germany  Engineering   31   29          4          4
+                  3   1 Cook    Aerts   England  Belgium  Sales         69   40          1          5
+                  4   2 Duval   Bauer   France   Germany  Engineering   21   31          5          4
+                  4   6 Duval   Fischer France   Germany  Engineering   21   29          5          4
+                  6   2 Fischer Bauer   Germany  Germany  Engineering   29   31          4          4
+                  6   4 Fischer Duval   Germany  France   Engineering   29   21          4          5'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
         It 'LeftJoin $Employee -On ReportsTo -Equals Id -Discern *1,*2' {
             $Actual = LeftJoin $Employee -On ReportsTo -Equals Id -Discern *1,*2
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
             Id Name1   Country1 Department1 Age1 Name2  Country2 Department2 Age2   ReportsTo
             -- -----   -------- ----------- ---- -----  -------- ----------- ----   ---------
              1 Aerts   Belgium  Sales         40 Evans  England  Marketing       35
@@ -588,7 +619,7 @@ Describe 'Join-Object' {
 
         It 'InnerJoin $Employee -On ReportsTo, Department -Equals Id -Discern *1,*2' {
             $Actual = InnerJoin $Employee -On ReportsTo, Department -Equals Id -Discern *1,*2
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name1   Country1 Department  Age1 Name2 Country2 Age2 ReportsTo
                 -- -----   -------- ----------  ---- ----- -------- ---- ---------
                  2 Bauer   Germany  Engineering   31 Duval France     21         5
@@ -600,7 +631,7 @@ Describe 'Join-Object' {
 
         It 'LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = {$Left["Name"]}; Manager = {$Right["Name"]}}' {
             $Actual = LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = {$Left['Name']}; Manager = {$Right['Name']}}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Manager Name
                 ------- ----
                 Evans   Aerts
@@ -615,7 +646,7 @@ Describe 'Join-Object' {
 
         It 'LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = "Left.Name"; Manager = "Right.Name"}' { # Smart properties
             $Actual = LeftJoin $Employee -On ReportsTo -Equals Id -Property @{Name = 'Left.Name'; Manager = 'Right.Name'}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Manager Name
                 ------- ----
                 Evans   Aerts
@@ -634,7 +665,7 @@ Describe 'Join-Object' {
 
         It '$Employee | InnerJoin $Department -Discern Employee, Department' {
             $Actual = $Employee | InnerJoin $Department -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
                 -- ------------ --------------- ----------  --- --------- -------------- -----------------
                  1 Aerts        Belgium         Sales        40         5 Engineering    Germany
@@ -647,7 +678,7 @@ Describe 'Join-Object' {
 
         It '$Employee | LeftJoin $Department -Discern Employee, Department' {
             $Actual = $Employee | LeftJoin $Department -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
                 -- ------------ --------------- ----------  --- --------- -------------- -----------------
                  1 Aerts        Belgium         Sales        40         5 Engineering    Germany
@@ -662,7 +693,7 @@ Describe 'Join-Object' {
 
         It '$Department | RightJoin $Employee -Discern Employee, Department' {				# Swapped $Department and $Employee
             $Actual = $Department | RightJoin $Employee -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 EmployeeName EmployeeCountry Id DepartmentName DepartmentCountry Department  Age ReportsTo
                 ------------ --------------- -- -------------- ----------------- ----------  --- ---------
                 Engineering  Germany          1 Aerts          Belgium           Sales        40         5
@@ -677,7 +708,7 @@ Describe 'Join-Object' {
 
         It '$Employee | FullJoin $Department -Discern Employee, Department' {
             $Actual = $Employee | FullJoin $Department -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName EmployeeCountry Department  Age ReportsTo DepartmentName DepartmentCountry
                 -- ------------ --------------- ----------  --- --------- -------------- -----------------
                  1 Aerts        Belgium         Sales        40         5 Engineering    Germany
@@ -695,7 +726,7 @@ Describe 'Join-Object' {
 
         It 'Use the left object property if exists otherwise use right object property' {
             $Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property {If ($Null -ne $Left.$_) {$Left.$_} Else {$Right.$_}}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    Country Department  Age ReportsTo
                 -- ----    ------- ----------  --- ---------
                  1 Aerts   Belgium Sales        40         5
@@ -710,7 +741,7 @@ Describe 'Join-Object' {
 
         It 'Use the left object property if exists otherwise use right object property (using smart property)' {
             $Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property Left.*
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    Country Department  Age ReportsTo
                 -- ----    ------- ----------  --- ---------
                  1 Aerts   Belgium Sales        40         5
@@ -729,7 +760,7 @@ Describe 'Join-Object' {
 
         It 'Only use the left name property and the right manager property' {
             $Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property *, @{Name = {$Left.$_}; Country = {$Right.$_}}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Country Name    Id Department  Age ReportsTo
                 ------- ----    -- ----------  --- ---------
                 France  Aerts    1 Sales        40         5
@@ -744,7 +775,7 @@ Describe 'Join-Object' {
 
         It 'Only use the left name property and the right manager property (ordered selection)' {
             $Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property Id, @{Name = {$Left.$_}}, Department, @{Country = {$Right.$_}}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    Department  Country
                 -- ----    ----------  -------
                  1 Aerts   Sales       France
@@ -759,7 +790,7 @@ Describe 'Join-Object' {
 
         It 'Use the left object property except for the country property' {
             $Actual = $Employee | InnerJoin $Department -On Department -Eq Name -Property @{'*' = {$Left.$_}; Country = {$Right.$_}}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name    Country Department  Age ReportsTo
                 -- ----    ------- ----------  --- ---------
                  1 Aerts   France  Sales        40         5
@@ -777,7 +808,7 @@ Describe 'Join-Object' {
 
         It '$Employee | Join $Department {$Left.Department -ne $Right.Name}' {
             $Actual = $Employee | Join $Department -Using {$Left.Department -ne $Right.Name}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name                 Country            Department  Age ReportsTo
                 -- ----                 -------            ----------  --- ---------
                  1 {Aerts, Engineering} {Belgium, Germany} Sales        40         5
@@ -805,7 +836,7 @@ Describe 'Join-Object' {
 
         It '$Employee | Join $Department {$Left.Department -eq $Right.Name -and $Left.Country -ne $Right.Country}' {	# Recommended: $Employee | Join $Department -On Department -Eq Name -Where {$Left.Country -ne $Right.Country}
             $Actual = $Employee | Join $Department -Using {$Left.Department -eq $Right.Name -and $Left.Country -ne $Right.Country}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name                 Country           Department  Age ReportsTo
                 -- ----                 -------           ----------  --- ---------
                  1 {Aerts, Sales}       {Belgium, France} Sales        40         5
@@ -822,7 +853,7 @@ Describe 'Join-Object' {
 
         It '$Employee | Join $Department -On Department -Eq Name -Where {$Left.Country -ne $Right.Country}' {
             $Actual = $Employee | Join $Department -On Department -Eq Name -Where {$Left.Country -ne $Right.Country}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name  Country           Department  Age ReportsTo
                 -- ----  -------           ----------  --- ---------
                  1 Aerts {Belgium, France} Sales        40         5
@@ -835,7 +866,7 @@ Describe 'Join-Object' {
 
         It '$Employee | Join $Department -Where {$Left.Country -eq $Right.Country}' {		# On index where...
             $Actual = $Employee | Join $Department -Where {$Left.Country -eq $Right.Country}
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id Name              Country          Department  Age ReportsTo
                 -- ----              -------          ----------  --- ---------
                  4 {Duval, Purchase} {France, France} Engineering  21         5
@@ -884,7 +915,7 @@ Describe 'Join-Object' {
 
         It '(inner)join DataTables' {
             $Actual = $DataTable1 | Join $DataTable2 -On Column1
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Column1 Column2 Column3
                 ------- ------- -------
                 B             2       3
@@ -896,7 +927,7 @@ Describe 'Join-Object' {
 
         It 'Leftjoin DataTables' {
             $Actual = $DataTable1 | LeftJoin $DataTable2 -On Column1
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Column1 Column2 Column3
                 ------- ------- -------
                 A             1   $Null
@@ -909,7 +940,7 @@ Describe 'Join-Object' {
 
         It 'Rightjoin DataTables' {
             $Actual = $DataTable1 | RightJoin $DataTable2 -On Column1
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Column1 Column2 Column3
                 ------- ------- -------
                 B             2       3
@@ -922,7 +953,7 @@ Describe 'Join-Object' {
 
         It 'Fulljoin DataTables' {
             $Actual = $DataTable1 | FullJoin $DataTable2 -On Column1
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Column1 Column2 Column3
                 ------- ------- -------
                 A             1   $Null
@@ -935,16 +966,7 @@ Describe 'Join-Object' {
         }
 
         It 'Self join DataTable' {
-            $Actual = Join $DataTable1 -On Column1 -Property {$Left.$_}
-            $Expected = ConvertFrom-SourceTable '
-                Column1 Column2
-                ------- -------
-                A             1
-                B             2
-                C             3
-            '
-
-            Compare-PSObject $Actual $Expected | Should -BeNull
+            Join $DataTable1 -On Column1 | Should -BeNull
         }
     }
 
@@ -952,7 +974,7 @@ Describe 'Join-Object' {
 
         It 'Single left object' {
             $Actual = $Employee[1] | InnerJoin $Department -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
             Country Id Name                 Department  Age ReportsTo
             ------- -- ----                 ----------  --- ---------
             Germany  2 {Bauer, Engineering} Engineering  31         4
@@ -963,7 +985,7 @@ Describe 'Join-Object' {
 
         It 'Single right object' {
             $Actual = $Employee | InnerJoin $Department[0] -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Country Id Name                   Department  Age ReportsTo
                 ------- -- ----                   ----------  --- ---------
                 Germany  2 {Bauer, Engineering}   Engineering  31         4
@@ -975,7 +997,7 @@ Describe 'Join-Object' {
 
         It 'Single left object and single right object' {
             $Actual = $Employee[1] | InnerJoin $Department[0] -On Country
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Country Id Name                 Department  Age ReportsTo
                 ------- -- ----                 ----------  --- ---------
                 Germany  2 {Bauer, Engineering} Engineering  31         4
@@ -985,35 +1007,163 @@ Describe 'Join-Object' {
         }
     }
 
-    Context 'Compare options' {
+    Context 'Casting' {
 
         BeforeAll {
-            $LeftObject = ConvertFrom-SourceTable '
+            $LeftObject =
+                [PSCustomObject]@{Left = 'Null';            Value = $Null},
+                [PSCustomObject]@{Left = 'Empty String';    Value = ''},
+                [PSCustomObject]@{Left = 'String';          Value = 'abc'},
+                [PSCustomObject]@{Left = 'Zero';            Value = 0},
+                [PSCustomObject]@{Left = 'One';             Value = 1},
+                [PSCustomObject]@{Left = 'Empty Array';     Value = ,@()},
+                [PSCustomObject]@{Left = 'Array';           Value = @('a', 'b', 'c')},
+                [PSCustomObject]@{Left = 'Empty HashTable'; Value = @{}},
+                [PSCustomObject]@{Left = 'HashTable';       Value = @{a = 'd'; b = 'e'; c = 'f'}},
+                [PSCustomObject]@{Left = 'Empty Object';    Value = [PSCustomObject]@{}},
+                [PSCustomObject]@{Left = 'HashTable';       Value = [PSCustomObject]@{a = 'd'; b = 'e'; c = 'f'}}
+
+            $RightObject =
+                [PSCustomObject]@{Right = 'Null';            Value = $Null},
+                [PSCustomObject]@{Right = 'Empty String';    Value = ''},
+                [PSCustomObject]@{Right = 'String';          Value = 'ABC'},
+                [PSCustomObject]@{Right = 'Zero';            Value = 0},
+                [PSCustomObject]@{Right = 'One';             Value = 1},
+                [PSCustomObject]@{Right = 'Empty Array';     Value = ,@()},
+                [PSCustomObject]@{Right = 'Array';           Value = @('A', 'B', 'C')},
+                [PSCustomObject]@{Right = 'Empty HashTable'; Value = @{}},
+                [PSCustomObject]@{Right = 'HashTable';       Value = @{A = 'D'; B = 'E'; C = 'F'}},
+                [PSCustomObject]@{Right = 'Empty Object';    Value = [PSCustomObject]@{}},
+                [PSCustomObject]@{Right = 'HashTable';       Value = [PSCustomObject]@{A = 'D'; B = 'E'; C = 'F'}}
+        }
+
+        It 'Default' {
+
+            $Actual = $LeftObject | Join $RightObject -on Value -Property Left,Right
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Left            Right
+                ----            -----
+                Null            Null
+                Empty String    Empty String
+                String          String
+                Zero            Zero
+                One             One
+                Empty Array     Empty Array
+                Array           Array
+                Empty HashTable Empty HashTable
+                HashTable       HashTable
+                Empty Object    Empty Object
+                HashTable       HashTable'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Strict' {
+
+            $Actual = $LeftObject | Join $RightObject -on Value -Strict -Property Left,Right
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Left            Right
+                ----            -----
+                Null            Null
+                Empty String    Empty String
+                String          String
+                Zero            Zero
+                One             One
+                Empty Array     Empty Array
+                Array           Array
+                Empty HashTable Empty HashTable
+                HashTable       HashTable
+                Empty Object    Empty Object
+                HashTable       HashTable'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Case Sensitive' {
+
+            $Actual = $LeftObject | Join $RightObject -on Value -MatchCase -Property Left,Right
+            $Expected = 
+                if ($PSVersionTable.PSVersion -lt [Version]'7.3.0') {
+                    ConvertFrom-SourceTable -ParseRightAligned '
+                        Left            Right
+                        ----            -----
+                        Null            Null
+                        Empty String    Empty String
+                        Zero            Zero
+                        One             One
+                        Empty Array     Empty Array
+                        Empty HashTable Empty HashTable
+                        HashTable       HashTable
+                        Empty Object    Empty Object'
+                }
+                else {
+                    ConvertFrom-SourceTable -ParseRightAligned '
+                        Left            Right
+                        ----            -----
+                        Null            Null
+                        Empty String    Empty String
+                        Zero            Zero
+                        One             One
+                        Empty Array     Empty Array
+                        Empty HashTable Empty HashTable
+                        Empty Object    Empty Object'
+                }
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Strict / Case Sensitive' {
+
+            $Actual = $LeftObject | Join $RightObject -on Value -Strict -MatchCase -Property Left,Right
+            $Expected = 
+                if ($PSVersionTable.PSVersion -lt [Version]'7.3.0') {
+                    ConvertFrom-SourceTable -ParseRightAligned '
+                        Left            Right
+                        ----            -----
+                        Null            Null
+                        Empty String    Empty String
+                        Zero            Zero
+                        One             One
+                        Empty Array     Empty Array
+                        Empty HashTable Empty HashTable
+                        HashTable       HashTable
+                        Empty Object    Empty Object'
+                }
+                else {
+                    ConvertFrom-SourceTable -ParseRightAligned '
+                        Left            Right
+                        ----            -----
+                        Null            Null
+                        Empty String    Empty String
+                        Zero            Zero
+                        One             One
+                        Empty Array     Empty Array
+                        Empty HashTable Empty HashTable
+                        Empty Object    Empty Object'
+                }
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+    }
+
+    Context "Stackoverflow answers" {
+
+        It 'Unknown source' {
+
+            $LeftObject = ConvertFrom-SourceTable -ParseRightAligned '
                 volume                                  vol-state lun-serial
                 ------                                  --------- ----------
                 cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH
                 cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh'
 
-            $RightObject = ConvertFrom-SourceTable '
+            $RightObject = ConvertFrom-SourceTable -ParseRightAligned '
                 lun-serial   host-DiskNumber host-OperationalStatus
                 ----------   --------------- ----------------------
                 QvaAo+E56ZNH 11              Online
                 QvaAo+E56ZNh 34              Offline'
 
-            $Object =
-                [pscustomobject]@{'Name' = 'Null'; 'Value' = $Null},
-                [pscustomobject]@{'Name' = 'String'; 'Value' = ''},
-                [pscustomobject]@{'Name' = 'abc'; 'Value' = 'abc'},
-                [pscustomobject]@{'Name' = 'Zero'; 'Value' = 0},
-                [pscustomobject]@{'Name' = 'One'; 'Value' = 1},
-                [pscustomobject]@{'Name' = 'Empty'; 'Value' = @()},
-                [pscustomobject]@{'Name' = 'Array'; 'Value' = @(0,1,2)}
-        }
-
-        It 'case insensitive (default)' {
-
             $Actual = $LeftObject | LeftJoin $RightObject -On lun-serial
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 volume                                  vol-state lun-serial   host-DiskNumber host-OperationalStatus
                 ------                                  --------- ----------   --------------- ----------------------
                 cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH 11              Online
@@ -1022,12 +1172,9 @@ Describe 'Join-Object' {
                 cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh 34              Offline'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
-        }
-
-        It 'case sensitive' {
 
             $Actual = $LeftObject | LeftJoin $RightObject -On lun-serial -CaseSensitive
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 volume                                  vol-state lun-serial   host-DiskNumber host-OperationalStatus
                 ------                                  --------- ----------   --------------- ----------------------
                 cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH 11              Online
@@ -1036,36 +1183,9 @@ Describe 'Join-Object' {
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Default Join with null, zero, empty, etc.' {
-
-            $Actual = InnerJoin $Object -On Value Left,Right -Where {$LeftIndex -ne $RightIndex} | Select-Object LeftName, RightName
-            $Expected =
-                [pscustomobject]@{'LeftName' = 'Null';   'RightName' = 'String'},
-                [pscustomobject]@{'LeftName' = 'Null';   'RightName' = 'Empty'},
-                [pscustomobject]@{'LeftName' = 'String'; 'RightName' = 'Null'},
-                [pscustomobject]@{'LeftName' = 'String'; 'RightName' = 'Empty'},
-                [pscustomobject]@{'LeftName' = 'Empty';  'RightName' = 'Null'},
-                [pscustomobject]@{'LeftName' = 'Empty';  'RightName' = 'String'}
-
-            Compare-PSObject $Actual $Expected | Should -BeNull
-        }
-
-        It 'Strict Join with null, zero, empty, etc.' {
-
-            $Actual = InnerJoin $Object -Strict -On Value Left,Right -Where {$LeftIndex -ne $RightIndex}
-            $Expected =
-                [pscustomobject]@{'LeftName' = 'Null'; 'Value' = $Null; 'RightName' = 'Empty'},
-                [pscustomobject]@{'LeftName' = 'Empty'; 'Value' = [Object[]]@(); 'RightName' = 'Null'}
-
-            Compare-PSObject $Actual $Expected | Should -BeNull
-        }
-    }
-
-    Context "Stackoverflow answers" {
-
         It "In Powershell, what's the best way to join two tables into one?" { # https://stackoverflow.com/a/45483110
 
-            $leases = ConvertFrom-SourceTable '
+            $leases = ConvertFrom-SourceTable -ParseRightAligned '
                 IP                    Name
                 --                    ----
                 192.168.1.1           Apple
@@ -1073,7 +1193,7 @@ Describe 'Join-Object' {
                 192.168.1.3           Banana
                 192.168.1.99          FishyPC'
 
-            $reservations = ConvertFrom-SourceTable '
+            $reservations = ConvertFrom-SourceTable -ParseRightAligned '
                 IP                    MAC
                 --                    ---
                 192.168.1.1           001D606839C2
@@ -1082,7 +1202,7 @@ Describe 'Join-Object' {
                 192.168.1.4           0013D4352A0D'
 
             $Actual = $reservations | LeftJoin $leases -On IP
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 IP          MAC          Name
                 --          ---          ----
                 192.168.1.1 001D606839C2 Apple
@@ -1123,7 +1243,7 @@ SID,Folder4,FN4,Con4,VM14
 '@ | ConvertFrom-Csv
 
             $Actual = $csv1 | Merge-Object $csv2 -on Folder,FileName | Merge-object $csv3 -on Folder,FileName
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Appli Folder  FileName Config VM1  VM2  VM3
                 ----- ------  -------- ------ ---  ---  ---
                 ABC   Folder1 FN1      Con1   VM11 VM11 VM11
@@ -1156,7 +1276,7 @@ VM3,True,ZZZ
 '@
 
             $Actual = $CSV1 | Merge $CSV2 -On Name | Merge $CSV3 -On Name
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
             Name Attrib1 Attrib2 AttribA AttribB
             ---- ------- ------- ------- -------
             VM1  111     True    AAA       $Null
@@ -1183,7 +1303,7 @@ CLIENT
 
 
             $Actual = $csv1 | Join $csv2
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 VLAN Host
                 ---- ----
                 1    NETMAN
@@ -1208,7 +1328,7 @@ Physic
 '@
 
             $Actual = $A | Join $B
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 ID Name  Class
                 -- ----  -----
                 1  Peter Math
@@ -1242,7 +1362,7 @@ Fig,MarketF,50,0.5
 '@
 
             $Actual = $Purchase | Join $Selling -On Fruit
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Fruit      Farmer  Region     Water Market  Cost Tax
                 -----      ------  ------     ----- ------  ---- ---
                 Apple      Adam    Alabama    1     MarketA 10   0.1
@@ -1274,7 +1394,7 @@ User4,John,05/23/1960,,Letter,R4IKTHSL.pdf
 "@
 
             $Actual = $Left | Join $Right -On First_Name, Last_Name, DOB -Property Ref_ID, Filename, First_Name, DOB, Last_Name
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Ref_ID    Filename     First_Name DOB        Last_Name
                 ------    --------     ---------- ---        ---------
                 321364060 T4IJZSYO.pdf User1      11/01/1969 Micah
@@ -1287,21 +1407,21 @@ User4,John,05/23/1960,,Letter,R4IKTHSL.pdf
 
         It 'Merge two CSV files while adding new and overwriting existing entries' { # https://stackoverflow.com/a/54949056
 
-                $configuration = ConvertFrom-SourceTable '
+                $configuration = ConvertFrom-SourceTable -ParseRightAligned '
                 | path       | item  | value  | type |
                 |------------|-------|--------|------|
                 | some/path  | item1 | value1 | ALL  |
                 | some/path  | item2 | UPDATE | ALL  |
                 | other/path | item1 | value2 | SOME |'
 
-                $customization= ConvertFrom-SourceTable '
+                $customization= ConvertFrom-SourceTable -ParseRightAligned '
                 | path       | item  | value  | type |
                 |------------|-------|--------|------|
                 | some/path  | item2 | value3 | ALL  |
                 | new/path   | item3 | value3 | SOME |'
 
             $Actual = $configuration | Merge $customization -on path, item
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 path       item  value  type
                 ----       ----  -----  ----
                 some/path  item1 value1 ALL
@@ -1323,7 +1443,7 @@ server2,item2
 server2,item2'
 
             $Actual = $Csv1 | Join $Csv2 -Discern *1, *2
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Server1 Server2 Info1 Info2
                 ------- ------- ----- -----
                 server1 server2 item1 item2
@@ -1352,7 +1472,7 @@ $file2='"FACILITY","FILENAME"
 
 
             $Actual = $file1 | Join $file2 -On Facility, Filename
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 FACILITY FILENAME
                 -------- --------
                 16       abc.txt
@@ -1364,7 +1484,7 @@ $file2='"FACILITY","FILENAME"
 
         It 'Merge two CSV files while adding new and overwriting existing entries' { # https://stackoverflow.com/a/54949056
 
-            $configuration = ConvertFrom-SourceTable '
+            $configuration = ConvertFrom-SourceTable -ParseRightAligned '
                 | path       | item  | value  | type |
                 |------------|-------|--------|------|
                 | some/path  | item1 | value1 | ALL  |
@@ -1372,7 +1492,7 @@ $file2='"FACILITY","FILENAME"
                 | other/path | item1 | value2 | SOME |
                 | other/path | item1 | value3 | ALL  |
             '
-            $customization= ConvertFrom-SourceTable '
+            $customization= ConvertFrom-SourceTable -ParseRightAligned '
                 | path       | item  | value  | type |
                 |------------|-------|--------|------|
                 | some/path  | item2 | value3 | ALL  |
@@ -1381,7 +1501,7 @@ $file2='"FACILITY","FILENAME"
             '
 
             $Actual = $configuration | Merge $customization -on path, item
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 path       item  value  type
                 ----       ----  -----  ----
                 some/path  item1 value1 ALL
@@ -1397,7 +1517,7 @@ $file2='"FACILITY","FILENAME"
 
         It 'Efficiently merge large object datasets having mulitple matching keys' { # https://stackoverflow.com/a/55543321
 
-            $dataset1 = ConvertFrom-SourceTable '
+            $dataset1 = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    XY    ZY
                 - -    --    --
                 1 val1 foo1  bar1
@@ -1408,7 +1528,7 @@ $file2='"FACILITY","FILENAME"
                 5 val5 foo5  bar5
                 6 val6 foo6  bar6
             '
-            $dataset2 = ConvertFrom-SourceTable '
+            $dataset2 = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    ABC   GH
                 - -    ---   --
                 3 val3 foo3  bar3
@@ -1421,7 +1541,7 @@ $file2='"FACILITY","FILENAME"
             '
 
             $Actual = $Dataset1 | FullJoin $dataset2 -On A, B
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    XY      ZY      ABC    GH
                 - -    --      --      ---    --
                 1 val1 foo1    bar1     $Null  $Null
@@ -1438,7 +1558,7 @@ $file2='"FACILITY","FILENAME"
             Compare-PSObject $Actual $Expected | Should -BeNull
 
             $Actual = $Dataset1 | FullJoin $dataset2 -On *
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    XY      ZY      ABC    GH
                 - -    --      --      ---    --
                 1 val1 foo1    bar1     $Null  $Null
@@ -1455,7 +1575,7 @@ $file2='"FACILITY","FILENAME"
             Compare-PSObject $Actual $Expected | Should -BeNull
 
             $Actual = $Dataset1 | InnerJoin $dataset2 -On *
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    XY    ZY    ABC   GH
                 - -    --    --    ---   --
                 3 val3 foo3  bar3  foo3  bar3
@@ -1518,7 +1638,7 @@ $Actual = $List1 |
     Merge $export2 -On Server |
     Merge ($export3 | Select-Object @{n='Server';e={$_.Server.Split('.', 2)[0]}}, OS) -On Server
 
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 server    OS
                 ------    --
                 hostname1 w2k12
@@ -1537,7 +1657,7 @@ $Actual = $List1 |
     Merge $export2 -On Server -Discern '',Export2 |
     Merge ($export3 | Select-Object @{n='Server';e={$_.Server.Split('.', 2)[0]}}, OS) -On Server -Discern '',Export3
 
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
 server    OS                                          Export3OS           Export2OS
 ------    ------------------------------------------- ------------------- ---------
 hostname1                                       $Null               $Null w2k12
@@ -1584,7 +1704,7 @@ Z001,ABC,Domain3
 
             $Actual = $AAA | FullJoin $BBB -On Number | FullJoin $CCC -On Number | FullJoin $DDD -On Number -Discern AAA, BBB, CCC, DDD
 
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Number AAAName BBBName CCCName DDDName AAADomain BBBDomain CCCDomain DDDDomain
                 ------ ------- ------- ------- ------- --------- --------- --------- ---------
                 Z001   ABC     ABC     ABC     ABC     Domain1   Domain1   Domain1   Domain3
@@ -1599,7 +1719,7 @@ Z001,ABC,Domain3
 
             $Actual = $AAA | FullJoin $BBB -On Number | FullJoin $CCC -On Number | FullJoin $DDD -On Number -Discern *1,*2,*3,*4
 
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Number Name1  Name2  Name3  Name4  Domain1  Domain2  Domain3  Domain4
                 ------ ------ ------ ------ ------ -------- -------- -------- --------
                 Z001   ABC    ABC    ABC    ABC    Domain1  Domain1  Domain1  Domain3
@@ -1722,20 +1842,20 @@ Z001,ABC,Domain3
         }
 
         It 'Join/merge arrays' { # https://stackoverflow.com/a/58801439
-            $TxtTestcases = ConvertFrom-SourceTable '
+            $TxtTestcases = ConvertFrom-SourceTable -ParseRightAligned '
                 Messages                                   Name   Error
                 --------                                   ----   -----
                 {\\APPS-EUAUTO1\C$\Users\xautosqa\AppDa... test 1 True
                 {[APPS-EUAUTO1] [prep] Setting agent op... test 2 False'
 
-            $RexTestcases = ConvertFrom-SourceTable '
+            $RexTestcases = ConvertFrom-SourceTable -ParseRightAligned '
                 TestPlan        Script          TestCase        TestData        ErrorCount      ErrorText       DateTime        Elapsed
                 --------        ------          --------        --------        ----------      ---------       --------        -------
                 D:\XHostMach... D:\XHostMach... rt1             1,\a\""         1               [#ERROR#][AP... 2014-03-28 1... 0:00:18
                 D:\XHostMach... D:\XHostMach... rt2             1,\a\""         0                               2014-03-28 1... 0:00:08 '
 
             $Actual = $TxtTestcases | Join-Object $RexTestcases
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Messages                                   Name   Error TestPlan        Script          TestCase TestData ErrorCount ErrorText       DateTime        Elapsed
                 --------                                   ----   ----- --------        ------          -------- -------- ---------- ---------       --------        -------
                 {\\APPS-EUAUTO1\C$\Users\xautosqa\AppDa... test 1 True  D:\XHostMach... D:\XHostMach... rt1      1,\a\""  1          [#ERROR#][AP... 2014-03-28 1... 0:00:18
@@ -1784,7 +1904,7 @@ hostname23,Company_Policy,291768854
                           @{'TB Size' = {[math]::Round(($Left['KB Size'] - $Right['KB Size']) / 1GB, 2)}} `
                 -Where {[math]::Abs($Left['KB Size'] - $Right['KB Size']) -gt 100MB}
 
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                     Client Name Policy Name       TB Size
                     ----------- -----------       -------
                     hostname1   Company_Policy       0.45
@@ -1802,7 +1922,7 @@ hostname23,Company_Policy,291768854
 
         It 'multiple lookup powershell array' { # https://stackoverflow.com/a/58880814
 
-            $List = ConvertFrom-SourceTable '
+            $List = ConvertFrom-SourceTable -ParseRightAligned '
                 org_id  org_name        parent_id
                 1       Company         NULL
                 2       HR              1
@@ -1811,7 +1931,7 @@ hostname23,Company_Policy,291768854
                 5       IT              4'
 
             $Actual = FullJoin $List parent_id -eq org_id '', 'parent'
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 org_id org_name  parentorg_name parent_id
                 ------ --------  -------------- ---------
                 1      Company            $Null     $Null
@@ -1898,12 +2018,12 @@ hostname23,Company_Policy,291768854
 
         It 'How to combine items from one PowerShell Array and one Powershell Object and produce a 3rd PowerShell Object?' { # https://stackoverflow.com/q/63203376
 
-            $vmSizelist = ConvertFrom-SourceTable '
+            $vmSizelist = ConvertFrom-SourceTable -ParseRightAligned '
                 Name VMSize          ResourceGroup
                 VM1  Standard_D2s_v3 RG1
                 VM2  Standard_D14_v2 RG2'
 
-            $AllVMSize = ConvertFrom-SourceTable '
+            $AllVMSize = ConvertFrom-SourceTable -ParseRightAligned '
                 Name            NumberOfCores MemoryInMB MaxDataDiskCount OSDiskSizeInMB ResourceDiskSizeInMB
                 Standard_B1ls               1        512                2        1047552                 4096
                 Standard_B1ms               1       2048                2        1047552                 4096
@@ -1914,7 +2034,7 @@ hostname23,Company_Policy,291768854
                 Standard_D14_v2            16     114688               64        1047552               819200'
 
             $Actual = $vmSizelist | Join-Object $AllVMSize -on VMSize -Eq Name -Property Name, VMSize, ResourceGroup, NumberOfCores, MemoryInMB
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Name VMSize          ResourceGroup NumberOfCores MemoryInMB
                 ---- ------          ------------- ------------- ----------
                 VM1  Standard_D2s_v3 RG1                       2       8192
@@ -1925,21 +2045,21 @@ hostname23,Company_Policy,291768854
 
         It 'Updating data in .csv without overwriting the existing data / adding new data in powershell' { # https://stackoverflow.com/q/63242408
 
-            $Old = ConvertFrom-SourceTable '
+            $Old = ConvertFrom-SourceTable -ParseRightAligned '
                 Date       Filename  Type (BAY) ...
                 ----       --------  ---------- ---
                 2020-08-01 File1.csv Type 1     Info 1
                 2020-08-02 File2.csv Type 2
                 2020-08-03 File3.csv Type 3'
 
-            $New = ConvertFrom-SourceTable '
+            $New = ConvertFrom-SourceTable -ParseRightAligned '
                 Date       Filename  Type (BAY) ...
                 ----       --------  ---------- ---
                 2020-08-04 File2.csv Type 2     Info 2
                 2020-08-04 File4.csv Type 4     Info 4'
 
             $Actual = $Old | Merge-Object $New -on Filename
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Date       Filename  Type (BAY) ...
                 ----       --------  ---------- ---
                 2020-08-01 File1.csv Type 1     Info 1
@@ -1979,7 +2099,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                       @{Id=2; Name="Some other name"}
 
             $Actual = $Array1 | Join $Array2 -On Id
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Count Id Name
                 ----- -- ----
                    24  1 Some name
@@ -2058,7 +2178,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 @{'Name' = 'Purchase'; 'Country' = 'France'}
 
             $Actual = $Employee | FullJoin $Department -On Country -Discern Employee, Department
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName Country Department  Age ReportsTo DepartmentName
                 -- ------------ ------- ----------  --- --------- --------------
                  1 Aerts        Belgium Sales        40         5          $Null
@@ -2139,7 +2259,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             $Actual | Should -Be $Expected
 
             $Actual = $a |Join $b |Join $c |Join $d -Name a, b, c, d
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 a  b  c  d
                 -  -  -  -
                 a1 b1 c1 d1
@@ -2150,9 +2270,9 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             Compare-PSObject $Actual $Expected | Should -BeNull
 
             $Actual = $Department |Join $a
-            $Expected = ConvertFrom-SourceTable '
-                Name        Country Value
-                ----        ------- -----
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Name        Country <Value>
+                ----        ------- -------
                 Engineering Germany a1
                 Marketing   England a2
                 Sales       France  a3
@@ -2161,13 +2281,13 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             Compare-PSObject $Actual $Expected | Should -BeNull
 
             $Actual = $a |Join $Department
-            $Expected = ConvertFrom-SourceTable '
-                Value Name        Country
-                ----- ----        -------
-                a1    Engineering Germany
-                a2    Marketing   England
-                a3    Sales       France
-                a4    Purchase    France'
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                <Value> Name        Country
+                ------- ----        -------
+                a1      Engineering Germany
+                a2      Marketing   England
+                a3      Sales       France
+                a4      Purchase    France'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
             
@@ -2191,11 +2311,13 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
 
         It '#19 Deal with empty (and $Null) inputs' { # https://github.com/iRon7/Join-Object/issues/19
 
-            @() |Join $Employee | Should -benull # Self join
+            @() |Join $Employee | Should -benull
 
-            $Actual = $Employee |Join $Null
-            $Expected = [PSCustomObject]@{Id = 1; Name = 'Aerts'; Country = 'Belgium'; Department = 'Sales'; Age = 40; ReportsTo = 5}
-            Compare-PSObject $Actual $Expected | Should -BeNull
+            # $Actual = $Employee |Join $Null
+            # $Expected = [PSCustomObject]@{Id = 1; Name = 'Aerts'; Country = 'Belgium'; Department = 'Sales'; Age = 40; ReportsTo = 5}
+            # Compare-PSObject $Actual $Expected | Should -BeNull
+
+            $Employee |Join $Null | Should -benull
 
             $Employee |Join @() | Should -benull
 
@@ -2205,9 +2327,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
 
             @() |Join @{id = 3; name = 'Three'} -On id | Should -benull # Self join
 
-            $Actual = Join @{id = 3; name = 'Three'} -On id
-            $Expected = [PSCustomObject]@{name = [array]('Three', 'Three'); id = 3}
-            Compare-PSObject $Actual $Expected | Should -BeNull
+            Join @{id = 3; name = 'Three'} -On id | Should -BeNull
 
         }
 
@@ -2225,7 +2345,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
 
         It '#27 MissingLeftProperty: Join-Object : The property xxx cannot be found on the left object' { # https://github.com/iRon7/Join-Object/issues/27
 
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName Country Department  Age ReportsTo DepartmentName
                 -- ------------ ------- ----------  --- --------- --------------
                  1 Aerts        Belgium Sales        40         5          $Null
@@ -2272,7 +2392,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
 
         it 'On expression' { # https://stackoverflow.com/q/70120859
 
-            $Domain1 = ConvertFrom-SourceTable '
+            $Domain1 = ConvertFrom-SourceTable -ParseRightAligned '
                 DN                                          FirstName LastName
                 --                                          --------- --------
                 CN=E466097,OU=Sales,DC=Domain1,DC=COM       Karen     Berge
@@ -2282,7 +2402,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 CN=E235479,OU=HR,DC=Domain1,DC=COM          Mary      Smith
                 CN=E964267,OU=Sales,DC=Domain1,DC=COM       Jeff      Smith'
 
-            $Domain2 = ConvertFrom-SourceTable '
+            $Domain2 = ConvertFrom-SourceTable -ParseRightAligned '
                 DN                                    Name
                 --                                    ----
                 CN=E000001,OU=Users,DC=Domain2,DC=COM John Doe
@@ -2292,7 +2412,7 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
                 CN=E890223,OU=Users,DC=Domain2,DC=COM James Johnson
                 CN=E964267,OU=Users,DC=Domain2,DC=COM Jeff Smith'
 
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Domain1DN                                   Domain2DN                             FirstName LastName Name
                 ---------                                   ---------                             --------- -------- ----
                 CN=E466097,OU=Sales,DC=Domain1,DC=COM       CN=E466097,OU=Users,DC=Domain2,DC=COM Karen     Berge    Karen Berge
@@ -2338,7 +2458,7 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
             $Actual = $Csv1 |OuterJoin $Csv2
             Compare-PSObject $Actual $Expected | Should -BeNull
             
-            $dataset1 = ConvertFrom-SourceTable '
+            $dataset1 = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    XY    ZY
                 - -    --    --
                 1 val1 foo1  bar1
@@ -2349,7 +2469,7 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 5 val5 foo5  bar5
                 6 val6 foo6  bar6
             '
-            $dataset2 = ConvertFrom-SourceTable '
+            $dataset2 = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    ABC   GH
                 - -    ---   --
                 3 val3 foo3  bar3
@@ -2361,7 +2481,7 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 8 val8 foo8  bar8
             '
             
-            $Expected = ConvertFrom-SourceTable '
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    XY     ZY     ABC    GH
                 - -    --     --     ---    --
                 1 val1 foo1   bar1    $Null  $Null
