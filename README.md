@@ -51,7 +51,7 @@ Main features:
 * Smart property merging
 * Predefined join commands for updating, merging and specific join types
 * Well defined pipeline for the (left) input objects and output objects (streaming preserves memory)
-* Performs about 40% faster than Compare-Object on large object lists
+* Performs about twice as fast as Compare-Object on large object lists
 * Supports a list of (custom) objects, strings or primitives and dictionaries (e.g. hash tables) and data tables for input
 * Smart properties and calculated property expressions
 * Custom relation expressions
