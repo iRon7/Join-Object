@@ -1,3 +1,6 @@
+## 2023-05-24 3.8.1 (iRon)
+  - Fixes
+    - [#42](https://github.com/iRon7/Join-Object/issues/42): An outer join on an empty pipeline should return the right object 
 ## 2023-05-12 3.8.0 (iRon)
   - Updated
     - [#39](https://github.com/iRon7/Join-Object/issues/39): Improved performance (by more than a factor 2)
