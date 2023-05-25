@@ -2107,6 +2107,156 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
 
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
+
+        it 'On expression' { # https://stackoverflow.com/q/70120859
+
+            $Domain1 = ConvertFrom-SourceTable -ParseRightAligned '
+                DN                                          FirstName LastName
+                --                                          --------- --------
+                CN=E466097,OU=Sales,DC=Domain1,DC=COM       Karen     Berge
+                CN=E000001,OU=HR,DC=Domain1,DC=COM          John      Doe
+                CN=E475721,OU=Engineering,DC=Domain1,DC=COM Maria     Garcia
+                CN=E890223,OU=Engineering,DC=Domain1,DC=COM James     Johnson
+                CN=E235479,OU=HR,DC=Domain1,DC=COM          Mary      Smith
+                CN=E964267,OU=Sales,DC=Domain1,DC=COM       Jeff      Smith'
+
+            $Domain2 = ConvertFrom-SourceTable -ParseRightAligned '
+                DN                                    Name
+                --                                    ----
+                CN=E000001,OU=Users,DC=Domain2,DC=COM John Doe
+                CN=E235479,OU=Users,DC=Domain2,DC=COM Mary Smith
+                CN=E466097,OU=Users,DC=Domain2,DC=COM Karen Berge
+                CN=E475721,OU=Users,DC=Domain2,DC=COM Maria Garcia
+                CN=E890223,OU=Users,DC=Domain2,DC=COM James Johnson
+                CN=E964267,OU=Users,DC=Domain2,DC=COM Jeff Smith'
+
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Domain1DN                                   Domain2DN                             FirstName LastName Name
+                ---------                                   ---------                             --------- -------- ----
+                CN=E466097,OU=Sales,DC=Domain1,DC=COM       CN=E466097,OU=Users,DC=Domain2,DC=COM Karen     Berge    Karen Berge
+                CN=E000001,OU=HR,DC=Domain1,DC=COM          CN=E000001,OU=Users,DC=Domain2,DC=COM John      Doe      John Doe
+                CN=E475721,OU=Engineering,DC=Domain1,DC=COM CN=E475721,OU=Users,DC=Domain2,DC=COM Maria     Garcia   Maria Garcia
+                CN=E890223,OU=Engineering,DC=Domain1,DC=COM CN=E890223,OU=Users,DC=Domain2,DC=COM James     Johnson  James Johnson
+                CN=E235479,OU=HR,DC=Domain1,DC=COM          CN=E235479,OU=Users,DC=Domain2,DC=COM Mary      Smith    Mary Smith
+                CN=E964267,OU=Sales,DC=Domain1,DC=COM       CN=E964267,OU=Users,DC=Domain2,DC=COM Jeff      Smith    Jeff Smith'
+
+            $Actual = $Domain1 |Join $Domain2 -On { [RegEx]::Match($_.DN, '(?<=CN=)E\d{6}(?=,OU=)') } -Name Domain1,Domain2
+            Compare-PSObject $Actual $Expected | Should -BeNull
+
+            $Actual = $Domain1 |Join $Domain2 -On { $_.FirstName, $_.LastName -Join ' ' } -Eq Name -Name Domain1,Domain2
+            Compare-PSObject $Actual $Expected | Should -BeNull
+
+        }
+
+        it 'Compare two different csv files using PowerShell' { # https://stackoverflow.com/q/58850132
+        $Csv1 = ConvertFrom-Csv @'
+name,surname,height,city,county,state,zipCode
+John,Doe,120,jefferson,Riverside,NJ,8075
+Jack,Yan,220,Phila,Riverside,PA,9119
+Jill,Fan,120,jefferson,Riverside,NJ,8075
+Steve,Tan,220,Phila,Riverside,PA,9119
+Alpha,Fan,120,jefferson,Riverside,NJ,8075
+'@
+
+        $Csv2 = ConvertFrom-Csv @'
+name,surname,height,city,county,state,zipCode
+John,Doe,120,jefferson,Riverside,NJ,8075
+Jack,Yan,220,Phila,Riverside,PA,9119
+Jill,Fan,120,jefferson,Riverside,NJ,8075
+Steve,Tan,220,Phila,Riverside,PA,9119
+Bravo,Tan,220,Phila,Riverside,PA,9119
+'@
+
+            $Expected = ConvertFrom-Csv @'
+name,surname,height,city,county,state,zipCode
+Alpha,Fan,120,jefferson,Riverside,NJ,8075
+Bravo,Tan,220,Phila,Riverside,PA,9119
+'@
+            
+            $Actual = $Csv1 |OuterJoin $Csv2
+            Compare-PSObject $Actual $Expected | Should -BeNull
+            
+            $dataset1 = ConvertFrom-SourceTable -ParseRightAligned '
+                A B    XY    ZY
+                - -    --    --
+                1 val1 foo1  bar1
+                2 val2 foo2  bar2
+                3 val3 foo3  bar3
+                4 val4 foo4  bar4
+                4 val4 foo4a bar4a
+                5 val5 foo5  bar5
+                6 val6 foo6  bar6
+            '
+            $dataset2 = ConvertFrom-SourceTable -ParseRightAligned '
+                A B    ABC   GH
+                - -    ---   --
+                3 val3 foo3  bar3
+                4 val4 foo4  bar4
+                5 val5 foo5  bar5
+                5 val5 foo5a bar5a
+                6 val6 foo6  bar6
+                7 val7 foo7  bar7
+                8 val8 foo8  bar8
+            '
+            
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                A B    XY     ZY     ABC    GH
+                - -    --     --     ---    --
+                1 val1 foo1   bar1    $Null  $Null
+                2 val2 foo2   bar2    $Null  $Null
+                7 val7  $Null  $Null foo7   bar7
+                8 val8  $Null  $Null foo8   bar8'
+
+            $Actual = $Dataset1 |OuterJoin $Dataset2 -on a,b
+            Compare-PSObject $Actual $Expected | Should -BeNull
+
+            $Actual = $Dataset1 |Get-Difference $Dataset2 -on b
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It "Transpose table" { # https://stackoverflow.com/q/76288937/1701026
+
+            $Csv = @'
+"@","A","B","C"
+"1","D","E","F"
+"2","G","H","I"
+"3","J","K","L"
+'@
+
+            $Table = @()
+            # Get-Content .\My.csv |Foreach-Object {
+            $Csv -Split '\r?\n' |Foreach-Object {
+                $Table = $Table |FullJoin $_.Split(',')
+            }
+            $Transposed = $Table |Foreach-Object {
+                $_ -Join ','
+            }
+            ($Transposed |Out-String).Trim() | Should -Be @'
+"@","1","2","3"
+"A","D","G","J"
+"B","E","H","K"
+"C","F","I","L"
+'@
+
+            $Data = ConvertFrom-Csv $Csv
+            $Names = $Data[0].PSObject.Properties.Name
+            $Last = $Names.get_Count() - 1
+            $Table = @() |FullJoin $Names[1..$Last] -Name $Names[0]
+            $Data |Foreach-Object {
+                $Values = $_.PSObject.Properties.Value
+                $Last = $Values.get_Count() - 1
+                $Table =  $Table |FullJoin $Values[1..$Last] -Name $Values[0]
+            }
+
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                @ 1 2 3
+                - - - -
+                A D G J
+                B E H K
+                C F I L'
+
+            Compare-PSObject $Table $Expected | Should -BeNull
+        }
     }
 
     Context "Github issues" {
@@ -2249,12 +2399,12 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             $c = 'c1', 'c2', 'c3', 'c4'
             $d = 'd1', 'd2', 'd3', 'd4'
 
-            $Actual = $a |Join $b |Join $c |Join $d |% { "$_" }
+            $Actual = $a |Join $b |Join $c |Join $d |% { $_ -Join '|' }
             $Expected =
-                'a1 b1 c1 d1',
-                'a2 b2 c2 d2',
-                'a3 b3 c3 d3',
-                'a4 b4 c4 d4'
+                'a1|b1|c1|d1',
+                'a2|b2|c2|d2',
+                'a3|b3|c3|d3',
+                'a4|b4|c4|d4'
 
             $Actual | Should -Be $Expected
 
@@ -2390,110 +2540,24 @@ Adekunle,Adesiyan,Adekunle.Adesiyan,Adekunle.Adesiyan@domain.com,Adekunle.Adesiy
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        it 'On expression' { # https://stackoverflow.com/q/70120859
+        It "#42 An outer join on an empty pipeline should return the right object" { # https://github.com/iRon7/Join-Object/issues/42
 
-            $Domain1 = ConvertFrom-SourceTable -ParseRightAligned '
-                DN                                          FirstName LastName
-                --                                          --------- --------
-                CN=E466097,OU=Sales,DC=Domain1,DC=COM       Karen     Berge
-                CN=E000001,OU=HR,DC=Domain1,DC=COM          John      Doe
-                CN=E475721,OU=Engineering,DC=Domain1,DC=COM Maria     Garcia
-                CN=E890223,OU=Engineering,DC=Domain1,DC=COM James     Johnson
-                CN=E235479,OU=HR,DC=Domain1,DC=COM          Mary      Smith
-                CN=E964267,OU=Sales,DC=Domain1,DC=COM       Jeff      Smith'
+            $a = 'a1', 'a2', 'a3', 'a4'
+            $b = 'b1', 'b2', 'b3', 'b4'
 
-            $Domain2 = ConvertFrom-SourceTable -ParseRightAligned '
-                DN                                    Name
-                --                                    ----
-                CN=E000001,OU=Users,DC=Domain2,DC=COM John Doe
-                CN=E235479,OU=Users,DC=Domain2,DC=COM Mary Smith
-                CN=E466097,OU=Users,DC=Domain2,DC=COM Karen Berge
-                CN=E475721,OU=Users,DC=Domain2,DC=COM Maria Garcia
-                CN=E890223,OU=Users,DC=Domain2,DC=COM James Johnson
-                CN=E964267,OU=Users,DC=Domain2,DC=COM Jeff Smith'
+            $Actual = @() | Join $a | Join $b | Should -BeNull
 
-            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
-                Domain1DN                                   Domain2DN                             FirstName LastName Name
-                ---------                                   ---------                             --------- -------- ----
-                CN=E466097,OU=Sales,DC=Domain1,DC=COM       CN=E466097,OU=Users,DC=Domain2,DC=COM Karen     Berge    Karen Berge
-                CN=E000001,OU=HR,DC=Domain1,DC=COM          CN=E000001,OU=Users,DC=Domain2,DC=COM John      Doe      John Doe
-                CN=E475721,OU=Engineering,DC=Domain1,DC=COM CN=E475721,OU=Users,DC=Domain2,DC=COM Maria     Garcia   Maria Garcia
-                CN=E890223,OU=Engineering,DC=Domain1,DC=COM CN=E890223,OU=Users,DC=Domain2,DC=COM James     Johnson  James Johnson
-                CN=E235479,OU=HR,DC=Domain1,DC=COM          CN=E235479,OU=Users,DC=Domain2,DC=COM Mary      Smith    Mary Smith
-                CN=E964267,OU=Sales,DC=Domain1,DC=COM       CN=E964267,OU=Users,DC=Domain2,DC=COM Jeff      Smith    Jeff Smith'
+            $Actual = @() | FullJoin $a | FullJoin $b |% { "$_" }
+            $Expected =
+                'a1 b1',
+                'a2 b2',
+                'a3 b3',
+                'a4 b4'
 
-            $Actual = $Domain1 |Join $Domain2 -On { [RegEx]::Match($_.DN, '(?<=CN=)E\d{6}(?=,OU=)') } -Name Domain1,Domain2
-            Compare-PSObject $Actual $Expected | Should -BeNull
+            $Actual | Should -Be $Expected
 
-            $Actual = $Domain1 |Join $Domain2 -On { $_.FirstName, $_.LastName -Join ' ' } -Eq Name -Name Domain1,Domain2
-            Compare-PSObject $Actual $Expected | Should -BeNull
-
-        }
-
-        it 'Compare two different csv files using PowerShell' { # https://stackoverflow.com/q/58850132
-        $Csv1 = ConvertFrom-Csv @'
-name,surname,height,city,county,state,zipCode
-John,Doe,120,jefferson,Riverside,NJ,8075
-Jack,Yan,220,Phila,Riverside,PA,9119
-Jill,Fan,120,jefferson,Riverside,NJ,8075
-Steve,Tan,220,Phila,Riverside,PA,9119
-Alpha,Fan,120,jefferson,Riverside,NJ,8075
-'@
-
-        $Csv2 = ConvertFrom-Csv @'
-name,surname,height,city,county,state,zipCode
-John,Doe,120,jefferson,Riverside,NJ,8075
-Jack,Yan,220,Phila,Riverside,PA,9119
-Jill,Fan,120,jefferson,Riverside,NJ,8075
-Steve,Tan,220,Phila,Riverside,PA,9119
-Bravo,Tan,220,Phila,Riverside,PA,9119
-'@
-
-            $Expected = ConvertFrom-Csv @'
-name,surname,height,city,county,state,zipCode
-Alpha,Fan,120,jefferson,Riverside,NJ,8075
-Bravo,Tan,220,Phila,Riverside,PA,9119
-'@
-            
-            $Actual = $Csv1 |OuterJoin $Csv2
-            Compare-PSObject $Actual $Expected | Should -BeNull
-            
-            $dataset1 = ConvertFrom-SourceTable -ParseRightAligned '
-                A B    XY    ZY
-                - -    --    --
-                1 val1 foo1  bar1
-                2 val2 foo2  bar2
-                3 val3 foo3  bar3
-                4 val4 foo4  bar4
-                4 val4 foo4a bar4a
-                5 val5 foo5  bar5
-                6 val6 foo6  bar6
-            '
-            $dataset2 = ConvertFrom-SourceTable -ParseRightAligned '
-                A B    ABC   GH
-                - -    ---   --
-                3 val3 foo3  bar3
-                4 val4 foo4  bar4
-                5 val5 foo5  bar5
-                5 val5 foo5a bar5a
-                6 val6 foo6  bar6
-                7 val7 foo7  bar7
-                8 val8 foo8  bar8
-            '
-            
-            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
-                A B    XY     ZY     ABC    GH
-                - -    --     --     ---    --
-                1 val1 foo1   bar1    $Null  $Null
-                2 val2 foo2   bar2    $Null  $Null
-                7 val7  $Null  $Null foo7   bar7
-                8 val8  $Null  $Null foo8   bar8'
-
-            $Actual = $Dataset1 |OuterJoin $Dataset2 -on a,b
-            Compare-PSObject $Actual $Expected | Should -BeNull
-
-            $Actual = $Dataset1 |Get-Difference $Dataset2 -on b
-            Compare-PSObject $Actual $Expected | Should -BeNull
+            $Actual = @() | FullJoin $Employee -On Country
+            Compare-PSObject $Actual $Employee | Should -BeNull
         }
 
     }
