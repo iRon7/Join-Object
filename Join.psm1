@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.8.0
+.VERSION 3.8.1
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR Ronald Bode (iRon)
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
@@ -16,7 +16,7 @@
 .PRIVATEDATA
 #>
 
-<#
+<#C:\Users\boder\GDrive\Scripts\PowerShell\PowerSnippets\Join-Object\Join.ps1C:\Users\boder\GDrive\Scripts\PowerShell\PowerSnippets\Join-Object\Join.ps1
 .SYNOPSIS
     Combines two object lists based on a related property between them.
 
@@ -26,11 +26,12 @@
     to each.
 
     Main features:
-    * Intuitive (SQL like) syntax
+    * An intuitive idiomatic PowerShell syntax
+    * SQL like joining features
     * Smart property merging
     * Predefined join commands for updating, merging and specific join types
     * Well defined pipeline for the (left) input objects and output objects (streaming preserves memory)
-    * Performs about 40% faster than Compare-Object on large object lists
+    * Performs about twice as fast as Compare-Object on large object lists
     * Supports a list of (custom) objects, strings or primitives and dictionaries (e.g. hash tables) and data tables for input
     * Smart properties and calculated property expressions
     * Custom relation expressions
@@ -299,19 +300,20 @@
 .EXAMPLE
     # Transpose arrays
 
-    The following example will join multiple arrays to a collection array aka transpose each array in a column.
+    The following example, the `join-Object` cmdlet (`... |Join`) joins multiple arrays to a collection array.\
+    The [Foreach-Object] cmdlet iterates over the rows and the `-Join` operator concatinates the item collections
 
     PS C:\> $a = 'a1', 'a2', 'a3', 'a4'
     PS C:\> $b = 'b1', 'b2', 'b3', 'b4'
     PS C:\> $c = 'c1', 'c2', 'c3', 'c4'
     PS C:\> $d = 'd1', 'd2', 'd3', 'd4'
 
-    PS C:\> $a |Join $b |Join $c |Join $d |% { "$_" }
+    PS C:\> $a |Join $b |Join $c |Join $d |% { $_ -Join '|' }
 
-        a1 b1 c1 d1
-        a2 b2 c2 d2
-        a3 b3 c3 d3
-        a4 b4 c4 d4
+        a1|b1|c1|d1
+        a2|b2|c2|d2
+        a3|b3|c3|d3
+        a4|b4|c4|d4
 
 .EXAMPLE
     # Arrays to objects
@@ -534,11 +536,15 @@ function Join-Object {
                             if ($Node.get_Count() -gt $Discern.Count + 1) { $Nodes[$Name] = $Node[0..($Node.get_Count() - $Discern.Count - 1)] }
                             for ($i = [math]::Min($Node.get_Count(), $Discern.Count); $i -gt 0; $i--) {
                                 $Rename = $Discern[$Discern.Count - $i]
-                                $Rename = if ($Rename.Contains('*')) { ([regex]"\*").Replace($Rename, $Name, 1) } elseif ( $Name -eq $ValueName) { $Rename } else { $Rename + $Name }
+                                $Rename = if ($Rename.Contains('*')) { ([regex]"\*").Replace($Rename, $Name, 1) } elseif ($Name -eq $ValueName) { $Rename } else { $Rename + $Name }
                                 if (!$Rename) { $Rename = $ValueName}
                                 $Nodes[$Rename] = if ($Nodes.Contains($Rename)) { @($Nodes[$Rename]) + $Node[$Node.get_Count() - $i] } else { $Node[$Node.get_Count() - $i] }
                             }
-                        } else { $Nodes[$Name] = $Node }
+                        } elseif ($Null -ne $Discern -and $Name -eq $ValueName) {
+                            $Nodes[$Discern[0]] = $Node
+                        } else {
+                            $Nodes[$Name] = $Node
+                        }
                     }
                     if ($Nodes.get_Count()) {
                         if ($Nodes.get_Count() -eq 1 -and $Nodes.Contains($ValueName)) { ,$Nodes[$ValueName] } # return scalar array
@@ -609,16 +615,18 @@ function Join-Object {
                         elseif ($EqualsWildCard) { $Equals = $On }
                         if     ($On.Count -gt $Equals.Count) { $Equals += $On[($Equals.Count)..($On.Count - 1)] }
                         elseif ($On.Count -lt $Equals.Count) { $On     += $Equals[($On.Count)..($Equals.Count - 1)] }
-                        for ($i = 0; $i -lt $On.Count; $i++) {
-                            if ( $On[$i] -is [ScriptBlock] ) { if ( $On[$i] -Like '*$Right*' ) { Write-Warning 'Use the -Using parameter for comparison expressions' } }
-                            else {
-                                if ($On[$i] -notin $LeftKeys) { StopError "The property $($On[$i]) cannot be found on the left object." 'MissingLeftProperty' }
-                                $LeftRight[$On[$i]] = $Equals[$i]
-                            }
-                            if ( $Equals[$i] -is [ScriptBlock] ) { if ( $On[$i] -Like '*$Left*' ) { Write-Warning 'Use the -Using parameter for comparison expressions' } }
-                            else {
-                                if ($Equals[$i] -notin $RightKeys) { StopError "The property $($Equals[$i]) cannot be found on the right object." 'MissingRightProperty' }
-                                $RightLeft[$Equals[$i]] = $On[$i]
+                        if ($Null -ne $Left) {
+                            for ($i = 0; $i -lt $On.Count; $i++) {
+                                if ( $On[$i] -is [ScriptBlock] ) { if ( $On[$i] -Like '*$Right*' ) { Write-Warning 'Use the -Using parameter for comparison expressions' } }
+                                else {
+                                    if ($On[$i] -notin $LeftKeys) { StopError "The property $($On[$i]) cannot be found on the left object." 'MissingLeftProperty' }
+                                    $LeftRight[$On[$i]] = $Equals[$i]
+                                }
+                                if ( $Equals[$i] -is [ScriptBlock] ) { if ( $On[$i] -Like '*$Left*' ) { Write-Warning 'Use the -Using parameter for comparison expressions' } }
+                                else {
+                                    if ($Equals[$i] -notin $RightKeys) { StopError "The property $($Equals[$i]) cannot be found on the right object." 'MissingRightProperty' }
+                                    $RightLeft[$Equals[$i]] = $On[$i]
+                                }
                             }
                         }
                         $RightIndex = 0
@@ -773,7 +781,14 @@ function Join-Object {
             $Pipeline.Begin($True)
             foreach ($Left in $LeftList) { $Pipeline.Process($Left) }
         }
-        if ($Null -ne $Pipeline -and 'Right', 'Full', 'Outer' -eq $JoinType) { $Pipeline.Process($Null) }
+        if ('Right', 'Full', 'Outer' -eq $JoinType) {
+            if ($Null -eq $Pipeline) {
+                if ($Parameters.ContainsKey('LeftObject')) { $Null = $Parameters.remove('LeftObject') }
+                $Pipeline = { ProcessObject @Parameters }.GetSteppablePipeline()
+                $PipeLine.Begin($True)
+            }
+            $Pipeline.Process($Null)
+        }
         if ($Pipeline) { $Pipeline.End() }
     }
 }; Set-Alias Join Join-Object
