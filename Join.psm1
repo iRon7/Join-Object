@@ -16,7 +16,7 @@
 .PRIVATEDATA
 #>
 
-<#C:\Users\boder\GDrive\Scripts\PowerShell\PowerSnippets\Join-Object\Join.ps1C:\Users\boder\GDrive\Scripts\PowerShell\PowerSnippets\Join-Object\Join.ps1
+<#
 .SYNOPSIS
     Combines two object lists based on a related property between them.
 
