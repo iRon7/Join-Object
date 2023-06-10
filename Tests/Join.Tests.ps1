@@ -69,6 +69,13 @@ Describe 'Join-Object' {
 
     }
 
+    Context 'Sanity check' {
+
+         It 'Help' {
+             Join-Object -? |Out-String -Stream |Should -Contain SYNOPSIS
+         }
+    }
+
     Context 'Join types' {
 
         It '$Employee | InnerJoin $Department -On Country -Discern Employee, Department' {
@@ -1082,7 +1089,7 @@ Describe 'Join-Object' {
         It 'Case Sensitive' {
 
             $Actual = $LeftObject | Join $RightObject -on Value -MatchCase -Property Left,Right
-            $Expected = 
+            $Expected =
                 if ($PSVersionTable.PSVersion -lt [Version]'7.3.0') {
                     ConvertFrom-SourceTable -ParseRightAligned '
                         Left            Right
@@ -1115,7 +1122,7 @@ Describe 'Join-Object' {
         It 'Strict / Case Sensitive' {
 
             $Actual = $LeftObject | Join $RightObject -on Value -Strict -MatchCase -Property Left,Right
-            $Expected = 
+            $Expected =
                 if ($PSVersionTable.PSVersion -lt [Version]'7.3.0') {
                     ConvertFrom-SourceTable -ParseRightAligned '
                         Left            Right
@@ -1146,42 +1153,16 @@ Describe 'Join-Object' {
         }
     }
 
+
+#      _____ _             _     ____                  __ _
+#     / ____| |           | |   / __ \                / _| |
+#    | (___ | |_ __ _  ___| | _| |  | |_   _____ _ __| |_| | _____      __
+#     \___ \| __/ _` |/ __| |/ / |  | \ \ / / _ \ '__|  _| |/ _ \ \ /\ / /
+#     ____) | || (_| | (__|   <| |__| |\ V /  __/ |  | | | | (_) \ V  V /
+#    |_____/ \__\__,_|\___|_|\_\\____/  \_/ \___|_|  |_| |_|\___/ \_/\_/
+
+
     Context "Stackoverflow answers" {
-
-        It 'Unknown source' {
-
-            $LeftObject = ConvertFrom-SourceTable -ParseRightAligned '
-                volume                                  vol-state lun-serial
-                ------                                  --------- ----------
-                cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH
-                cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh'
-
-            $RightObject = ConvertFrom-SourceTable -ParseRightAligned '
-                lun-serial   host-DiskNumber host-OperationalStatus
-                ----------   --------------- ----------------------
-                QvaAo+E56ZNH 11              Online
-                QvaAo+E56ZNh 34              Offline'
-
-            $Actual = $LeftObject | LeftJoin $RightObject -On lun-serial
-            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
-                volume                                  vol-state lun-serial   host-DiskNumber host-OperationalStatus
-                ------                                  --------- ----------   --------------- ----------------------
-                cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH 11              Online
-                cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNh 34              Offline
-                cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNH 11              Online
-                cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh 34              Offline'
-
-            Compare-PSObject $Actual $Expected | Should -BeNull
-
-            $Actual = $LeftObject | LeftJoin $RightObject -On lun-serial -CaseSensitive
-            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
-                volume                                  vol-state lun-serial   host-DiskNumber host-OperationalStatus
-                ------                                  --------- ----------   --------------- ----------------------
-                cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH 11              Online
-                cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh 34              Offline'
-
-            Compare-PSObject $Actual $Expected | Should -BeNull
-        }
 
         It "In Powershell, what's the best way to join two tables into one?" { # https://stackoverflow.com/a/45483110
 
@@ -2172,10 +2153,10 @@ name,surname,height,city,county,state,zipCode
 Alpha,Fan,120,jefferson,Riverside,NJ,8075
 Bravo,Tan,220,Phila,Riverside,PA,9119
 '@
-            
+
             $Actual = $Csv1 |OuterJoin $Csv2
             Compare-PSObject $Actual $Expected | Should -BeNull
-            
+
             $dataset1 = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    XY    ZY
                 - -    --    --
@@ -2198,7 +2179,7 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 7 val7 foo7  bar7
                 8 val8 foo8  bar8
             '
-            
+
             $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 A B    XY     ZY     ABC    GH
                 - -    --     --     ---    --
@@ -2259,8 +2240,60 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
         }
     }
 
-    Context "Github issues" {
-        It 'HashTables for input' { # https://github.com/iRon7/Join-Object/issues/10
+
+#      _____ _ _   _    _       _
+#     / ____(_) | | |  | |     | |
+#    | |  __ _| |_| |__| |_   _| |__
+#    | | |_ | | __|  __  | | | | '_ \
+#    | |__| | | |_| |  | | |_| | |_) |
+#     \_____|_|\__|_|  |_|\__,_|_.__/
+
+    Context '#9 `-where` condition not work correctly if function imported via `Import-module`' { # https://github.com/iRon7/Join-Object/issues/9
+
+        BeforeAll {
+            $LeftObject = ConvertFrom-SourceTable -ParseRightAligned '
+                volume                                  vol-state lun-serial
+                ------                                  --------- ----------
+                cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH
+                cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh'
+
+            $RightObject = ConvertFrom-SourceTable -ParseRightAligned '
+                lun-serial   host-DiskNumber host-OperationalStatus
+                ----------   --------------- ----------------------
+                QvaAo+E56ZNH 11              Online
+                QvaAo+E56ZNh 34              Offline'
+        }
+
+        It 'Case insensitive' {
+
+            $Actual = $LeftObject | LeftJoin $RightObject -On lun-serial
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                volume                                  vol-state lun-serial   host-DiskNumber host-OperationalStatus
+                ------                                  --------- ----------   --------------- ----------------------
+                cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH 11              Online
+                cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNh 34              Offline
+                cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNH 11              Online
+                cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh 34              Offline'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Case sensitive' {
+
+            $Actual = $LeftObject | LeftJoin $RightObject -On lun-serial -CaseSensitive
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                volume                                  vol-state lun-serial   host-DiskNumber host-OperationalStatus
+                ------                                  --------- ----------   --------------- ----------------------
+                cl_Cedar_WithAcessPath_SQL_T03_3        online    QvaAo+E56ZNH 11              Online
+                cl_ExportMasterDB_Max_to_Dell_SQL_T03_2 online    QvaAo+E56ZNh 34              Offline'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+    }
+
+    Context "Dictionaries for input" { # https://github.com/iRon7/Join-Object/issues/10
+
+        It 'InnerJoin' {
 
             $hostNumaInfo = @{
                 TypeId            = 0
@@ -2342,7 +2375,7 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Ordered for input' { # https://github.com/iRon7/Join-Object/issues/10
+        It 'Ordered for input' {
 
             $hostNumaInfo = [Ordered]@{
                 TypeId            = 0
@@ -2391,13 +2424,18 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
             }
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
+    }
 
-        It '#14 Support scalar arrays' { # https://github.com/iRon7/Join-Object/issues/14
+    Context '#14 Support scalar arrays' { # https://github.com/iRon7/Join-Object/issues/14
 
+        BeforeAll {
             $a = 'a1', 'a2', 'a3', 'a4'
             $b = 'b1', 'b2', 'b3', 'b4'
             $c = 'c1', 'c2', 'c3', 'c4'
             $d = 'd1', 'd2', 'd3', 'd4'
+        }
+
+        It 'Join chain' {
 
             $Actual = $a |Join $b |Join $c |Join $d |% { $_ -Join '|' }
             $Expected =
@@ -2407,6 +2445,9 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 'a4|b4|c4|d4'
 
             $Actual | Should -Be $Expected
+        }
+
+        It 'Join chain with subsequent naming' {
 
             $Actual = $a |Join $b |Join $c |Join $d -Name a, b, c, d
             $Expected = ConvertFrom-SourceTable -ParseRightAligned '
@@ -2418,6 +2459,9 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 a4 b4 c4 d4'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Join object collection with scalar colection' {
 
             $Actual = $Department |Join $a
             $Expected = ConvertFrom-SourceTable -ParseRightAligned '
@@ -2429,6 +2473,9 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 Purchase    France  a4'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Join scalar collection with object colection' {
 
             $Actual = $a |Join $Department
             $Expected = ConvertFrom-SourceTable -ParseRightAligned '
@@ -2440,10 +2487,16 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 a4      Purchase    France'
 
             Compare-PSObject $Actual $Expected | Should -BeNull
-            
+        }
+
+        It 'Outer join on scalar collections' {
+
             $a |OuterJoin $b | Should -be 'a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'b4'
-            
+
             1..5 |OuterJoin @(3..7) | Should -be 1, 2, 6, 7
+        }
+
+        It 'Scalar collection with embedded array' {
 
             $a = 'foo', 'bar'
             $b = 'baz', @(1,2)
@@ -2458,14 +2511,13 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
             $Result[1] | Should -be 'bar | 1 2 | so on'
 
         }
+    }
 
-        It '#19 Deal with empty (and $Null) inputs' { # https://github.com/iRon7/Join-Object/issues/19
+    Context '#19 Deal with empty (and $Null) inputs' { # https://github.com/iRon7/Join-Object/issues/19
+
+        It 'Join empty (and $Null) inputs' {
 
             @() |Join $Employee | Should -benull
-
-            # $Actual = $Employee |Join $Null
-            # $Expected = [PSCustomObject]@{Id = 1; Name = 'Aerts'; Country = 'Belgium'; Department = 'Sales'; Age = 40; ReportsTo = 5}
-            # Compare-PSObject $Actual $Expected | Should -BeNull
 
             $Employee |Join $Null | Should -benull
 
@@ -2480,8 +2532,11 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
             Join @{id = 3; name = 'Three'} -On id | Should -BeNull
 
         }
+    }
 
-        It '#21 merge repeating names' { # https://github.com/iRon7/Join-Object/issues/21
+    Context '#21 merge repeating names' { # https://github.com/iRon7/Join-Object/issues/21
+
+        It 'should collect sums' {
 
             $Actual = 0..9 |Join 3, 5, 6 |Join 1, 2, 4 |Join 7, 8, 9 -Name Index, Sum, Sum, Sum
             $Expected = @(
@@ -2492,8 +2547,11 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
             Compare-PSObject $Actual $Expected | Should -BeNull
 
         }
+    }
 
-        It '#27 MissingLeftProperty: Join-Object : The property xxx cannot be found on the left object' { # https://github.com/iRon7/Join-Object/issues/27
+    Context '#27 MissingLeftProperty: Join-Object : The property xxx cannot be found on the left object' { # https://github.com/iRon7/Join-Object/issues/27
+
+        It 'MissingLeftProperty' {
 
             $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Id EmployeeName Country Department  Age ReportsTo DepartmentName
@@ -2512,11 +2570,16 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
             $Actual = LeftJoin -LeftObject $Employee -RightObject $Department -On Country -Discern Employee, Department
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
+    }
 
-        It "#28 FullJoin doesn't work properly when joining multiple array when one of the array is empty" { # https://github.com/iRon7/Join-Object/issues/28
+    Context "#28 FullJoin doesn't work properly when joining multiple array when one of the array is empty" { # https://github.com/iRon7/Join-Object/issues/28
 
+        BeforeAll {
             $arrayList1 = [Object[]]@('james', 'henry')
             $arrayList2 = [Object[]]@()
+        }
+
+        It 'From pipeline with empty right object' {
 
             $Actual = $arrayList1 |FullJoin $arrayList2 -Name arrayList1, arrayList2
             $Expected =
@@ -2524,6 +2587,9 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 [pscustomobject]@{arrayList1 = 'henry'; arrayList2 = $Null}
 
             Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Named left parameter with empty right object' {
 
             $Actual = FullJoin -Left $arrayList1 -Right $arrayList2 -Name arrayList1, arrayList2
             $Expected =
@@ -2531,6 +2597,9 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 [pscustomobject]@{arrayList1 = 'henry'; arrayList2 = $Null}
 
             Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Empty left object with named right parameter' {
 
             $Actual = FullJoin -Left $arrayList2 -Right $arrayList1 -Name arrayList1, arrayList2
             $Expected =
@@ -2539,13 +2608,21 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
 
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
+    }
 
-        It "#42 An outer join on an empty pipeline should return the right object" { # https://github.com/iRon7/Join-Object/issues/42
+    Context "#42 An outer join on an empty pipeline should return the right object" { # https://github.com/iRon7/Join-Object/issues/42
 
+        BeforeAll {
             $a = 'a1', 'a2', 'a3', 'a4'
             $b = 'b1', 'b2', 'b3', 'b4'
+        }
+
+        It 'Inner join with empty pipeline and scalar collection' {
 
             $Actual = @() | Join $a | Join $b | Should -BeNull
+        }
+
+        It 'Inner join with empty pipeline and scalar collection' {
 
             $Actual = @() | FullJoin $a | FullJoin $b |% { "$_" }
             $Expected =
@@ -2555,11 +2632,77 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
                 'a4 b4'
 
             $Actual | Should -Be $Expected
+        }
+
+        It 'Inner join with empty pipeline and object collection' {
 
             $Actual = @() | FullJoin $Employee -On Country
             Compare-PSObject $Actual $Employee | Should -BeNull
         }
+    }
 
+    Context '#43 Scalar joins should use `-On` and `-Equals` for naming' { # https://github.com/iRon7/Join-Object/issues/43
+
+        it 'Left scalar collection with -On' {
+
+            $Actual = 1,2,3 | Join $Employee -On Id
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Id Name    Country  Department  Age ReportsTo
+                -- ----    -------- ----------  --- ---------
+                 1 Aerts   Belgium  Sales        40         5
+                 2 Bauer   Germany  Engineering  31         4
+                 3 Cook    England  Sales        69         1'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Right scalar collection with -On' {
+            $Actual = $Employee | Join 1,2,3 -On Id
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Id Name    Country  Department  Age ReportsTo
+                -- ----    -------- ----------  --- ---------
+                 1 Aerts   Belgium  Sales        40         5
+                 2 Bauer   Germany  Engineering  31         4
+                 3 Cook    England  Sales        69         1'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        it 'Single left property collection with -On' {
+
+            $Single =
+                [PSCustomObject]@{ Id = 1 },
+                [PSCustomObject]@{ Id = 2 },
+                [PSCustomObject]@{ Id = 3 }
+
+            $Actual = $Single | Join $Employee -On Id
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Id Name    Country  Department  Age ReportsTo
+                -- ----    -------- ----------  --- ---------
+                 1 Aerts   Belgium  Sales        40         5
+                 2 Bauer   Germany  Engineering  31         4
+                 3 Cook    England  Sales        69         1'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        It 'Single right property collection with -On' {
+
+            $Single =
+                [PSCustomObject]@{ Id = 1 },
+                [PSCustomObject]@{ Id = 2 },
+                [PSCustomObject]@{ Id = 3 }
+
+            $Actual = $Employee | Join $Single -On Id
+            $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+                Id Name    Country  Department  Age ReportsTo
+                -- ----    -------- ----------  --- ---------
+                 1 Aerts   Belgium  Sales        40         5
+                 2 Bauer   Germany  Engineering  31         4
+                 3 Cook    England  Sales        69         1'
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
     }
 
 }
