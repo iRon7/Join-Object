@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 3.8.1
+.VERSION 3.8.3
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR Ronald Bode (iRon)
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
@@ -77,6 +77,8 @@
     > **Note 3:** If the [-On] and the [-Using] parameter are omitted, a side-by-side join is returned unless
     `OuterJoin` is performed where the default [-On] parameter value is * (all properties).
 
+    > **Note 4:** if the left object is a scalar array, the [-On] parameters is used to name the scalar array
+
 .PARAMETER Equals
     If the [-Equals] parameter is supplied, the value(s) of the left object properties listed by the [-On]
     parameter should be equal to the value(s)of the right object listed by the [-Equals] parameter in order to
@@ -93,6 +95,8 @@
     other side is related to another property.
 
     > **Note 3:** The [-Equals] parameter can only be used with the [-On] parameter.
+
+    > **Note 4:** if the right object is a scalar array, the [-Equals] parameters is used to name the scalar array
 
 .PARAMETER Strict
     If the [-Strict] switch is set, the comparison between the related properties defined by the [-On] Parameter
@@ -410,11 +414,11 @@ function Join-Object {
                 if ($Null -eq $Keys) {
                     $Keys =
                         if ($Null -eq $Object) { ,@() }
-                        elseif ($Object.GetType().GetElementType() -and $Object.get_Count() -eq 0) { $ValueName }
+                        elseif ($Object.GetType().GetElementType() -and $Object.get_Count() -eq 0) { $Null }
                         else {
                             $1 = $Object |Select-Object -First 1
-                            if ($1 -is [string] -or $1 -is [ValueType] -or $1 -is [Array]) { $ValueName }
-                            elseif ($1 -is [Collections.ObjectModel.Collection[psobject]]) { $ValueName }
+                            if ($1 -is [string] -or $1 -is [ValueType] -or $1 -is [Array]) { $Null }
+                            elseif ($1 -is [Collections.ObjectModel.Collection[psobject]]) { $Null }
                             elseif ($1 -is [Data.DataRow]) { ,@($1.Table.Columns.ColumnName) }
                             elseif ($1 -is [System.Collections.IDictionary]) { ,@($1.Get_Keys()) }
                             elseif ($1) { ,@($1.PSObject.Properties.Name) }
@@ -422,11 +426,14 @@ function Join-Object {
                 }
                 foreach ($Item in $Object) {
                     if ($Item -is [Collections.IDictionary]) { $Object; Break }
-                    elseif ( ($Keys -is [String] -or $Keys.get_Count() -eq 1) -and $Keys -eq $ValueName) { [ordered]@{ $ValueName = $Item } }
+                    elseif ( $Null -eq $Keys ) { [ordered]@{ $ValueName = $Item } }
                     else {
                         $Dictionary = [ordered]@{}
                         if ($Null -ne $Item) {
-                            foreach ($Key in @($Keys)) { $Dictionary.Add($Key, $Item.psobject.properties[$Key].Value) }
+                            foreach ($Key in @($Keys)) {
+                                if ($Null -eq $Key) { $Key = $ValueName }
+                                $Dictionary.Add($Key, $Item.psobject.properties[$Key].Value)
+                            }
                         }
                         $Dictionary
                     }
@@ -531,7 +538,7 @@ function Join-Object {
                             if ($Tuple[0] -is [Collections.ObjectModel.Collection[psobject]]) { foreach ($Value in $Tuple[0]) { $Node.Add($Value) } } else { $Node.Add($Tuple[0]) }
                             if ($Tuple[1] -is [Collections.ObjectModel.Collection[psobject]]) { foreach ($Value in $Tuple[1]) { $Node.Add($Value) } } else { $Node.Add($Tuple[1]) }
                         }
-                        if ($Node -is [Collections.ObjectModel.Collection[psobject]] -and $Null -ne $Discern) {
+                        if ($Null -ne $Discern -and $Node -is [Collections.ObjectModel.Collection[psobject]]) {
                             if ($Node.get_Count() -eq $Discern.Count + 1) { $Nodes[$Name] = $Node[$Node.get_Count() - $Discern.Count - 1] }
                             if ($Node.get_Count() -gt $Discern.Count + 1) { $Nodes[$Name] = $Node[0..($Node.get_Count() - $Discern.Count - 1)] }
                             for ($i = [math]::Min($Node.get_Count(), $Discern.Count); $i -gt 0; $i--) {
@@ -579,35 +586,31 @@ function Join-Object {
                 $RightIndices = [Collections.Generic.Dictionary[string, object]]::new($StringComparer)
                 $LeftRight = @{}; $RightLeft = @{}; $LeftNull = [ordered]@{}; $RightNull = [ordered]@{}
                 $LeftIndex = 0
-                if ($RightObject -is [Collections.IDictionary]) { $RightList = @($RightObject) } else { $RightList = @(AsDictionary $RightObject -ValueName $ValueName) }
+                if ($RightObject -is [Collections.IDictionary]) { $RightList = @($RightObject) }
+                else {
+                    $RightName = if ($Equals.Count -eq 0 -and $On.Count -eq 1  -and "$($On[0])".Trim() -ne '*') { $On[0] }
+                                 elseif ($Equals.Count -eq 1 -and "$($Equals[0])".Trim() -ne '*') { $Equals[0] } else { $ValueName }
+                    $RightList = @(AsDictionary $RightObject -ValueName $RightName)
+                }
                 if ($RightList.Count) { $RightKeys = $RightList[0].get_Keys() } else { $RightKeys = @() }
                 if ($Using) { $Using = [ScriptBlock]::Create($Using) } # Pull into the current (module) scope
                 $Combine = $null
             }
             process {
                 if (!$AsDictionary) {
-                    $AsDictionary = { AsDictionary -ValueName $ValueName }.GetSteppablePipeline()
+                    $LeftName = if ($On.Count -eq 1 -and "$($On[0])".Trim() -ne '*') { $On[0] } else { $ValueName }
+                    $AsDictionary = { AsDictionary -ValueName $LeftName }.GetSteppablePipeline()
                     $AsDictionary.Begin($True)
                 }
-                $Left = if ($LeftObject -is[Collections.IDictionary]) { $LeftObject } elseif ($Null -ne $LeftObject) { $AsDictionary.Process((,$LeftObject))[0] }
+                $Left = if ($LeftObject -is[Collections.IDictionary]) { $LeftObject }elseif ($Null -ne $LeftObject) { $AsDictionary.Process((,$LeftObject))[0] }
                 if (!$LeftKeys) {
                     if ($Null -ne $Left) { $LeftKeys = $Left.get_Keys() } else { $LeftKeys = @() }
                     $Keys = [System.Collections.Generic.HashSet[string]]::new([string[]](@($LeftKeys) + @($RightKeys)), [StringComparer]::InvariantCultureIgnoreCase)
                 }
                 if ($Null -eq $Combine) {
-                    foreach ($Key in $LeftKeys) {
-                        if ($Left[$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $LeftNull[$Key] = $Null }
-                        else { $LeftNull[$Key] = [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
-                    }
-                    foreach ($Key in $RightKeys) {
-                        $RightNull[$Key] = if ($RightList) {
-                            if ($RightList[0][$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $Null }
-                            else { [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
-                        }
-                    }
                     if ($On.Count) {
-                        $OnWildCard     = $On.Count     -eq 1 -and $On[0]     -is [string] -and $On[0].Trim()     -eq '*' # Use e.g. -On ' * ' if there exists an '*' property
-                        $EqualsWildCard = $Equals.Count -eq 1 -and $Equals[0] -is [string] -and $Equals[0].Trim() -eq '*'
+                        $OnWildCard     = $On.Count     -eq 1 -and "$($On[0])".Trim()     -eq '*' # Use e.g. -On ' * ' if there exists an '*' property
+                        $EqualsWildCard = $Equals.Count -eq 1 -and "$($Equals[0])".Trim() -eq '*'
                         if ($OnWildCard) {
                             if ($Equals.Count -and !$EqualsWildCard) { $On = $Equals }
                             else { $On = $LeftKeys.Where{ $RightKeys -eq $_ } }
@@ -653,6 +656,16 @@ function Join-Object {
                             }
                             if ($Dictionary.ContainsKey($Key)) { $Dictionary[$Key].Add($RightIndex++) }
                             else { $Dictionary[$Key] = [Collections.Generic.List[Int]]$RightIndex++ }
+                        }
+                    }
+                    foreach ($Key in $LeftKeys) {
+                        if ($Left[$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $LeftNull[$Key] = $Null }
+                        else { $LeftNull[$Key] = [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
+                    }
+                    foreach ($Key in $RightKeys) {
+                        $RightNull[$Key] = if ($RightList) {
+                            if ($RightList[0][$Key] -isnot [Collections.ObjectModel.Collection[psobject]]) { $Null }
+                            else { [Collections.ObjectModel.Collection[psobject]]( ,$Null * $Left[$Key].Count) }
                         }
                     }
                     if ($Property) {
