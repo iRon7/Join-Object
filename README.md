@@ -1,12 +1,11 @@
 <!-- markdownlint-disable MD033 -->
-# Join-Object
+# 
 
 Combines two object lists based on a related property between them.
 
 ## Syntax
 
-```PowerShell
-Join-Object
+```JavaScript
     [[-RightObject] <Object>]
     [[-Discern] <string[]>]
     [[-Where] <scriptblock>]
@@ -15,7 +14,9 @@ Join-Object
     [-JoinType <string>]
     [-ValueName <string>]
     [<CommonParameters>]
-Join-Object
+```
+
+```JavaScript
     [[-RightObject] <Object>]
     [[-Using] <scriptblock>]
     [[-Discern] <string[]>]
@@ -25,7 +26,9 @@ Join-Object
     [-JoinType <string>]
     [-ValueName <string>]
     [<CommonParameters>]
-Join-Object
+```
+
+```JavaScript
     [[-RightObject] <Object>]
     [[-On] <array>]
     [[-Discern] <string[]>]
@@ -47,7 +50,8 @@ An object join is a means for combining properties from one (self-join) or more 
 to each.
 
 Main features:
-* Intuitive (SQL like) syntax
+* An intuitive idiomatic PowerShell syntax
+* SQL like joining features
 * Smart property merging
 * Predefined join commands for updating, merging and specific join types
 * Well defined pipeline for the (left) input objects and output objects (streaming preserves memory)
@@ -58,7 +62,7 @@ Main features:
 * Module (Install-Module -Name JoinModule) or (dot-sourcing) Script version (`Install-Script -Name Join`)
 * Supports PowerShell for Windows (5.1) and PowerShell Core
 
-The Join-Object cmdlet reveals the following proxy commands with their own ([`-JoinType`](#-jointype) and [`-Property`](#-property)) defaults:
+The Join-Object cmdlet reveals the following proxy commands with their own ([-JoinType](#-jointype) and [-Property](#-property)) defaults:
 * `InnerJoin-Object` (Alias `InnerJoin` or `Join`), combines the related objects
 * `LeftJoin-Object` (Alias `LeftJoin`), combines the related objects and adds the rest of the left objects
 * `RightJoin-Object` (Alias `RightJoin`), combines the related objects and adds the rest of the right objects
@@ -174,7 +178,7 @@ Id1 Id2 Name1   Name2   Country Department1 Department2 Age1 Age2 ReportsTo1 Rep
 ### Example 5: Join a scalar array
 
 This example adds an Id to the department list.  
-note that the default column name of (nameless) scalar array is `<Value>` this will show when the [`-ValueName`](#-valuename) parameter is ommited.
+note that the default column name of (nameless) scalar array is `<Value>` this will show when the [-ValueName](#-valuename) parameter is ommited.
 
 ```PowerShell
  1..9 |Join $Department -ValueName Id
@@ -189,7 +193,8 @@ Id Name        Country
 
 ### Example 6: Transpose arrays
 
-The following example will join multiple arrays to a collection array aka transpose each array in a column.
+The following example, the `join-Object` cmdlet (`... |Join`) joins multiple arrays to a collection array.  
+The [`Foreach-Object`](https://go.microsoft.com/fwlink/?LinkID=2096867) cmdlet iterates over the rows and the `-Join` operator concatinates the item collections
 
 ```PowerShell
  $a = 'a1', 'a2', 'a3', 'a4'
@@ -197,12 +202,12 @@ The following example will join multiple arrays to a collection array aka transp
  $c = 'c1', 'c2', 'c3', 'c4'
  $d = 'd1', 'd2', 'd3', 'd4'
 
- $a |Join $b |Join $c |Join $d |% { "$_" }
+ $a |Join $b |Join $c |Join $d |% { $_ -Join '|' }
 
-a1 b1 c1 d1
-a2 b2 c2 d2
-a3 b3 c3 d3
-a4 b4 c4 d4
+a1|b1|c1|d1
+a2|b2|c2|d2
+a3|b3|c3|d3
+a4|b4|c4|d4
 ```
 
 ### Example 7: Arrays to objects
@@ -252,21 +257,23 @@ The right object list, provided by the first argument, to be joined.
 
 ### <a id="-on">**`-On <Array>`**</a>
 
-The [`-On`](#-on) parameter defines which objects should be joined together.  
-If the [`-Equals`](#-equals) parameter is omitted, the value(s) of the properties listed by the -On parameter should be
+The [-On](#-on) parameter defines which objects should be joined together.  
+If the [-Equals](#-equals) parameter is omitted, the value(s) of the properties listed by the -On parameter should be
 equal at both sides in order to join the left object with the right object.  
-If the [`-On`](#-on) parameter contains an expression, the expression will be evaluted where `$_`, `$PSItem` and
+If the [-On](#-on) parameter contains an expression, the expression will be evaluted where `$_`, `$PSItem` and
 `$Left` contains the currect object. The result of the expression will be compared to right object property
-defined by the [`-Equals`](#-equals) parameter.
+defined by the [-Equals](#-equals) parameter.
 
-> **Note 1:** The list of properties defined by the [`-On`](#-on) parameter will be complemented with the list of
-properties defined by the [`-Equals`](#-equals) parameter and vice versa.
+> **Note 1:** The list of properties defined by the [-On](#-on) parameter will be complemented with the list of
+properties defined by the [-Equals](#-equals) parameter and vice versa.
 
-> **Note 2:** Related properties will be merged to a single property by default (see also the [`-Property`](#-property)
+> **Note 2:** Related properties will be merged to a single property by default (see also the [-Property](#-property)
 parameter).
 
-> **Note 3:** If the [`-On`](#-on) and the [`-Using`](#-using) parameter are omitted, a side-by-side join is returned unless
-`OuterJoin` is performed where the default [`-On`](#-on) parameter value is * (all properties).
+> **Note 3:** If the [-On](#-on) and the [-Using](#-using) parameter are omitted, a side-by-side join is returned unless
+`OuterJoin` is performed where the default [-On](#-on) parameter value is * (all properties).
+
+> **Note 4:** if the left object is a scalar array, the [-On](#-on) parameters is used to name the scalar array
 
 <table>
 <tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Array">Array</a></td></tr>
@@ -283,17 +290,17 @@ right object.
 
 The following variables are exposed for a (ScriptBlock) expression:
 * `$_`: iterates each property name
-* `$Left`: a hash table representing the current left object (each self-contained [`-LeftObject`](#-leftobject)).
+* `$Left`: a hash table representing the current left object (each self-contained [-LeftObject](#-leftobject)).
 The hash table will be empty (`@{}`) in the outer part of a left join or full join.
 * `$LeftIndex`: the index of the left object (`$Null` in the outer part of a right- or full join)
-* `$Right`: a hash table representing the current right object (each self-contained [`-RightObject`](#-rightobject))
+* `$Right`: a hash table representing the current right object (each self-contained [-RightObject](#-rightobject))
 The hash table will be empty (`@{}`) in the outer part of a right join or full join.
 * `$RightIndex`: the index of the right object (`$Null` in the outer part of a left- or full join)
 
 > **Note 1:** The -Using parameter has the most complex comparison possibilities but is considerable slower
-than the [`-On`](#-on) parameter.
+than the [-On](#-on) parameter.
 
-> **Note 2:** The [`-Using`](#-using) parameter cannot be used with the [`-On`](#-on) parameter.
+> **Note 2:** The [-Using](#-using) parameter cannot be used with the [-On](#-on) parameter.
 
 <table>
 <tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.ScriptBlock">ScriptBlock</a></td></tr>
@@ -305,21 +312,23 @@ than the [`-On`](#-on) parameter.
 
 ### <a id="-equals">**`-Equals <Array>`**</a>
 
-If the [`-Equals`](#-equals) parameter is supplied, the value(s) of the left object properties listed by the [`-On`](#-on)
-parameter should be equal to the value(s)of the right object listed by the [`-Equals`](#-equals) parameter in order to
+If the [-Equals](#-equals) parameter is supplied, the value(s) of the left object properties listed by the [-On](#-on)
+parameter should be equal to the value(s)of the right object listed by the [-Equals](#-equals) parameter in order to
 join the left object with the right object.  
-If the [`-Equals`](#-equals) parameter contains an expression, the expression will be evaluted where `$_`, `$PSItem` and
+If the [-Equals](#-equals) parameter contains an expression, the expression will be evaluted where `$_`, `$PSItem` and
 `$Right` contains the currect object. The result of the expression will be compared to left object property
-defined by the [`-On`](#-on) parameter.
+defined by the [-On](#-on) parameter.
 
 > **Note 1:** The list of properties defined by the [-Equal](#-equal) parameter will be complemented with the list of
-properties defined by the -On parameter and vice versa. This means that by default value of the [`-Equals`](#-equals)
-parameter is equal to the value supplied to the [`-On`](#-on) parameter
+properties defined by the -On parameter and vice versa. This means that by default value of the [-Equals](#-equals)
+parameter is equal to the value supplied to the [-On](#-on) parameter
 
 > **Note 2:** A property will be omitted in the results if it exists on both sides and if the property at the
 other side is related to another property.
 
-> **Note 3:** The [`-Equals`](#-equals) parameter can only be used with the [`-On`](#-on) parameter.
+> **Note 3:** The [-Equals](#-equals) parameter can only be used with the [-On](#-on) parameter.
+
+> **Note 4:** if the right object is a scalar array, the [-Equals](#-equals) parameters is used to name the scalar array
 
 <table>
 <tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Array">Array</a></td></tr>
@@ -333,7 +342,7 @@ other side is related to another property.
 ### <a id="-discern">**`-Discern <String[]>`**</a>
 
 By default unrelated properties with the same name will be collected in a single object property.
-The [`-Discern`](#-discern) parameter (alias [-NameItems](#-nameitems))  defines how to rename the object properties and divide
+The [-Discern](#-discern) parameter (alias [-NameItems](#-nameitems))  defines how to rename the object properties and divide
 them over multiple properties. If a given name pattern contains an asterisks (`*`), the asterisks
 will be replaced with the original property name. Otherwise, the property name for each property
 item will be prefixed with the given name pattern.
@@ -345,7 +354,7 @@ the rest of the (left most) property items will be put in a fixed array under th
 
 > **Note 1:** Only properties with the same name on both sides will not be renamed.
 
-> **Note 2:** Related properties (with an equal value defined by the [`-On`](#-on) parameter) will be merged to a single
+> **Note 2:** Related properties (with an equal value defined by the [-On](#-on) parameter) will be merged to a single
 item.
 
 <table>
@@ -364,7 +373,7 @@ property names and values
 
 Hash tables should be in the format `@{<PropertyName> = <Expression>}` where the `<Expression>` is a
 ScriptBlock or a smart property (string) and defines how the specific left and right properties should be
-merged. See the [`-Using`](#-using) parameter for available expression variables.
+merged. See the [-Using](#-using) parameter for available expression variables.
 
 The following smart properties are available:
 * A general property: '<Property Name>', where `<Property Name>` represents the property name of the left
@@ -386,7 +395,7 @@ If the property doesn't exist (in an outer join), the property with the same nam
 be taken. If the property doesn't exist on either side, the value of the property will be `$Null`.
 The argument: `-Property 'Left.*'`, will apply a left wildcard property on all the left object properties.
 
-If the [`-Property`](#-property) parameter and the [`-Discern`](#-discern) parameter are omitted, a general wildcard property is applied
+If the [-Property](#-property) parameter and the [-Discern](#-discern) parameter are omitted, a general wildcard property is applied
 on all the left and right properties.
 
 The last defined expression or smart property will overrule any previous defined properties.
@@ -401,7 +410,7 @@ The last defined expression or smart property will overrule any previous defined
 
 ### <a id="-where">**`-Where <ScriptBlock>`**</a>
 
-An expression that defines the condition to be met for the objects to be returned. See the [`-Using`](#-using)
+An expression that defines the condition to be met for the objects to be returned. See the [-Using](#-using)
 parameter for available expression variables.
 
 <table>
@@ -446,8 +455,8 @@ Each collection is a concatenation of the left item (collection) and the right i
 
 ### <a id="-strict">**`-Strict`**</a>
 
-If the [`-Strict`](#-strict) switch is set, the comparison between the related properties defined by the [`-On`](#-on) Parameter
-(and the [`-Equals`](#-equals) parameter) is based on a strict equality (both type and value need to be equal).
+If the [-Strict](#-strict) switch is set, the comparison between the related properties defined by the [-On](#-on) Parameter
+(and the [-Equals](#-equals) parameter) is based on a strict equality (both type and value need to be equal).
 
 <table>
 <tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.SwitchParameter">SwitchParameter</a></td></tr>
@@ -459,8 +468,8 @@ If the [`-Strict`](#-strict) switch is set, the comparison between the related p
 
 ### <a id="-matchcase">**`-MatchCase`**</a>
 
-If the [`-MatchCase`](#-matchcase) (alias `-CaseSensitive`) switch is set, the comparison between the related properties
-defined by the [`-On`](#-on) Parameter (and the [`-Equals`](#-equals) parameter) will case sensitive.
+If the [-MatchCase](#-matchcase) (alias `-CaseSensitive`) switch is set, the comparison between the related properties
+defined by the [-On](#-on) Parameter (and the [-Equals](#-equals) parameter) will case sensitive.
 
 <table>
 <tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.SwitchParameter">SwitchParameter</a></td></tr>
