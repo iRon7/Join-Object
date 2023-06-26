@@ -74,6 +74,8 @@ The Join-Object cmdlet reveals the following proxy commands with their own ([-Jo
 new (unrelated) right objects
 * `Get-Difference` (Alias `Differs`), returns the symmetric different objects and their properties
 
+Please give a 👍 to support the [proposal to Add a Join-Object cmdlet to the standard PowerShell equipment (`#14994`)](https://github.com/PowerShell/PowerShell/issues/14994)
+
 ## Examples
 
 ### Example 1: Common (inner) join
@@ -485,3 +487,4 @@ defined by the [-On](#-on) Parameter (and the [-Equals](#-equals) parameter) wil
 * https://www.powershellgallery.com/packages/Join
 * https://www.powershellgallery.com/packages/JoinModule
 * https://github.com/iRon7/Join-Object
+
