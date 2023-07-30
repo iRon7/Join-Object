@@ -1,45 +1,45 @@
 <!-- markdownlint-disable MD033 -->
-# 
+# Join-Object
 
 Combines two object lists based on a related property between them.
 
 ## Syntax
 
 ```JavaScript
-    [[-RightObject] <Object>]
-    [[-Discern] <string[]>]
-    [[-Where] <scriptblock>]
     [-LeftObject <Object>]
+    [-RightObject <Object>]
+    [-Discern <String[]>]
     [-Property <Object>]
-    [-JoinType <string>]
-    [-ValueName <string>]
+    [-Where <ScriptBlock>]
+    [-JoinType <String> = 'Inner']
+    [-ValueName <String> = '<Value>']
     [<CommonParameters>]
 ```
 
 ```JavaScript
-    [[-RightObject] <Object>]
-    [[-Using] <scriptblock>]
-    [[-Discern] <string[]>]
-    [[-Where] <scriptblock>]
     [-LeftObject <Object>]
+    [-RightObject <Object>]
+    [-On <Array> = @()]
+    [-Equals <Array> = @()]
+    [-Discern <String[]>]
     [-Property <Object>]
-    [-JoinType <string>]
-    [-ValueName <string>]
-    [<CommonParameters>]
-```
-
-```JavaScript
-    [[-RightObject] <Object>]
-    [[-On] <array>]
-    [[-Discern] <string[]>]
-    [[-Where] <scriptblock>]
-    [-LeftObject <Object>]
-    [-Equals <array>]
-    [-Property <Object>]
-    [-JoinType <string>]
-    [-ValueName <string>]
+    [-Where <ScriptBlock>]
+    [-JoinType <String> = 'Inner']
+    [-ValueName <String> = '<Value>']
     [-Strict]
     [-MatchCase]
+    [<CommonParameters>]
+```
+
+```JavaScript
+    [-LeftObject <Object>]
+    [-RightObject <Object>]
+    [-Using <ScriptBlock>]
+    [-Discern <String[]>]
+    [-Property <Object>]
+    [-Where <ScriptBlock>]
+    [-JoinType <String> = 'Inner']
+    [-ValueName <String> = '<Value>']
     [<CommonParameters>]
 ```
 
@@ -73,8 +73,6 @@ The Join-Object cmdlet reveals the following proxy commands with their own ([-Jo
 * `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the
 new (unrelated) right objects
 * `Get-Difference` (Alias `Differs`), returns the symmetric different objects and their properties
-
-Please give a 👍 to support the [proposal to Add a Join-Object cmdlet to the standard PowerShell equipment (`#14994`)](https://github.com/PowerShell/PowerShell/issues/14994)
 
 ## Examples
 
@@ -229,35 +227,37 @@ a4 b4 c4 d4
 
 ## Parameter
 
-### <a id="-leftobject">**`-LeftObject <Object>`**</a>
+### <a id="-leftobject">**`-LeftObject <>`**</a>
 
 The left object list, usually provided through the pipeline, to be joined.
 
 > **Note:** a self-join on the `LeftObject` list will be performed if the `RightObject` is omitted.
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Object">Object</a></td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td>False False False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-rightobject">**`-RightObject <Object>`**</a>
+### <a id="-rightobject">**`-RightObject <>`**</a>
 
 The right object list, provided by the first argument, to be joined.
 
 > **Note:** a self-join on the `RightObject` list will be performed if the `LeftObject` is omitted.
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Object">Object</a></td></tr>
-<tr><td>Position:</td><td>0</td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
+<tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td>False False False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-on">**`-On <Array>`**</a>
+### <a id="-on">**`-On <>`**</a>
 
 The [-On](#-on) parameter defines which objects should be joined together.  
 If the [-Equals](#-equals) parameter is omitted, the value(s) of the properties listed by the -On parameter should be
@@ -278,14 +278,15 @@ parameter).
 > **Note 4:** if the left object is a scalar array, the [-On](#-on) parameters is used to name the scalar array
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Array">Array</a></td></tr>
-<tr><td>Position:</td><td>1</td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
+<tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td><code>@()</code></td></tr>
-<tr><td>Accept pipeline input:</td><td>False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-using">**`-Using <ScriptBlock>`**</a>
+### <a id="-using">**`-Using <>`**</a>
 
 Any conditional expression that requires to evaluate to true in order to join the left object with the
 right object.
@@ -305,14 +306,15 @@ than the [-On](#-on) parameter.
 > **Note 2:** The [-Using](#-using) parameter cannot be used with the [-On](#-on) parameter.
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.ScriptBlock">ScriptBlock</a></td></tr>
-<tr><td>Position:</td><td>1</td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
+<tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td>False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-equals">**`-Equals <Array>`**</a>
+### <a id="-equals">**`-Equals <>`**</a>
 
 If the [-Equals](#-equals) parameter is supplied, the value(s) of the left object properties listed by the [-On](#-on)
 parameter should be equal to the value(s)of the right object listed by the [-Equals](#-equals) parameter in order to
@@ -333,15 +335,15 @@ other side is related to another property.
 > **Note 4:** if the right object is a scalar array, the [-Equals](#-equals) parameters is used to name the scalar array
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Array">Array</a></td></tr>
-<tr><td>Aliases:</td><td>Eq</td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td><code>@()</code></td></tr>
-<tr><td>Accept pipeline input:</td><td>False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-discern">**`-Discern <String[]>`**</a>
+### <a id="-discern">**`-Discern <>`**</a>
 
 By default unrelated properties with the same name will be collected in a single object property.
 The [-Discern](#-discern) parameter (alias [-NameItems](#-nameitems))  defines how to rename the object properties and divide
@@ -360,15 +362,15 @@ the rest of the (left most) property items will be put in a fixed array under th
 item.
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.String[]">String[]</a></td></tr>
-<tr><td>Aliases:</td><td>NameItems</td></tr>
-<tr><td>Position:</td><td>2</td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
+<tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td>False False False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-property">**`-Property <Object>`**</a>
+### <a id="-property">**`-Property <>`**</a>
 
 A hash table or list of property names (strings) and/or hash tables that define a new selection of
 property names and values
@@ -403,27 +405,29 @@ on all the left and right properties.
 The last defined expression or smart property will overrule any previous defined properties.
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Object">Object</a></td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td>False False False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-where">**`-Where <ScriptBlock>`**</a>
+### <a id="-where">**`-Where <>`**</a>
 
 An expression that defines the condition to be met for the objects to be returned. See the [-Using](#-using)
 parameter for available expression variables.
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.ScriptBlock">ScriptBlock</a></td></tr>
-<tr><td>Position:</td><td>3</td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
+<tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td>False False False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-jointype">**`-JoinType <String>`**</a>
+### <a id="-jointype">**`-JoinType <>`**</a>
 
 Defines which unrelated objects should be included (see: [Description](#description)).
 Valid values are: `Inner`, `Left`, `Right`, `Full` or `Cross`. The default is `Inner`.
@@ -431,15 +435,15 @@ Valid values are: `Inner`, `Left`, `Right`, `Full` or `Cross`. The default is `I
 > **Note:** it is recommended to use the related proxy commands (`... |<JoinType>-Object ...`) instead.
 
 <table>
-<tr><td>Accepted values:</td><td>Inner, Left, Right, Full, Outer, Cross</td></tr>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.String">String</a></td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td><code>'Inner'</code></td></tr>
-<tr><td>Accept pipeline input:</td><td>False False False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-valuename">**`-ValueName <String>`**</a>
+### <a id="-valuename">**`-ValueName <>`**</a>
 
 Defines the name of the added property in case a scalar array is joined with an object array.
 The default property name for each scalar is: `<Value>`.
@@ -448,37 +452,39 @@ The default property name for each scalar is: `<Value>`.
 Each collection is a concatenation of the left item (collection) and the right item (collection).
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.String">String</a></td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td><code>'<Value>'</code></td></tr>
-<tr><td>Accept pipeline input:</td><td>False False False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-strict">**`-Strict`**</a>
+### <a id="-strict">**`-Strict <>`**</a>
 
 If the [-Strict](#-strict) switch is set, the comparison between the related properties defined by the [-On](#-on) Parameter
 (and the [-Equals](#-equals) parameter) is based on a strict equality (both type and value need to be equal).
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.SwitchParameter">SwitchParameter</a></td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td>False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-matchcase">**`-MatchCase`**</a>
+### <a id="-matchcase">**`-MatchCase <>`**</a>
 
 If the [-MatchCase](#-matchcase) (alias `-CaseSensitive`) switch is set, the comparison between the related properties
 defined by the [-On](#-on) Parameter (and the [-Equals](#-equals) parameter) will case sensitive.
 
 <table>
-<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.SwitchParameter">SwitchParameter</a></td></tr>
-<tr><td>Aliases:</td><td>CaseSensitive</td></tr>
+<tr><td>Type:</td><td></td></tr>
+<tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td>False</td></tr>
+<tr><td>Accept pipeline input:</td><td></td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
@@ -487,4 +493,3 @@ defined by the [-On](#-on) Parameter (and the [-Equals](#-equals) parameter) wil
 * https://www.powershellgallery.com/packages/Join
 * https://www.powershellgallery.com/packages/JoinModule
 * https://github.com/iRon7/Join-Object
-
