@@ -1,4 +1,4 @@
-<!-- MarkdownLint-disable MD033 -->
+<!-- markdownlint-disable MD033 -->
 # Join-Object
 
 Combines two object lists based on a related property between them.
@@ -36,9 +36,10 @@ Join-Object
 
 ## Description
 
-Combines properties from one or more objects. It creates a set that can be saved as a new object or used as it is.
-An object join is a means for combining properties from one (self-join) or more object lists by using values common
-to each.
+[This module][1] provides a set of commands to combine the properties from one or more objects.
+It creates a set that can be saved as a new object or used as it is.
+An object join is a means for combining properties from one (self-join) or more object lists
+by using values common to each.
 
 Main features:
 * An intuitive idiomatic PowerShell syntax
@@ -66,7 +67,7 @@ The Join-Object cmdlet reveals the following proxy commands and aliases with the
 
 > [!Note]
 > Some unapproved verb cmdlets (as e.g. `FullJoin-Object`) are provided as aliases to prevent a
-> "*unapproved verbs*" warning during the module import. For details see: [PowerShell issues 25642][1].
+> "*unapproved verbs*" warning during the module import. For details see: [PowerShell\issues\25642][2].
 
 ## Examples
 
@@ -506,8 +507,11 @@ defined by the [-On](#-on) Parameter (and the [-Equals](#-equals) parameter) wil
 
 ## Related Links
 
-* 1: [Give the script author the ability to disable the unapproved verbs warning][1]
-* 2: https://github.com/iRon7/Join-Object
-* 3: [Please give a thumbs up if you like to support the proposal to 'Add a Join-Object cmdlet to the standard PowerShell equipment'][3]
+* 1: [Join-Object on GitHub][1]
+* 2: [Give the script author the ability to disable the unapproved verbs warning][2]
+* [Please give a thumbs up if you like to support the proposal to 'Add a Join-Object cmdlet to the standard PowerShell equipment'](https://github.com/PowerShell/PowerShell/issues/14994)
+
+[1]: https://github.com/iRon7/Join-Object "Join-Object on GitHub"
+[2]: https://github.com/PowerShell/PowerShell/issues/25642 "Give the script author the ability to disable the unapproved verbs warning"
 
 [comment]: <> (Created with Get-MarkdownHelp: Install-Script -Name Get-MarkdownHelp)
