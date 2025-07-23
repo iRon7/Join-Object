@@ -1,22 +1,12 @@
-<!-- markdownlint-disable MD033 -->
+<!-- MarkdownLint-disable MD033 -->
 # Join-Object
 
 Combines two object lists based on a related property between them.
 
 ## Syntax
 
-```JavaScript
-    [-LeftObject <Object>]
-    [-RightObject <Object>]
-    [-Discern <String[]>]
-    [-Property <Object>]
-    [-Where <ScriptBlock>]
-    [-JoinType <String> = 'Inner']
-    [-ValueName <String> = '<Value>']
-    [<CommonParameters>]
-```
-
-```JavaScript
+```PowerShell
+Join-Object
     [-LeftObject <Object>]
     [-RightObject <Object>]
     [-On <Array> = @()]
@@ -31,7 +21,8 @@ Combines two object lists based on a related property between them.
     [<CommonParameters>]
 ```
 
-```JavaScript
+```PowerShell
+Join-Object
     [-LeftObject <Object>]
     [-RightObject <Object>]
     [-Using <ScriptBlock>]
@@ -59,20 +50,23 @@ Main features:
 * Supports a list of (custom) objects, strings or primitives and dictionaries (e.g. hash tables) and data tables for input
 * Smart properties and calculated property expressions
 * Custom relation expressions
-* Module (Install-Module -Name JoinModule) or (dot-sourcing) Script version (`Install-Script -Name Join`)
 * Supports PowerShell for Windows (5.1) and PowerShell Core
 
-The Join-Object cmdlet reveals the following proxy commands with their own ([-JoinType](#-jointype) and [-Property](#-property)) defaults:
-* `InnerJoin-Object` (Alias `InnerJoin` or `Join`), combines the related objects
-* `LeftJoin-Object` (Alias `LeftJoin`), combines the related objects and adds the rest of the left objects
-* `RightJoin-Object` (Alias `RightJoin`), combines the related objects and adds the rest of the right objects
-* `OuterJoin-Object` (Alias `OuterJoin`), returns the symmetric difference of the unrelated objects
-* `FullJoin-Object` (Alias `FullJoin`), combines the related objects and adds the rest of the left and right objects
-* `CrossJoin-Object` (Alias `CrossJoin`), combines each left object with each right object
+The Join-Object cmdlet reveals the following proxy commands and aliases with their own
+([-JoinType](#-jointype) and [-Property](#-property)) defaults:
+* `InnerJoin` (Alias `InnerJoin-Object` or `Join`), combines the related objects
+* `LeftJoin` (Alias `LeftJoin-Object`), combines the related objects and adds the rest of the left objects
+* `RightJoin` (Alias `RightJoin-Object`), combines the related objects and adds the rest of the right objects
+* `OuterJoin` (Alias `OuterJoin-Object`), returns the symmetric difference of the unrelated objects
+* `FullJoin` (Alias `FullJoin-Object`), combines the related objects and adds the rest of the left and right objects
+* `CrossJoin` (Alias `CrossJoin-Object`), combines each left object with each right object
 * `Update-Object` (Alias `Update`), updates the left object with the related right object
-* `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the
-new (unrelated) right objects
+* `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the new (unrelated) right objects
 * `Get-Difference` (Alias `Differs`), returns the symmetric different objects and their properties
+
+> [!Note]
+> Some unapproved verb cmdlets (as e.g. `FullJoin-Object`) are provided as aliases to prevent a
+> "* unapproved verbs*" warning during the module import. For details see: [PowerShell/issues/25642][1].
 
 ## Examples
 
@@ -82,7 +76,7 @@ The following example will show an inner join based on the `country` property.
 Given the following object lists:
 
 ```PowerShell
- $Employee
+$Employee
 
 Id Name    Country Department  Age ReportsTo
 -- ----    ------- ----------  --- ---------
@@ -93,7 +87,7 @@ Id Name    Country Department  Age ReportsTo
  5 Evans   England Marketing    35
  6 Fischer Germany Engineering  29         4
 
- $Department
+$Department
 
 Name        Country
 ----        -------
@@ -103,7 +97,7 @@ Sales       France
 Purchase    France
 
 
- $Employee |Join $Department -On Country |Format-Table
+$Employee | Join $Department -On Country | Format-Table
 
 Id Name                   Country Department  Age ReportsTo
 -- ----                   ------- ----------  --- ---------
@@ -117,11 +111,12 @@ Id Name                   Country Department  Age ReportsTo
 
 ### Example 2: Full join overlapping column names
 
+
 The example below does a full join of the tables mentioned in the first example based
-on the `department` name and splits the duplicate (`country`) names over differend properties.
+on the `department` name and splits the duplicate (`country`) names over different properties.
 
 ```PowerShell
- $Employee |InnerJoin $Department -On Department -Equals Name -Discern Employee, Department |Format-Table
+$Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
 
 Id Name    EmployeeCountry DepartmentCountry Department  Age ReportsTo
 -- ----    --------------- ----------------- ----------  --- ---------
@@ -135,10 +130,11 @@ Id Name    EmployeeCountry DepartmentCountry Department  Age ReportsTo
 
 ### Example 3: merge a table with updates
 
+
 This example merges the following `$Changes` list into the `$Employee` list of the first example.
 
 ```PowerShell
- $Changes
+$Changes
 
 Id Name    Country Department  Age ReportsTo
 -- ----    ------- ----------  --- ---------
@@ -146,8 +142,8 @@ Id Name    Country Department  Age ReportsTo
  6 Fischer France  Engineering  29         4
  7 Geralds Belgium Sales        71         1
 
- # Apply the changes to the employees
- $Employee |Merge $Changes -On Id |Format-Table
+# Apply the changes to the employees
+$Employee | Merge $Changes -On Id | Format-Table
 
 Id Name    Country Department  Age ReportsTo
 -- ----    ------- ----------  --- ---------
@@ -162,26 +158,30 @@ Id Name    Country Department  Age ReportsTo
 
 ### Example 4: Self join
 
+
 This example shows a (self)join where each employee is connected with another employee on the country.
 
 ```PowerShell
- $Employee | Join -On Country -Discern *1,*2 |Format-Table *
+$Employee | Join -On Country -Discern *1,*2 | Format-Table *
 
 Id1 Id2 Name1   Name2   Country Department1 Department2 Age1 Age2 ReportsTo1 ReportsTo2
 --- --- -----   -----   ------- ----------- ----------- ---- ---- ---------- ----------
-  2   6 Bauer   Fischer Germany Engineering Engineering   31   29          4          4
-  3   5 Cook    Evans   England Sales       Marketing     69   35          1
-  5   3 Evans   Cook    England Marketing   Sales         35   69                     1
-  6   2 Fischer Bauer   Germany Engineering Engineering   29   31          4          4
+ 2   6 Bauer   Fischer Germany Engineering Engineering   31   29          4          4
+ 3   5 Cook    Evans   England Sales       Marketing     69   35          1
+ 5   3 Evans   Cook    England Marketing   Sales         35   69                     1
+ 6   2 Fischer Bauer   Germany Engineering Engineering   29   31          4          4
 ```
 
 ### Example 5: Join a scalar array
 
+
 This example adds an Id to the department list.  
-note that the default column name of (nameless) scalar array is `<Value>` this will show when the [-ValueName](#-valuename) parameter is ommited.
+
+> [!Note]
+> The default column name of (nameless) scalar array is `<Value>` this will show when the [-ValueName](#-valuename) parameter is omitted.
 
 ```PowerShell
- 1..9 |Join $Department -ValueName Id
+1..9 | Join $Department -ValueName Id
 
 Id Name        Country
 -- ----        -------
@@ -193,16 +193,17 @@ Id Name        Country
 
 ### Example 6: Transpose arrays
 
-The following example, the `join-Object` cmdlet (`... |Join`) joins multiple arrays to a collection array.  
-The [`Foreach-Object`](https://go.microsoft.com/fwlink/?LinkID=2096867) cmdlet iterates over the rows and the `-Join` operator concatinates the item collections
+
+The following example, the `join-Object` cmdlet (`... | Join`) joins multiple arrays to a collection array.  
+The [`Foreach-Object`](https://go.microsoft.com/fwlink/?LinkID=2096867) cmdlet iterates over the rows and the `-Join` operator concatenates the item collections
 
 ```PowerShell
- $a = 'a1', 'a2', 'a3', 'a4'
- $b = 'b1', 'b2', 'b3', 'b4'
- $c = 'c1', 'c2', 'c3', 'c4'
- $d = 'd1', 'd2', 'd3', 'd4'
+$a = 'a1', 'a2', 'a3', 'a4'
+$b = 'b1', 'b2', 'b3', 'b4'
+$c = 'c1', 'c2', 'c3', 'c4'
+$d = 'd1', 'd2', 'd3', 'd4'
 
- $a |Join $b |Join $c |Join $d |% { $_ -Join '|' }
+$a | Join $b | Join $c | Join $d | % { $_ -Join '|' }
 
 a1|b1|c1|d1
 a2|b2|c2|d2
@@ -212,10 +213,11 @@ a4|b4|c4|d4
 
 ### Example 7: Arrays to objects
 
+
 This example will change the collections of the previous example into objects with named properties.
 
 ```PowerShell
- $a |Join $b |Join $c |Join $d -Name a, b, c, d
+$a | Join $b | Join $c | Join $d -Name a, b, c, d
 
 a  b  c  d
 -  -  -  -
@@ -225,68 +227,73 @@ a3 b3 c3 d3
 a4 b4 c4 d4
 ```
 
-## Parameter
+## Parameters
 
-### <a id="-leftobject">**`-LeftObject <>`**</a>
+### <a id="-leftobject">**`-LeftObject <Object>`**</a>
 
 The left object list, usually provided through the pipeline, to be joined.
 
-> **Note:** a self-join on the `LeftObject` list will be performed if the `RightObject` is omitted.
+> [!Note]
+> A **self-join** on the `LeftObject` list will be performed if the `RightObject` is omitted.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Object">Object</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-rightobject">**`-RightObject <>`**</a>
+### <a id="-rightobject">**`-RightObject <Object>`**</a>
 
 The right object list, provided by the first argument, to be joined.
 
-> **Note:** a self-join on the `RightObject` list will be performed if the `LeftObject` is omitted.
+> [!Note]
+> A **self-join** on the `RightObject` list will be performed if the `LeftObject` is omitted.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Object">Object</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-on">**`-On <>`**</a>
+### <a id="-on">**`-On <Array>`**</a>
 
 The [-On](#-on) parameter defines which objects should be joined together.  
-If the [-Equals](#-equals) parameter is omitted, the value(s) of the properties listed by the -On parameter should be
+If the [-Equals](#-equals) parameter is omitted, the value(s) of the properties listed by the [-On](#-on) parameter should be
 equal at both sides in order to join the left object with the right object.  
-If the [-On](#-on) parameter contains an expression, the expression will be evaluted where `$_`, `$PSItem` and
-`$Left` contains the currect object. The result of the expression will be compared to right object property
+If the [-On](#-on) parameter contains an expression, the expression will be evaluated where `$_`, `$PSItem` and
+`$Left` contains the current object. The result of the expression will be compared to right object property
 defined by the [-Equals](#-equals) parameter.
 
-> **Note 1:** The list of properties defined by the [-On](#-on) parameter will be complemented with the list of
-properties defined by the [-Equals](#-equals) parameter and vice versa.
+> [!Note]
+> The list of properties defined by the [-On](#-on) parameter will be complemented with the list of
+> properties defined by the [-Equals](#-equals) parameter and vice versa.
 
-> **Note 2:** Related properties will be merged to a single property by default (see also the [-Property](#-property)
-parameter).
+> [!Note]
+> Related properties will be merged to a single property by default (see also the [-Property](#-property) parameter).
 
-> **Note 3:** If the [-On](#-on) and the [-Using](#-using) parameter are omitted, a side-by-side join is returned unless
-`OuterJoin` is performed where the default [-On](#-on) parameter value is * (all properties).
+> [!Tip]
+> If the [-On](#-on) and the [-Using](#-using) parameter are omitted, a side-by-side join is returned unless
+> `OuterJoin` is performed where the default [-On](#-on) parameter value is * (all properties).
 
-> **Note 4:** if the left object is a scalar array, the [-On](#-on) parameters is used to name the scalar array
+> [!Tip]
+> if the left object is a scalar array, the [-On](#-on) parameters is used to name the scalar array.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Array">Array</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td><code>@()</code></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-using">**`-Using <>`**</a>
+### <a id="-using">**`-Using <ScriptBlock>`**</a>
 
 Any conditional expression that requires to evaluate to true in order to join the left object with the
 right object.
@@ -300,50 +307,56 @@ The hash table will be empty (`@{}`) in the outer part of a left join or full jo
 The hash table will be empty (`@{}`) in the outer part of a right join or full join.
 * `$RightIndex`: the index of the right object (`$Null` in the outer part of a left- or full join)
 
-> **Note 1:** The -Using parameter has the most complex comparison possibilities but is considerable slower
-than the [-On](#-on) parameter.
+> [!Warning]
+> The -Using parameter has the most complex comparison possibilities but is considerable slower
+> than the [-On](#-on) parameter.
 
-> **Note 2:** The [-Using](#-using) parameter cannot be used with the [-On](#-on) parameter.
+> [!Note]
+> The [-Using](#-using) parameter cannot be used with the [-On](#-on) parameter.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.ScriptBlock">ScriptBlock</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-equals">**`-Equals <>`**</a>
+### <a id="-equals">**`-Equals <Array>`**</a>
 
 If the [-Equals](#-equals) parameter is supplied, the value(s) of the left object properties listed by the [-On](#-on)
-parameter should be equal to the value(s)of the right object listed by the [-Equals](#-equals) parameter in order to
+parameter should be equal to the value(s) of the right object listed by the [-Equals](#-equals) parameter in order to
 join the left object with the right object.  
-If the [-Equals](#-equals) parameter contains an expression, the expression will be evaluted where `$_`, `$PSItem` and
-`$Right` contains the currect object. The result of the expression will be compared to left object property
+If the [-Equals](#-equals) parameter contains an expression, the expression will be evaluated where `$_`, `$PSItem` and
+`$Right` contains the current object. The result of the expression will be compared to left object property
 defined by the [-On](#-on) parameter.
 
-> **Note 1:** The list of properties defined by the [-Equal](#-equal) parameter will be complemented with the list of
-properties defined by the -On parameter and vice versa. This means that by default value of the [-Equals](#-equals)
-parameter is equal to the value supplied to the [-On](#-on) parameter
+> [!Note]
+> The list of properties defined by the [-Equal](#-equal) parameter will be complemented with the list of properties
+> defined by the -On parameter and vice versa. This means that by default value of the [-Equals](#-equals) parameter
+> is equal to the value supplied to the [-On](#-on) parameter.
 
-> **Note 2:** A property will be omitted in the results if it exists on both sides and if the property at the
-other side is related to another property.
+> [!Note]
+> A property will be omitted in the results if it exists on both sides and if the property at the other side
+> is related to another property.
 
-> **Note 3:** The [-Equals](#-equals) parameter can only be used with the [-On](#-on) parameter.
+> [!Note]
+> The [-Equals](#-equals) parameter can only be used with the [-On](#-on) parameter.
 
-> **Note 4:** if the right object is a scalar array, the [-Equals](#-equals) parameters is used to name the scalar array
+> [!Tip]
+> if the right object is a scalar array, the [-Equals](#-equals) parameters is used to name the scalar array.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Array">Array</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td><code>@()</code></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-discern">**`-Discern <>`**</a>
+### <a id="-discern">**`-Discern <String[]>`**</a>
 
 By default unrelated properties with the same name will be collected in a single object property.
 The [-Discern](#-discern) parameter (alias [-NameItems](#-nameitems))  defines how to rename the object properties and divide
@@ -356,21 +369,22 @@ command in the change. The rename patterns are right aligned, meaning that the l
 will be applied to the last object joined. If there are less rename patterns than property items,
 the rest of the (left most) property items will be put in a fixed array under the original property name.
 
-> **Note 1:** Only properties with the same name on both sides will not be renamed.
+> [!Note]
+> As apposed to the [-On](#-on) parameter, properties with the same name on both sides will not be renamed.
 
-> **Note 2:** Related properties (with an equal value defined by the [-On](#-on) parameter) will be merged to a single
-item.
+> [!Note]
+> Related properties (with an equal value defined by the [-On](#-on) parameter) will be merged to a single item.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.String[]">String[]</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-property">**`-Property <>`**</a>
+### <a id="-property">**`-Property <Object>`**</a>
 
 A hash table or list of property names (strings) and/or hash tables that define a new selection of
 property names and values
@@ -405,91 +419,95 @@ on all the left and right properties.
 The last defined expression or smart property will overrule any previous defined properties.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Object">Object</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-where">**`-Where <>`**</a>
+### <a id="-where">**`-Where <ScriptBlock>`**</a>
 
 An expression that defines the condition to be met for the objects to be returned. See the [-Using](#-using)
 parameter for available expression variables.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.ScriptBlock">ScriptBlock</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-jointype">**`-JoinType <>`**</a>
+### <a id="-jointype">**`-JoinType <String>`**</a>
 
 Defines which unrelated objects should be included (see: [Description](#description)).
 Valid values are: `Inner`, `Left`, `Right`, `Full` or `Cross`. The default is `Inner`.
 
-> **Note:** it is recommended to use the related proxy commands (`... |<JoinType>-Object ...`) instead.
+> [!Tip]
+> it is recommended to use the related proxy commands (`... | <JoinType>-Object ...`) instead.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.String">String</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td><code>'Inner'</code></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-valuename">**`-ValueName <>`**</a>
+### <a id="-valuename">**`-ValueName <String>`**</a>
 
 Defines the name of the added property in case a scalar array is joined with an object array.
 The default property name for each scalar is: `<Value>`.
 
-> **Note:** if two scalar (or collection) arrays are joined, an array of (psobject) collections is returned.
+> [!Note]
+> if two scalar (or collection) arrays are joined, an array of (PSObject) collections is returned.
 Each collection is a concatenation of the left item (collection) and the right item (collection).
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.String">String</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td><code>'<Value>'</code></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-strict">**`-Strict <>`**</a>
+### <a id="-strict">**`-Strict`**</a>
 
 If the [-Strict](#-strict) switch is set, the comparison between the related properties defined by the [-On](#-on) Parameter
 (and the [-Equals](#-equals) parameter) is based on a strict equality (both type and value need to be equal).
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.SwitchParameter">SwitchParameter</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
-### <a id="-matchcase">**`-MatchCase <>`**</a>
+### <a id="-matchcase">**`-MatchCase`**</a>
 
 If the [-MatchCase](#-matchcase) (alias `-CaseSensitive`) switch is set, the comparison between the related properties
 defined by the [-On](#-on) Parameter (and the [-Equals](#-equals) parameter) will case sensitive.
 
 <table>
-<tr><td>Type:</td><td></td></tr>
+<tr><td>Type:</td><td><a href="https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.SwitchParameter">SwitchParameter</a></td></tr>
 <tr><td>Mandatory:</td><td>False</td></tr>
 <tr><td>Position:</td><td>Named</td></tr>
 <tr><td>Default value:</td><td></td></tr>
-<tr><td>Accept pipeline input:</td><td></td></tr>
+<tr><td>Accept pipeline input:</td><td>False</td></tr>
 <tr><td>Accept wildcard characters:</td><td>False</td></tr>
 </table>
 
 ## Related Links
 
-* https://www.powershellgallery.com/packages/Join
-* https://www.powershellgallery.com/packages/JoinModule
-* https://github.com/iRon7/Join-Object
+* 1: [Give the script author the ability to disable the unapproved verbs warning][1]
+* 2: https://github.com/iRon7/Join-Object
+* 3: [Please give a thumbs up if you like to support the proposal to 'Add a Join-Object cmdlet to the standard PowerShell equipment'][3]
+
+[comment]: <> (Created with Get-MarkdownHelp: Install-Script -Name Get-MarkdownHelp)
