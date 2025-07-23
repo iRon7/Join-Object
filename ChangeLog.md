@@ -1,10 +1,21 @@
+## 2025-06-10 3.8.4 (iRon)
+  - Breaking changes
+    - [#55](https://github.com/iRon7/Join-Object/issues/55) (Bucket 3: Unlikely Grey Area) Some unapproved verb cmdlets (as e.g. `FullJoin-Object`) are now provided as aliases
+  - Fixes
+    - [#45](https://github.com/iRon7/Join-Object/issues/45) incorrect automatically named FullJoin -on -eq
+    - [#46](https://github.com/iRon7/Join-Object/issues/46) #43 should exclude ScriptBlocks
+    - [#48](https://github.com/iRon7/Join-Object/issues/48) Use AST rather than -Split <regex> to create proxy commands
+    - [#52](https://github.com/iRon7/Join-Object/issues/52) cross join with empty right table causes error
+    - [#55](https://github.com/iRon7/Join-Object/issues/55) Resolved "Unapproved Verb" warning
+    - Reduced number of ParameterSets
+
 ## 2023-06-10 3.8.3 (iRon)
   - Fixes
-    - [#43](https://github.com/iRon7/Join-Object/issues/43): An outer join on an empty pipeline should return the right object 
+    - [#43](https://github.com/iRon7/Join-Object/issues/43): An outer join on an empty pipeline should return the right object
     - [#44](https://github.com/iRon7/Join-Object/issues/44): Broken comment line help
 ## 2023-05-24 3.8.1 (iRon)
   - Fixes
-    - [#42](https://github.com/iRon7/Join-Object/issues/42): An outer join on an empty pipeline should return the right object 
+    - [#42](https://github.com/iRon7/Join-Object/issues/42): An outer join on an empty pipeline should return the right object
 ## 2023-05-12 3.8.0 (iRon)
   - Updated
     - [#39](https://github.com/iRon7/Join-Object/issues/39): Improved performance (by more than a factor 2)
@@ -12,7 +23,7 @@
     - [#37](https://github.com/iRon7/Join-Object/issues/37): Exclude identical objects on a self join where the `-equal` parameter is omitted ([bucket 3](https://github.com/PowerShell/PowerShell/blob/master/docs/dev-process/breaking-change-contract.md#bucket-3-unlikely-grey-area) break-change)
     - [#41](https://github.com/iRon7/Join-Object/issues/41): Improved comparison with collection values ( `@{a=1} -ne @{a=2}` ) ([bucket 3](https://github.com/PowerShell/PowerShell/blob/master/docs/dev-process/breaking-change-contract.md#bucket-3-unlikely-grey-area) break-change)
     - [#40](https://github.com/iRon7/Join-Object/issues/40): Improved the way multiple properties are compared
-    - Changed comment based help to make use of the [Get-MarkdownHelp](https://github.com/iRon7/Get-MarkdownHelp) features 
+    - Changed comment based help to make use of the [Get-MarkdownHelp](https://github.com/iRon7/Get-MarkdownHelp) features
 ## 2022-04-26 3.7.1 (iRon)
   - New feature
     - Added [#30](https://github.com/iRon7/Join-Object/issues/30): Symmetric difference (OuterJoin)

@@ -73,7 +73,7 @@ The Join-Object cmdlet reveals the following proxy commands and aliases with the
 
 ### Example 1: Common (inner) join
 
-The following example will show an inner join based on the `country` property.  
+The following example will show an inner join based on the `country` property.
 Given the following object lists:
 
 ```PowerShell
@@ -176,7 +176,7 @@ Id1 Id2 Name1   Name2   Country Department1 Department2 Age1 Age2 ReportsTo1 Rep
 ### Example 5: Join a scalar array
 
 
-This example adds an Id to the department list.  
+This example adds an Id to the department list.
 
 > [!Note]
 > The default column name of (nameless) scalar array is `<Value>` this will show when the [-ValueName](#-valuename) parameter is omitted.
@@ -195,7 +195,7 @@ Id Name        Country
 ### Example 6: Transpose arrays
 
 
-The following example, the `join-Object` cmdlet (`... | Join`) joins multiple arrays to a collection array.  
+The following example, the `join-Object` cmdlet (`... | Join`) joins multiple arrays to a collection array.
 The [`Foreach-Object`](https://go.microsoft.com/fwlink/?LinkID=2096867) cmdlet iterates over the rows and the `-Join` operator concatenates the item collections
 
 ```PowerShell
@@ -264,9 +264,9 @@ The right object list, provided by the first argument, to be joined.
 
 ### <a id="-on">**`-On <Array>`**</a>
 
-The [-On](#-on) parameter defines which objects should be joined together.  
+The [-On](#-on) parameter defines which objects should be joined together.
 If the [-Equals](#-equals) parameter is omitted, the value(s) of the properties listed by the [-On](#-on) parameter should be
-equal at both sides in order to join the left object with the right object.  
+equal at both sides in order to join the left object with the right object.
 If the [-On](#-on) parameter contains an expression, the expression will be evaluated where `$_`, `$PSItem` and
 `$Left` contains the current object. The result of the expression will be compared to right object property
 defined by the [-Equals](#-equals) parameter.
@@ -328,7 +328,7 @@ The hash table will be empty (`@{}`) in the outer part of a right join or full j
 
 If the [-Equals](#-equals) parameter is supplied, the value(s) of the left object properties listed by the [-On](#-on)
 parameter should be equal to the value(s) of the right object listed by the [-Equals](#-equals) parameter in order to
-join the left object with the right object.  
+join the left object with the right object.
 If the [-Equals](#-equals) parameter contains an expression, the expression will be evaluated where `$_`, `$PSItem` and
 `$Right` contains the current object. The result of the expression will be compared to left object property
 defined by the [-On](#-on) parameter.
