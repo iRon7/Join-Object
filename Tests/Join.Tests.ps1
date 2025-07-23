@@ -1,4 +1,10 @@
 #Requires -Modules @{ModuleName="Pester"; ModuleVersion="5.0.0"}
+
+using module .\JoinModule.psd1
+
+[Diagnostics.CodeAnalysis.SuppressMessage('PSUseDeclaredVarsMoreThanAssignments', '', Justification = 'False positive')]
+param()
+
 if (!(Get-Command 'ConvertFrom-SourceTable').Parameters.ParseRightAligned) { Update-Script 'ConvertFrom-SourceTable' -Confirm:$False -Force }
 
 Describe 'Join-Object' {
@@ -6,10 +12,6 @@ Describe 'Join-Object' {
     BeforeAll {
 
         Set-StrictMode -Version Latest
-
-        # Get-Module -Name JoinModule | Remove-Module
-        # Import-Module JoinModule
-        # . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
 
         # . .\ConvertFrom-SourceTable -ParseRightAligned.ps1                             # https://www.powershellgallery.com/packages/ConvertFrom-SourceTable
 
@@ -932,7 +934,7 @@ Describe 'Join-Object' {
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Leftjoin DataTables' {
+        It 'LeftJoin DataTables' {
             $Actual = $DataTable1 | LeftJoin $DataTable2 -On Column1
             $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Column1 Column2 Column3
@@ -945,7 +947,7 @@ Describe 'Join-Object' {
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Rightjoin DataTables' {
+        It 'RightJoin DataTables' {
             $Actual = $DataTable1 | RightJoin $DataTable2 -On Column1
             $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Column1 Column2 Column3
@@ -958,7 +960,7 @@ Describe 'Join-Object' {
             Compare-PSObject $Actual $Expected | Should -BeNull
         }
 
-        It 'Fulljoin DataTables' {
+        It 'FullJoin DataTables' {
             $Actual = $DataTable1 | FullJoin $DataTable2 -On Column1
             $Expected = ConvertFrom-SourceTable -ParseRightAligned '
                 Column1 Column2 Column3
@@ -1569,10 +1571,10 @@ $file2='"FACILITY","FILENAME"
             Compare-PSObject $Actual $Expected | Should -BeNull
 
             $dsLength = 1000
-            $dataset1 = 0..$dsLength | %{
+            $dataset1 = 0..$dsLength | ForEach-Object{
                 New-Object psobject -Property @{ A=$_ ; B="val$_" ; XY = "foo$_"; ZY ="bar$_" }
             }
-            $dataset2 = ($dsLength/2)..($dsLength*1.5) | %{
+            $dataset2 = ($dsLength/2)..($dsLength*1.5) | ForEach-Object{
                 New-Object psobject -Property @{ A=$_ ; B="val$_" ; ABC = "foo$_"; GH ="bar$_" }
             }
 
@@ -2426,6 +2428,25 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
         }
     }
 
+    Context 'Error handling' {
+
+        It 'Object required' {
+            { Join-Object } | Should -Throw -ExceptionType ArgumentException
+        }
+
+        It 'Left member not found' {
+            { $Employee | Join $Department -On Foo } | Should -Throw -ExceptionType MissingMemberException
+        }
+
+        It 'Right member not found' {
+            { $Employee | Join $Department -On Name -Equals Bar } | Should -Throw -ExceptionType MissingMemberException
+        }
+
+        It 'Join-Object: Invalid cross join' {
+            { $Employee | CrossJoin $Department -Using { } } | Should -Throw -ExceptionType ArgumentException
+        }
+    }
+
     Context '#14 Support scalar arrays' { # https://github.com/iRon7/Join-Object/issues/14
 
         BeforeAll {
@@ -2437,7 +2458,7 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
 
         It 'Join chain' {
 
-            $Actual = $a |Join $b |Join $c |Join $d |% { $_ -Join '|' }
+            $Actual = $a |Join $b |Join $c |Join $d |ForEach-Object { $_ -Join '|' }
             $Expected =
                 'a1|b1|c1|d1',
                 'a2|b2|c2|d2',
@@ -2502,7 +2523,7 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
             $b = 'baz', @(1,2)
             $c = 'and', 'so on'
 
-            $Result = $a |Join $b |Join $c |% {
+            $Result = $a |Join $b |Join $c |ForEach-Object {
                 $aElem, $bElem, $cElem = $_
                 "$aElem | $bElem | $cElem"
             }
@@ -2624,7 +2645,7 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
 
         It 'Inner join with empty pipeline and scalar collection' {
 
-            $Actual = @() | FullJoin $a | FullJoin $b |% { "$_" }
+            $Actual = @() | FullJoin $a | FullJoin $b |ForEach-Object { "$_" }
             $Expected =
                 'a1 b1',
                 'a2 b2',
@@ -2705,4 +2726,110 @@ Bravo,Tan,220,Phila,Riverside,PA,9119
         }
     }
 
+    Context '#45 incorrect automatically named FullJoin -on -eq' {
+
+        it 'Scalars' {
+
+            $Actual = 1,2,3 | FullJoin 2,3,4 -On Left -eq Right
+            $Expected = @(
+                [PSCustomObject]@{ 'Left' = 1;     'Right' = $null },
+                [PSCustomObject]@{ 'Left' = 2;     'Right' = 2 },
+                [PSCustomObject]@{ 'Left' = 3;     'Right' = 3 },
+                [PSCustomObject]@{ 'Left' = $null; 'Right' = 4 }
+            )
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+        it 'Objects' {
+
+            $a = [PSCustomObject]@{ AId = 1; AName = 'A' },
+                 [PSCustomObject]@{ AId = 2; AName = 'B' },
+                 [PSCustomObject]@{ AId = 3; AName = 'C' }
+            $b = [PSCustomObject]@{ BId = 2; BName = 'B' },
+                 [PSCustomObject]@{ BId = 3; BName = 'C' },
+                 [PSCustomObject]@{ BId = 4; BName = 'D' }
+
+            $Actual = $a | FullJoin $b -On AId -Eq BId
+            $Expected = @(
+                [PSCustomObject]@{ AId = 1;     AName = 'A';   BId = $Null; BName = $Null },
+                [PSCustomObject]@{ AId = 2;     AName = 'B';   BId = 2;     BName = 'B' },
+                [PSCustomObject]@{ AId = 3;     AName = 'C';   BId = 3;     BName = 'C' },
+                [PSCustomObject]@{ AId = $Null; AName = $Null; BId = 4;     BName = 'D' }
+            )
+
+            Compare-PSObject $Actual $Expected | Should -BeNull
+        }
+
+    }
+
+    Context '#46 issue #43 should exclude ScriptBlocks' {
+
+        it 'Merge strings' { #https://stackoverflow.com/questions/76534806/parsing-files-and-replacing-matching-entries-based-on-single-element
+
+            $File1 = @'
+2   "Key1"   "ContentAASD#@!"   |
+3   "Key2"   "Conte111111#@!"   |
+4   "Key112"   "Keep me"   |
+'@ -Split '[\r?\n]'
+
+                $File2 = @'
+2   "Key1"   "I'm correct one"   |
+3   "Key2"   "Me too"   |
+'@ -Split '[\r?\n]'
+
+            $File1 | Merge $File2 -on { ("$_""" -split '"')[1] } | Where-Object { $_ } | Should -Be @(
+                '2   "Key1"   "I''m correct one"   |',
+                '3   "Key2"   "Me too"   |',
+                '4   "Key112"   "Keep me"   |'
+            )
+        }
+    }
+
+    Context '#52 cross join with empty right table causes error' {
+
+        it 'Results' {
+
+            $results = @{
+                principals = @()
+                roles = @(@{ c = 5; d = 6 }, @{ c = 7; d = 8 })
+            }
+
+            Join-object -LeftObject $results.roles -RightObject $results.principals -JoinType Cross | Should -BeNullOrEmpty
+        }
+
+
+    }
+
+    Context '#53 possible to force discern to simulate SQL "as" statement to rename columns' {
+
+        it 'Results' {
+            $a = ConvertFrom-Csv @'
+c1,c2,c3
+11,12,13
+21,12,13
+'@
+
+            $b = ConvertFrom-Csv @'
+c1,c2,c3
+11,22,23
+21,22,23
+'@
+
+            $Prefix = 'du_'
+            $pb = $b | ForEach-Object {
+                $Dictionary = [Ordered]@{}
+                $_.PSObject.Properties.foreach{ $Dictionary[$Prefix + $_.Name] = $_.Value }
+                $Dictionary
+            }
+
+        $Actual = $a | Join $pb -on c1 -eq "$($Prefix)c1"
+        $Expected = ConvertFrom-SourceTable -ParseRightAligned '
+        c1 c2 c3 du_c1 du_c2 du_c3
+        -- -- -- ----- ----- -----
+        11 12 13 11    22    23
+        21 12 13 21    22    23
+        '
+        Compare-PSObject $Actual $Expected | Should -BeNull}
+    }
 }
