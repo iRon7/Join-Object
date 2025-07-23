@@ -309,7 +309,7 @@ The hash table will be empty (`@{}`) in the outer part of a right join or full j
 * `$RightIndex`: the index of the right object (`$Null` in the outer part of a left- or full join)
 
 > [!Warning]
-> The -Using parameter has the most complex comparison possibilities but is considerable slower
+> The [-Using](#-using) parameter has the most complex comparison possibilities but is considerable slower
 > than the [-On](#-on) parameter.
 
 > [!Note]
