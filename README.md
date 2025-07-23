@@ -66,7 +66,7 @@ The Join-Object cmdlet reveals the following proxy commands and aliases with the
 
 > [!Note]
 > Some unapproved verb cmdlets (as e.g. `FullJoin-Object`) are provided as aliases to prevent a
-> "* unapproved verbs*" warning during the module import. For details see: [PowerShell/issues/25642][1].
+> "*unapproved verbs*" warning during the module import. For details see: [PowerShell/issues/25642][1].
 
 ## Examples
 
