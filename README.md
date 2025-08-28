@@ -65,7 +65,7 @@ The Join-Object cmdlet reveals the following proxy commands and aliases with the
 * `Merge-Object` (Alias `Merge`), updates the left object with the related right object and adds the rest of the new (unrelated) right objects
 * `Get-Difference` (Alias `Differs`), returns the symmetric different objects and their properties
 
-> [!Note](#note)
+> [!Note]
 > Some unapproved verb cmdlets (as e.g. `FullJoin-Object`) are provided as aliases to prevent a
 > "*unapproved verbs*" warning during the module import. For details see: [PowerShell\issues\25642][2].
 
@@ -178,7 +178,7 @@ Id1 Id2 Name1   Name2   Country Department1 Department2 Age1 Age2 ReportsTo1 Rep
 
 This example adds an Id to the department list.  
 
-> [!Note](#note)
+> [!Note]
 > The default column name of (nameless) scalar array is `<Value>` this will show when the [`-ValueName`](#-valuename) parameter is omitted.
 
 ```PowerShell
@@ -234,7 +234,7 @@ a4 b4 c4 d4
 
 The left object list, usually provided through the pipeline, to be joined.
 
-> [!Note](#note)
+> [!Note]
 > A **self-join** on the `LeftObject` list will be performed if the `RightObject` is omitted.
 
 ```powershell
@@ -253,7 +253,7 @@ Accept wildcard characters: False
 
 The right object list, provided by the first argument, to be joined.
 
-> [!Note](#note)
+> [!Note]
 > A **self-join** on the `RightObject` list will be performed if the `LeftObject` is omitted.
 
 ```powershell
@@ -277,18 +277,18 @@ If the [`-On`](#-on) parameter contains an expression, the expression will be ev
 `$Left` contains the current object. The result of the expression will be compared to right object property
 defined by the [`-Equals`](#-equals) parameter.
 
-> [!Note](#note)
+> [!Note]
 > The list of properties defined by the [`-On`](#-on) parameter will be complemented with the list of
 > properties defined by the [`-Equals`](#-equals) parameter and vice versa.
 
-> [!Note](#note)
+> [!Note]
 > Related properties will be merged to a single property by default (see also the [`-Property`](#-property) parameter).
 
-> [!Tip](#tip)
+> [!Tip]
 > If the [`-On`](#-on) and the [`-Using`](#-using) parameter are omitted, a side-by-side join is returned unless
 > `OuterJoin` is performed where the default [`-On`](#-on) parameter value is * (all properties).
 
-> [!Tip](#tip)
+> [!Tip]
 > if the left object is a scalar array, the [`-On`](#-on) parameters is used to name the scalar array.
 
 ```powershell
@@ -317,11 +317,11 @@ The hash table will be empty (`@{}`) in the outer part of a left join or full jo
 The hash table will be empty (`@{}`) in the outer part of a right join or full join.
 * `$RightIndex`: the index of the right object (`$Null` in the outer part of a left- or full join)
 
-> [!Warning](#warning)
+> [!Warning]
 > The [`-Using`](#-using) parameter has the most complex comparison possibilities but is considerable slower
 > than the [`-On`](#-on) parameter.
 
-> [!Note](#note)
+> [!Note]
 > The [`-Using`](#-using) parameter cannot be used with the [`-On`](#-on) parameter.
 
 ```powershell
@@ -345,19 +345,19 @@ If the [`-Equals`](#-equals) parameter contains an expression, the expression wi
 `$Right` contains the current object. The result of the expression will be compared to left object property
 defined by the [`-On`](#-on) parameter.
 
-> [!Note](#note)
-> The list of properties defined by the [-Equal](#equal) parameter will be complemented with the list of properties
+> [!Note]
+> The list of properties defined by the [-Equal] parameter will be complemented with the list of properties
 > defined by the -On parameter and vice versa. This means that by default value of the [`-Equals`](#-equals) parameter
 > is equal to the value supplied to the [`-On`](#-on) parameter.
 
-> [!Note](#note)
+> [!Note]
 > A property will be omitted in the results if it exists on both sides and if the property at the other side
 > is related to another property.
 
-> [!Note](#note)
+> [!Note]
 > The [`-Equals`](#-equals) parameter can only be used with the [`-On`](#-on) parameter.
 
-> [!Tip](#tip)
+> [!Tip]
 > if the right object is a scalar array, the [`-Equals`](#-equals) parameters is used to name the scalar array.
 
 ```powershell
@@ -375,7 +375,7 @@ Accept wildcard characters: False
 ### <a id="-discern">`-Discern` <a href="https://docs.microsoft.com/en-us/dotnet/api/System.String[]">&lt;String[]&gt;</a></a>
 
 By default unrelated properties with the same name will be collected in a single object property.
-The [`-Discern`](#-discern) parameter (alias [-NameItems](#nameitems))  defines how to rename the object properties and divide
+The [`-Discern`](#-discern) parameter (alias [-NameItems])  defines how to rename the object properties and divide
 them over multiple properties. If a given name pattern contains an asterisks (`*`), the asterisks
 will be replaced with the original property name. Otherwise, the property name for each property
 item will be prefixed with the given name pattern.
@@ -385,10 +385,10 @@ command in the change. The rename patterns are right aligned, meaning that the l
 will be applied to the last object joined. If there are less rename patterns than property items,
 the rest of the (left most) property items will be put in a fixed array under the original property name.
 
-> [!Note](#note)
+> [!Note]
 > As apposed to the [`-On`](#-on) parameter, properties with the same name on both sides will not be renamed.
 
-> [!Note](#note)
+> [!Note]
 > Related properties (with an equal value defined by the [`-On`](#-on) parameter) will be merged to a single item.
 
 ```powershell
@@ -471,7 +471,7 @@ Accept wildcard characters: False
 Defines which unrelated objects should be included (see: [Description](#description)).
 Valid values are: `Inner`, `Left`, `Right`, `Full` or `Cross`. The default is `Inner`.
 
-> [!Tip](#tip)
+> [!Tip]
 > it is recommended to use the related proxy commands (`... | <JoinType>-Object ...`) instead.
 
 ```powershell
@@ -491,7 +491,7 @@ Accept wildcard characters: False
 Defines the name of the added property in case a scalar array is joined with an object array.
 The default property name for each scalar is: `<Value>`.
 
-> [!Note](#note)
+> [!Note]
 > if two scalar (or collection) arrays are joined, an array of (PSObject) collections is returned.
 Each collection is a concatenation of the left item (collection) and the right item (collection).
 
