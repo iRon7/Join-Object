@@ -1,5 +1,5 @@
 ﻿<#PSScriptInfo
-.VERSION 3.8.4
+.VERSION 3.8.5
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR Ronald Bode (iRon)
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
