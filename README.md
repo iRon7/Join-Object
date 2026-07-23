@@ -117,7 +117,7 @@ The example below does a full join of the tables mentioned in the first example 
 on the `department` name and splits the duplicate (`country`) names over different properties.
 
 ```PowerShell
-$Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
+$Employee | FullJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
 
 Id Name    EmployeeCountry DepartmentCountry Department  Age ReportsTo
 -- ----    --------------- ----------------- ----------  --- ---------
@@ -127,6 +127,7 @@ Id Name    EmployeeCountry DepartmentCountry Department  Age ReportsTo
  4 Duval   France          Germany           Engineering  21         5
  5 Evans   England         England           Marketing    35
  6 Fischer Germany         Germany           Engineering  29         4
+                           France            Purchase
 ```
 
 ### <a id="example-3"><a id="example-merge-a-table-with-updates">Example 3: merge a table with updates</a></a>

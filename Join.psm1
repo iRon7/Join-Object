@@ -1,5 +1,5 @@
 ﻿<#PSScriptInfo
-.VERSION 3.8.4
+.VERSION 3.8.5
 .GUID 54688e75-298c-4d4b-a2d0-d478e6069126
 .AUTHOR Ronald Bode (iRon)
 .DESCRIPTION Join-Object combines two object lists based on a related property between them.
@@ -258,7 +258,7 @@ PS C:\> $Employee | Join $Department -On Country | Format-Table
 The example below does a full join of the tables mentioned in the first example based
 on the `department` name and splits the duplicate (`country`) names over different properties.
 
-PS C:\> $Employee | InnerJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
+PS C:\> $Employee | FullJoin $Department -On Department -Equals Name -Discern Employee, Department | Format-Table
 
     Id Name    EmployeeCountry DepartmentCountry Department  Age ReportsTo
     -- ----    --------------- ----------------- ----------  --- ---------
@@ -268,6 +268,7 @@ PS C:\> $Employee | InnerJoin $Department -On Department -Equals Name -Discern E
      4 Duval   France          Germany           Engineering  21         5
      5 Evans   England         England           Marketing    35
      6 Fischer Germany         Germany           Engineering  29         4
+                               France            Purchase
 
 .EXAMPLE
 # merge a table with updates
