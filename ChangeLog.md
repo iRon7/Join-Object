@@ -1,3 +1,6 @@
+## 2025-06-10 3.8.5
+  - Documentation
+    - [#57](https://github.com/iRon7/Join-Object/issues/57) Use FullJoin in example 2 and add the unmatched Purchase row (Thanks SAY-5)
 ## 2025-06-10 3.8.4 (iRon)
   - Breaking changes
     - [#55](https://github.com/iRon7/Join-Object/issues/55) (Bucket 3: Unlikely Grey Area) Some unapproved verb cmdlets (as e.g. `FullJoin-Object`) are now provided as aliases
