@@ -12,7 +12,7 @@
 RootModule = 'Join.psm1'
 
 # Version number of this module.
-ModuleVersion = '3.8.4'
+ModuleVersion = '3.8.5'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
